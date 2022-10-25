@@ -28,6 +28,7 @@ import com.orion.iptv.bean.ChannelItem;
 import com.orion.iptv.bean.ChannelManager;
 import com.orion.iptv.layout.livechannelinfo.LiveChannelInfoLayout;
 import com.orion.iptv.layout.livechannellist.LiveChannelListLayout;
+import com.orion.iptv.misc.CancelableRunnable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,17 +42,19 @@ public class MainActivity extends AppCompatActivity {
     protected LiveChannelListLayout channelListLayout;
     protected @Nullable ExoPlayer player;
     private RequestQueue reqQueue;
+    private Handler mPlayerHandler;
+    private CancelableRunnable playerDelayedTask;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        reqQueue = Volley.newRequestQueue(this);
         videoView = findViewById(R.id.videoView);
         videoView.setShowBuffering(StyledPlayerView.SHOW_BUFFERING_WHEN_PLAYING);
-        channelInfoLayout = new LiveChannelInfoLayout(findViewById(R.id.channelInfoLayout));
         ChannelManager channelManager = new ChannelManager(this.getString(R.string.default_group_name));
-        channelListLayout = new LiveChannelListLayout(findViewById(R.id.channelListLayout), channelManager);
-        reqQueue = Volley.newRequestQueue(this);
+        channelListLayout = new LiveChannelListLayout(this, channelManager);
+        channelInfoLayout = new LiveChannelInfoLayout(this);
     }
 
     private class GestureListener extends GestureDetector.SimpleOnGestureListener {
@@ -77,68 +80,82 @@ public class MainActivity extends AppCompatActivity {
             if (player != null && player.getMediaItemCount() > 0) {
                 if (dist < 0) {
                     // from right to left
-                    player.seekToNextMediaItem();
+                    seekToNextMediaItem(0);
                 } else {
                     // from left to right
-                    player.seekToPreviousMediaItem();
+                    seekToPrevMediaItem(0);
                 }
-                if (player.getPlaybackState() == Player.STATE_IDLE) {
-                    player.prepare();
-                }
-                player.setPlayWhenReady(true);
             }
             return true;
         }
     }
 
-    private class PlayerEventListener implements Player.Listener {
-        private final ExoPlayer linkedPlayer;
-        private final Handler handler;
-        private CancelableRunnable delayedTask;
+    private void postDelayedPlayerTask(int delayMillis, CancelableRunnable task) {
+        if (playerDelayedTask != null) {
+            playerDelayedTask.cancel();
+        }
+        playerDelayedTask = task;
+        delayMillis = Math.max(delayMillis, 1);
+        mPlayerHandler.postDelayed(task, delayMillis);
+    }
 
-        private abstract class CancelableRunnable implements Runnable {
-            private boolean canceled = false;
+    private void _seekToNextMediaItem() {
+        if (player == null) { return; }
+        player.seekToNextMediaItem();
+        if (player.getPlaybackState() == Player.STATE_IDLE) {
+            player.prepare();
+        }
+        player.setPlayWhenReady(true);
+    }
 
+    public void seekToNextMediaItem(int delayMillis) {
+        postDelayedPlayerTask(delayMillis, new CancelableRunnable() {
             @Override
-            public void run() {
-                if (!canceled) {
-                    callback();
+            public void callback() {
+                _seekToNextMediaItem();
+            }
+        });
+    }
+
+    private void _seekToPrevMediaItem() {
+        if (player == null) { return; }
+        player.seekToPreviousMediaItem();
+        if (player.getPlaybackState() == Player.STATE_IDLE) {
+            player.prepare();
+        }
+        player.setPlayWhenReady(true);
+    }
+
+    public void seekToPrevMediaItem(int delayMillis) {
+        postDelayedPlayerTask(delayMillis, new CancelableRunnable() {
+            @Override
+            public void callback() {
+                _seekToPrevMediaItem();
+            }
+        });
+    }
+
+    public void setMediaItems(List<MediaItem> items, int delayMillis) {
+        postDelayedPlayerTask(delayMillis, new CancelableRunnable() {
+            @Override
+            public void callback() {
+                if (player == null) { return; }
+                player.setMediaItems(items);
+                if (player.getPlaybackState() == Player.STATE_IDLE) {
+                    player.prepare();
                 }
+                player.setPlayWhenReady(true);
             }
+        });
+    }
 
-            public abstract void callback();
-
-            public void cancel() {
-                canceled = true;
-            }
-        }
-
-        public PlayerEventListener(ExoPlayer player) {
-            linkedPlayer = player;
-            handler = new Handler(getMainLooper());
-        }
-
-        private void runDelayed(int delayMillis, CancelableRunnable task) {
-            if (delayedTask != null) {
-                delayedTask.cancel();
-            }
-            delayedTask = task;
-            handler.postDelayed(task, delayMillis);
-        }
+    private class PlayerEventListener implements Player.Listener {
+        public PlayerEventListener() {}
 
         @Override
         public void onPlayerError(PlaybackException error) {
             Log.e(TAG, error.toString());
-            runDelayed(1000, new CancelableRunnable() {
-                @Override
-                public void callback() {
-                    linkedPlayer.seekToNextMediaItem();
-                    if (linkedPlayer.getPlaybackState() == Player.STATE_IDLE) {
-                        linkedPlayer.prepare();
-                    }
-                    linkedPlayer.setPlayWhenReady(true);
-                }
-            });
+            seekToNextMediaItem(1000);
         }
 
         @Override
@@ -163,23 +180,14 @@ public class MainActivity extends AppCompatActivity {
             switch (state) {
                 case Player.STATE_READY:
                     Log.w(TAG, "player change state to STATE_READY");
-                    if (delayedTask != null) {
-                        delayedTask.cancel();
+                    if (playerDelayedTask != null) {
+                        playerDelayedTask.cancel();
                     }
                     channelInfoLayout.setVisibleDelayed(false, 10*1000);
                     break;
                 case Player.STATE_BUFFERING:
                     Log.w(TAG, "player change state to STATE_BUFFERING");
-                    runDelayed(10 * 1000, new CancelableRunnable() {
-                        @Override
-                        public void callback() {
-                            linkedPlayer.seekToNextMediaItem();
-                            if (linkedPlayer.getPlaybackState() == Player.STATE_IDLE) {
-                                linkedPlayer.prepare();
-                            }
-                            linkedPlayer.setPlayWhenReady(true);
-                        }
-                    });
+                    seekToNextMediaItem(10*1000);
                     break;
                 case Player.STATE_ENDED:
                     Log.w(TAG, "player change state to STATE_ENDED");
@@ -192,8 +200,9 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onMediaItemTransition(MediaItem mediaItem, @Player.MediaItemTransitionReason int reason) {
+            assert player != null;
             channelInfoLayout.setVisibleDelayed(true, 0);
-            channelInfoLayout.setLinkInfo(linkedPlayer.getCurrentMediaItemIndex()+1, linkedPlayer.getMediaItemCount());
+            channelInfoLayout.setLinkInfo(player.getCurrentMediaItemIndex()+1, player.getMediaItemCount());
             if (mediaItem != null) {
                 if (mediaItem.localConfiguration != null && mediaItem.localConfiguration.tag != null) {
                     Log.i(TAG, "start playing " + mediaItem.localConfiguration.uri);
@@ -206,22 +215,19 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-    
+
     @Override
     public void onStart() {
         super.onStart();
+        initializePlayer();
+        assert player != null;
+
         String url = this.getString(R.string.channel_list_url);
         StringRequest stringRequest = new StringRequest(Request.Method.GET, url, response -> {
             channelListLayout.setData(ChannelManager.from(getString(R.string.default_group_name), response));
-            if (player != null) {
-                List<MediaItem> items = channelListLayout.getCurrentChannelSources().orElse(new ArrayList<>());
-                if (items.size() > 0 ) {
-                    player.setMediaItems(items);
-                    if (player.getPlaybackState() == Player.STATE_IDLE) {
-                        player.prepare();
-                    }
-                    player.setPlayWhenReady(true);
-                }
+            List<MediaItem> items = channelListLayout.getCurrentChannelSources().orElse(new ArrayList<>());
+            if (items.size() > 0 ) {
+                setMediaItems(items, 0);
             }
         }, error -> Log.e(TAG, "got channel list failed, " + error.toString()));
         reqQueue.add(stringRequest.setTag(TAG));
@@ -231,19 +237,12 @@ public class MainActivity extends AppCompatActivity {
             view.performClick();
             return gestureDetector.onTouchEvent(event);
         });
-        initializePlayer();
-        if (player == null) {
-            return;
-        }
+
         channelListLayout.setOnChannelSelectedListener((groupIndex, channelIndex) -> {
-           List<MediaItem> items = channelListLayout.getCurrentChannelSources().orElse(new ArrayList<>());
-           if (items.size() > 0) {
-               player.setMediaItems(items);
-               if (player.getPlaybackState() == Player.STATE_IDLE) {
-                   player.prepare();
-               }
-               player.setPlayWhenReady(true);
-           }
+            List<MediaItem> items = channelListLayout.getCurrentChannelSources().orElse(new ArrayList<>());
+            if (items.size() > 0) {
+                setMediaItems(items, 0);
+            }
         });
     }
 
@@ -274,11 +273,12 @@ public class MainActivity extends AppCompatActivity {
         builder.setRenderersFactory(renderFactory);
         return builder.build();
     }
-    
+
     protected void initializePlayer() {
         releasePlayer();
         player = newPlayer();
-        player.addListener(new PlayerEventListener(player));
+        mPlayerHandler = new Handler(getMainLooper());
+        player.addListener(new PlayerEventListener());
         player.setRepeatMode(Player.REPEAT_MODE_ALL);
         videoView.setPlayer(player);
     }

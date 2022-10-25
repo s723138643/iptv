@@ -1,9 +1,6 @@
 package com.orion.iptv.layout.livechannellist;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
-import android.os.Handler;
-import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -29,7 +26,6 @@ public class ChannelListViewAdapter extends RecyclerView.Adapter<ChannelListView
     private List<ChannelItem> channels;
     private SelectionTracker<Long> tracker;
     private OnSelectedListener onSelected;
-    private final Handler mHandler = new Handler(Looper.getMainLooper());
 
     public interface OnSelectedListener {
         void onSelected(int position);
@@ -66,7 +62,7 @@ public class ChannelListViewAdapter extends RecyclerView.Adapter<ChannelListView
         public Optional<ItemDetailsLookup.ItemDetails<Long>> getItemDetails() {
             int position = getBindingAdapterPosition();
             if (position != RecyclerView.NO_POSITION) {
-                return Optional.of(new ItemDetailsLookup.ItemDetails<Long>() {
+                return Optional.of(new ItemDetailsLookup.ItemDetails<>() {
                     @Override
                     public int getPosition() {
                         return position;
@@ -152,11 +148,7 @@ public class ChannelListViewAdapter extends RecyclerView.Adapter<ChannelListView
         onSelected = listener;
     }
 
-    @SuppressLint("NotifyDataSetChanged")
     public void setData(List<ChannelItem> channels) {
         this.channels = channels;
-        tracker.clearSelection();
-        // should invoke it on main ui thread
-        mHandler.post(this::notifyDataSetChanged);
     }
 }

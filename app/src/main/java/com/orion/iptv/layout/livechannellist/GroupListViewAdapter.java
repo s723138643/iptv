@@ -1,8 +1,6 @@
 package com.orion.iptv.layout.livechannellist;
 
 import android.content.Context;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -29,7 +27,6 @@ public class GroupListViewAdapter extends RecyclerView.Adapter<GroupListViewAdap
     private List<ChannelGroup> groups;
     private SelectionTracker<Long> tracker;
     private OnSelectedListener onSelected;
-    private final Handler mHandler = new Handler(Looper.getMainLooper());
 
     public interface OnSelectedListener {
         void onSelected(int position);
@@ -64,7 +61,7 @@ public class GroupListViewAdapter extends RecyclerView.Adapter<GroupListViewAdap
 
         public ItemDetailsLookup.ItemDetails<Long> getItemDetails() {
             int position = getBindingAdapterPosition();
-            return new ItemDetailsLookup.ItemDetails<Long>() {
+            return new ItemDetailsLookup.ItemDetails<>() {
                 @Override
                 public int getPosition() {
                     return position;
@@ -148,9 +145,6 @@ public class GroupListViewAdapter extends RecyclerView.Adapter<GroupListViewAdap
     }
 
     public void setData(List<ChannelGroup> groups) {
-        tracker.clearSelection();
         this.groups = groups;
-        // should invoke it on main ui thread
-        mHandler.post(this::notifyDataSetChanged);
     }
 }

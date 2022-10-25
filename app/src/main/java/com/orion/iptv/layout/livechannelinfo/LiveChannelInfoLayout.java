@@ -2,10 +2,12 @@ package com.orion.iptv.layout.livechannelinfo;
 
 import android.view.View;
 import android.widget.TextView;
-import android.os.Looper;
 import android.os.Handler;
 
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.orion.iptv.R;
+import com.orion.iptv.misc.CancelableRunnable;
 
 import java.util.Locale;
 
@@ -17,86 +19,82 @@ public class LiveChannelInfoLayout {
     protected TextView linkInfo;
     protected TextView currentEpgProgram;
     protected TextView nextEpgProgram;
-    protected View myView;
-    private final Handler handler;
-    private DelayTask delayTask;
+    protected View mLayout;
+    private final Handler mHandler;
+    private CancelableRunnable setVisibilityDelayedTask;
 
-    public LiveChannelInfoLayout(View view) {
-        myView = view;
-        channelNumber = view.findViewById(R.id.channelNumber);
-        channelName = view.findViewById(R.id.channelName);
-        codecInfo = view.findViewById(R.id.codecInfo);
-        mediaInfo = view.findViewById(R.id.mediaInfo);
-        linkInfo = view.findViewById(R.id.linkInfo);
-        currentEpgProgram = view.findViewById(R.id.currentEpgProgram);
-        nextEpgProgram = view.findViewById(R.id.nextEpgProgram);
-        handler = new Handler(Looper.getMainLooper());
+    public LiveChannelInfoLayout(AppCompatActivity activity) {
+        mLayout = activity.findViewById(R.id.channelInfoLayout);
+        channelNumber = mLayout.findViewById(R.id.channelNumber);
+        channelName = mLayout.findViewById(R.id.channelName);
+        codecInfo = mLayout.findViewById(R.id.codecInfo);
+        mediaInfo = mLayout.findViewById(R.id.mediaInfo);
+        linkInfo = mLayout.findViewById(R.id.linkInfo);
+        currentEpgProgram = mLayout.findViewById(R.id.currentEpgProgram);
+        nextEpgProgram = mLayout.findViewById(R.id.nextEpgProgram);
+        mHandler = new Handler(activity.getMainLooper());
     }
 
     public void setChannelName(String name) {
-        this.channelName.setText(name);
+        mHandler.post(()->{
+            this.channelName.setText(name);
+        });
     }
 
     public void setChannelNumber(int number) {
-        this.channelNumber.setText(String.format(Locale.ENGLISH, "%d", number));
+        mHandler.post(()->{
+            this.channelNumber.setText(String.format(Locale.ENGLISH, "%d", number));
+        });
     }
 
     public void setCodecInfo(String info) {
-        this.codecInfo.setText(info);
+        mHandler.post(()->{
+            this.codecInfo.setText(info);
+        });
     }
 
     public void setMediaInfo(String info) {
-        this.mediaInfo.setText(info);
+        mHandler.post(()->{
+            this.mediaInfo.setText(info);
+        });
     }
 
     public void setLinkInfo(int currentIndex, int totalLinks) {
-        this.linkInfo.setText(String.format(Locale.ENGLISH, "[%d/%d]", currentIndex, totalLinks));
+        mHandler.post(()->{
+            this.linkInfo.setText(String.format(Locale.ENGLISH, "[%d/%d]", currentIndex, totalLinks));
+        });
     }
 
     public void setCurrentEpgProgram(String program) {
-        this.currentEpgProgram.setText(program);
+        mHandler.post(()->{
+            this.currentEpgProgram.setText(program);
+        });
     }
 
     public void setNextEpgProgram(String program) {
-        this.nextEpgProgram.setText(program);
-    }
-
-    protected class DelayTask implements Runnable {
-        private final boolean isVisible;
-        private boolean canceled = false;
-
-        public DelayTask(boolean isVisible) {
-            this.isVisible = isVisible;
-        }
-
-        public void cancel() {
-            canceled = true;
-        }
-
-        @Override
-        public void run() {
-            if (!canceled) {
-                _setVisibility(isVisible);
-            }
-        }
+        mHandler.post(()->{
+            this.nextEpgProgram.setText(program);
+        });
     }
 
     private void _setVisibility(boolean isVisible) {
         int visibility = isVisible ? View.VISIBLE : View.GONE;
-        if (myView.getVisibility() != visibility) {
-            myView.setVisibility(visibility);
+        if (mLayout.getVisibility() != visibility) {
+            mLayout.setVisibility(visibility);
         }
     }
 
-    public void setVisibleDelayed(boolean isVisible, int delay) {
-        if (delayTask != null) {
-            delayTask.cancel();
+    public void setVisibleDelayed(boolean isVisible, int delayMillis) {
+        if (setVisibilityDelayedTask != null) {
+            setVisibilityDelayedTask.cancel();
         }
-        if (delay <= 0) {
-            _setVisibility(isVisible);
-        } else {
-            delayTask = new DelayTask(isVisible);
-            handler.postDelayed(delayTask, delay);
-        }
+        setVisibilityDelayedTask = new CancelableRunnable() {
+            @Override
+            public void callback() {
+                _setVisibility(isVisible);
+            }
+        };
+        delayMillis = Math.max(delayMillis, 1);
+        mHandler.postDelayed(setVisibilityDelayedTask, delayMillis);
     }
 }

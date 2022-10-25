@@ -1,9 +1,6 @@
 package com.orion.iptv.layout.livechannellist;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -32,7 +29,6 @@ public class EpgListViewAdapter extends RecyclerView.Adapter<EpgListViewAdapter.
     private List<EpgProgram> epgs;
     private SelectionTracker<Long> tracker;
     private OnSelectedListener onSelected;
-    private final Handler mHandler = new Handler(Looper.getMainLooper());
 
     public interface OnSelectedListener {
         void onSelected(int position);
@@ -68,7 +64,7 @@ public class EpgListViewAdapter extends RecyclerView.Adapter<EpgListViewAdapter.
 
         public ItemDetailsLookup.ItemDetails<Long> getItemDetails() {
             int position = getBindingAdapterPosition();
-            return new ItemDetailsLookup.ItemDetails<Long>() {
+            return new ItemDetailsLookup.ItemDetails<>() {
                 @Override
                 public int getPosition() {
                     return position;
@@ -154,11 +150,7 @@ public class EpgListViewAdapter extends RecyclerView.Adapter<EpgListViewAdapter.
         onSelected = listener;
     }
 
-    @SuppressLint("NotifyDataSetChanged")
     public void setData(List<EpgProgram> epgs) {
         this.epgs = epgs;
-        tracker.clearSelection();
-        // should invoke it on main ui thread
-        mHandler.post(this::notifyDataSetChanged);
     }
 }
