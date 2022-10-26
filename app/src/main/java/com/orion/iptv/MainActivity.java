@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
+import android.view.WindowMetrics;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -44,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
     private RequestQueue reqQueue;
     private Handler mPlayerHandler;
     private CancelableRunnable playerDelayedTask;
+    private GestureDetectorCompat gestureDetector;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
         ChannelManager channelManager = new ChannelManager(this.getString(R.string.default_group_name));
         channelListLayout = new LiveChannelListLayout(this, channelManager);
         channelInfoLayout = new LiveChannelInfoLayout(this);
+        gestureDetector = new GestureDetectorCompat(this, new GestureListener());
     }
 
     private class GestureListener extends GestureDetector.SimpleOnGestureListener {
@@ -71,22 +74,34 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            float dist = e2.getX() - e1.getX();
+            final float flyingXThreshold = 300.0f;
+            float distX = e2.getX() - e1.getX();
             // distance is too short ignore this event
-            if (dist < 500.0 && dist > -500.0) {
-                return false;
-            }
-            Log.i(TAG, String.format(Locale.ENGLISH, "scroll event detect, dist: %.2f, direction: %.2f", dist, velocityX));
-            if (player != null && player.getMediaItemCount() > 0) {
-                if (dist < 0) {
-                    // from right to left
-                    seekToNextMediaItem(0);
-                } else {
-                    // from left to right
-                    seekToPrevMediaItem(0);
+            if (Math.abs(distX) > flyingXThreshold) {
+                Log.i(TAG, String.format(Locale.ENGLISH, "scrollX event detect, dist: %.2f, direction: %.2f", distX, velocityX));
+                if (player != null && player.getMediaItemCount() > 0) {
+                    if (distX < 0) {
+                        // from right to left
+                        seekToNextMediaItem(0);
+                    } else {
+                        // from left to right
+                        seekToPrevMediaItem(0);
+                    }
                 }
+                return true;
             }
-            return true;
+            final float flyingYThreshold = 300.0f;
+            float distY = e2.getY() - e1.getY();
+            if (Math.abs(distY) > flyingYThreshold) {
+                Log.i(TAG, String.format(Locale.ENGLISH, "scrollY event detect, dist: %.2f, direction: %.2f", distY, velocityY));
+                if (distY < 0) {
+                    channelInfoLayout.displayAsToast(R.integer.channel_info_layout_display_timeout);
+                } else {
+                    channelInfoLayout.hide();
+                }
+                return true;
+            }
+            return false;
         }
     }
 
@@ -155,7 +170,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onPlayerError(PlaybackException error) {
             Log.e(TAG, error.toString());
-            seekToNextMediaItem(1000);
+            seekToNextMediaItem(R.integer.play_next_timeout_on_error);
         }
 
         @Override
@@ -183,11 +198,12 @@ public class MainActivity extends AppCompatActivity {
                     if (playerDelayedTask != null) {
                         playerDelayedTask.cancel();
                     }
-                    channelInfoLayout.setVisibleDelayed(false, 10*1000);
+                    channelInfoLayout.setVisibleDelayed(false, R.integer.channel_info_layout_display_timeout);
                     break;
                 case Player.STATE_BUFFERING:
                     Log.w(TAG, "player change state to STATE_BUFFERING");
-                    seekToNextMediaItem(10*1000);
+                    /* TODO set timeout value via setting layout */
+                    seekToNextMediaItem(15*1000);
                     break;
                 case Player.STATE_ENDED:
                     Log.w(TAG, "player change state to STATE_ENDED");
@@ -231,19 +247,18 @@ public class MainActivity extends AppCompatActivity {
             }
         }, error -> Log.e(TAG, "got channel list failed, " + error.toString()));
         reqQueue.add(stringRequest.setTag(TAG));
-
-        GestureDetectorCompat gestureDetector = new GestureDetectorCompat(this, new GestureListener());
-        videoView.setOnTouchListener((view, event)->{
-            view.performClick();
-            return gestureDetector.onTouchEvent(event);
-        });
-
         channelListLayout.setOnChannelSelectedListener((groupIndex, channelIndex) -> {
             List<MediaItem> items = channelListLayout.getCurrentChannelSources().orElse(new ArrayList<>());
             if (items.size() > 0) {
                 setMediaItems(items, 0);
             }
         });
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        super.onTouchEvent(event);
+        return gestureDetector.onTouchEvent(event);
     }
 
     @Override

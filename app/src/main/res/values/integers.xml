@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <integer name="background_alpha">30</integer>
+    <integer name="channel_info_layout_display_timeout">5000</integer>
+    <integer name="play_next_timeout_on_error">1000</integer>
 </resources>

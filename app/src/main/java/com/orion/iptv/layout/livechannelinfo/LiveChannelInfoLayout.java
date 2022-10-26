@@ -36,45 +36,31 @@ public class LiveChannelInfoLayout {
     }
 
     public void setChannelName(String name) {
-        mHandler.post(()->{
-            this.channelName.setText(name);
-        });
+        mHandler.post(()-> this.channelName.setText(name));
     }
 
     public void setChannelNumber(int number) {
-        mHandler.post(()->{
-            this.channelNumber.setText(String.format(Locale.ENGLISH, "%d", number));
-        });
+        mHandler.post(()-> this.channelNumber.setText(String.format(Locale.ENGLISH, "%d", number)));
     }
 
     public void setCodecInfo(String info) {
-        mHandler.post(()->{
-            this.codecInfo.setText(info);
-        });
+        mHandler.post(()-> this.codecInfo.setText(info));
     }
 
     public void setMediaInfo(String info) {
-        mHandler.post(()->{
-            this.mediaInfo.setText(info);
-        });
+        mHandler.post(()-> this.mediaInfo.setText(info));
     }
 
     public void setLinkInfo(int currentIndex, int totalLinks) {
-        mHandler.post(()->{
-            this.linkInfo.setText(String.format(Locale.ENGLISH, "[%d/%d]", currentIndex, totalLinks));
-        });
+        mHandler.post(()-> this.linkInfo.setText(String.format(Locale.ENGLISH, "[%d/%d]", currentIndex, totalLinks)));
     }
 
     public void setCurrentEpgProgram(String program) {
-        mHandler.post(()->{
-            this.currentEpgProgram.setText(program);
-        });
+        mHandler.post(()-> this.currentEpgProgram.setText(program));
     }
 
     public void setNextEpgProgram(String program) {
-        mHandler.post(()->{
-            this.nextEpgProgram.setText(program);
-        });
+        mHandler.post(()-> this.nextEpgProgram.setText(program));
     }
 
     private void _setVisibility(boolean isVisible) {
@@ -96,5 +82,44 @@ public class LiveChannelInfoLayout {
         };
         delayMillis = Math.max(delayMillis, 1);
         mHandler.postDelayed(setVisibilityDelayedTask, delayMillis);
+    }
+
+    private boolean isVisible() {
+        return mLayout.getVisibility() == View.VISIBLE;
+    }
+
+    // do nothing if is already visible,
+    // or display it and hide after displayMillis milliseconds
+    public void displayAsToast(int displayMillis) {
+        mHandler.post(()->{
+            if (isVisible()) { return; }
+            if (setVisibilityDelayedTask != null) {
+                setVisibilityDelayedTask.cancel();
+            }
+            setVisibilityDelayedTask = new CancelableRunnable() {
+                @Override
+                public void callback() {
+                    _setVisibility(true);
+                    setVisibleDelayed(false, displayMillis);
+                }
+            };
+            mHandler.post(setVisibilityDelayedTask);
+        });
+    }
+
+    public void hide() {
+        mHandler.post(()->{
+           if (!isVisible()) { return; }
+           if (setVisibilityDelayedTask != null) {
+               setVisibilityDelayedTask.cancel();
+           }
+           setVisibilityDelayedTask = new CancelableRunnable() {
+               @Override
+               public void callback() {
+                   _setVisibility(false);
+               }
+           };
+           mHandler.post(setVisibilityDelayedTask);
+        });
     }
 }
