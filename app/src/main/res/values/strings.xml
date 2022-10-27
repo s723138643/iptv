@@ -17,5 +17,5 @@
     <!--
     <string name="channel_list_url">https://download.kstore.space/download/2863/live.txt</string>
     -->
-    <string name="channel_list_url">http://home.jundie.top:81/Cat/tv/live.txt</string>
+    <string name="channel_source_hint">请输入频道源地址</string>
 </resources>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <EditText
+        android:id="@+id/channel_source_url"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:ems="50"
+        android:hint="@string/channel_source_hint"
+        android:inputType="textUri"
+        android:importantForAutofill="no" />
+</LinearLayout>

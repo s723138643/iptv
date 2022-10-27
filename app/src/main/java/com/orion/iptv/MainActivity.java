@@ -5,16 +5,19 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GestureDetectorCompat;
 
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
-import android.view.WindowMetrics;
+import android.widget.EditText;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Tracks;
+import com.orion.iptv.layout.liveplayersetting.LivePlayerSettingLayout;
+import com.orion.iptv.misc.PreferenceStore;
 import com.orion.iptv.network.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.google.android.exoplayer2.DefaultRenderersFactory;
@@ -41,11 +44,13 @@ public class MainActivity extends AppCompatActivity {
     protected StyledPlayerView videoView;
     protected LiveChannelInfoLayout channelInfoLayout;
     protected LiveChannelListLayout channelListLayout;
+    protected LivePlayerSettingLayout livePlayerSettingLayout;
     protected @Nullable ExoPlayer player;
     private RequestQueue reqQueue;
     private Handler mPlayerHandler;
     private CancelableRunnable playerDelayedTask;
     private GestureDetectorCompat gestureDetector;
+    private PreferenceStore preferenceStore;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,7 +62,9 @@ public class MainActivity extends AppCompatActivity {
         ChannelManager channelManager = new ChannelManager(this.getString(R.string.default_group_name));
         channelListLayout = new LiveChannelListLayout(this, channelManager);
         channelInfoLayout = new LiveChannelInfoLayout(this);
+        livePlayerSettingLayout = new LivePlayerSettingLayout(this);
         gestureDetector = new GestureDetectorCompat(this, new GestureListener());
+        preferenceStore = new PreferenceStore(this);
     }
 
     private class GestureListener extends GestureDetector.SimpleOnGestureListener {
@@ -70,6 +77,11 @@ public class MainActivity extends AppCompatActivity {
         public boolean onSingleTapConfirmed(MotionEvent e) {
             channelListLayout.setVisibleDelayed(!channelListLayout.getIsVisible(), 0);
             return true;
+        }
+
+        @Override
+        public void onLongPress(@NonNull MotionEvent e) {
+            livePlayerSettingLayout.setVisible(!livePlayerSettingLayout.getIsVisible());
         }
 
         @Override
@@ -95,7 +107,7 @@ public class MainActivity extends AppCompatActivity {
             if (Math.abs(distY) > flyingYThreshold) {
                 Log.i(TAG, String.format(Locale.ENGLISH, "scrollY event detect, dist: %.2f, direction: %.2f", distY, velocityY));
                 if (distY < 0) {
-                    channelInfoLayout.displayAsToast(R.integer.channel_info_layout_display_timeout);
+                    channelInfoLayout.displayAsToast(5000);
                 } else {
                     channelInfoLayout.hide();
                 }
@@ -170,7 +182,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onPlayerError(PlaybackException error) {
             Log.e(TAG, error.toString());
-            seekToNextMediaItem(R.integer.play_next_timeout_on_error);
+            seekToNextMediaItem(1000);
         }
 
         @Override
@@ -198,7 +210,7 @@ public class MainActivity extends AppCompatActivity {
                     if (playerDelayedTask != null) {
                         playerDelayedTask.cancel();
                     }
-                    channelInfoLayout.setVisibleDelayed(false, R.integer.channel_info_layout_display_timeout);
+                    channelInfoLayout.setVisibleDelayed(false, 3000);
                     break;
                 case Player.STATE_BUFFERING:
                     Log.w(TAG, "player change state to STATE_BUFFERING");
@@ -232,13 +244,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    @Override
-    public void onStart() {
-        super.onStart();
-        initializePlayer();
-        assert player != null;
-
-        String url = this.getString(R.string.channel_list_url);
+    private void fetchChannelList(String url) {
         StringRequest stringRequest = new StringRequest(Request.Method.GET, url, response -> {
             channelListLayout.setData(ChannelManager.from(getString(R.string.default_group_name), response));
             List<MediaItem> items = channelListLayout.getCurrentChannelSources().orElse(new ArrayList<>());
@@ -247,10 +253,60 @@ public class MainActivity extends AppCompatActivity {
             }
         }, error -> Log.e(TAG, "got channel list failed, " + error.toString()));
         reqQueue.add(stringRequest.setTag(TAG));
+    }
+
+    private void getChannelSourceUrl() {
+        AlertDialog.Builder builder =  new AlertDialog.Builder(this);
+        builder = builder.setTitle("setting channel source");
+        builder = builder.setView(R.layout.channel_source_dialog);
+        builder = builder.setPositiveButton("ok", (dialog, which) -> {
+            AlertDialog alertDialog = (AlertDialog)dialog;
+            EditText text = alertDialog.findViewById(R.id.channel_source_url);
+            if (text == null) {
+                return;
+            }
+            String input = text.getText().toString();
+            Log.i(TAG, String.format(Locale.ENGLISH, "got channel resource url: %s", input));
+            if (input.equals("")) {
+                return;
+            }
+            mPlayerHandler.post(()->{
+                preferenceStore.setString("channel_source_url", input);
+                fetchChannelList(input);
+            });
+        });
+        builder.create().show();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        initializePlayer();
+        assert player != null;
+
+        String url = this.preferenceStore.getString("channel_source_url", "");
+        if (url.equals("")) {
+            getChannelSourceUrl();
+        } else {
+            Log.i(TAG, "use saved channel source: " + url);
+            fetchChannelList(url);
+        }
+
         channelListLayout.setOnChannelSelectedListener((groupIndex, channelIndex) -> {
             List<MediaItem> items = channelListLayout.getCurrentChannelSources().orElse(new ArrayList<>());
             if (items.size() > 0) {
                 setMediaItems(items, 0);
+            }
+        });
+
+        livePlayerSettingLayout.setOnSettingChangedListener((key, originValue)->{
+            if (key.equals("channel_source_url")) {
+                String value = (String)originValue;
+                if (value.equals("")) { return; }
+                mPlayerHandler.post(()->{
+                   preferenceStore.setString(key, value);
+                   fetchChannelList(value);
+                });
             }
         });
     }
@@ -278,6 +334,7 @@ public class MainActivity extends AppCompatActivity {
         super.onStop();
         reqQueue.cancelAll(TAG);
         releasePlayer();
+        preferenceStore.commit();
     }
 
     private ExoPlayer newPlayer() {
