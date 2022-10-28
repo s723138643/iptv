@@ -122,13 +122,8 @@ public class GroupListViewAdapter extends RecyclerView.Adapter<GroupListViewAdap
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, final int position) {
         Log.i(TAG, String.format(Locale.ENGLISH, "item %d bound", position));
-        boolean selected = tracker.isSelected((long)position);
-        holder.setActivated(selected);
+        holder.setActivated(tracker.isSelected((long)position));
         holder.setContent(position, groups.get(position));
-
-        if (selected && onSelected != null) {
-            onSelected.onSelected(position);
-        }
     }
 
     @Override
@@ -137,6 +132,16 @@ public class GroupListViewAdapter extends RecyclerView.Adapter<GroupListViewAdap
     }
 
     public void setTracker(SelectionTracker<Long> tracker) {
+        tracker.addObserver(new SelectionTracker.SelectionObserver<Long>() {
+            @Override
+            public void onItemStateChanged(@NonNull Long key, boolean selected) {
+                super.onItemStateChanged(key, selected);
+                if (!selected || onSelected == null) {
+                    return;
+                }
+                onSelected.onSelected(key.intValue());
+            }
+        });
         this.tracker = tracker;
     }
 

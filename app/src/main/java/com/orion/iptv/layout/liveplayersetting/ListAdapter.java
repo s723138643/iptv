@@ -38,13 +38,8 @@ public class ListAdapter<T extends ListItem> extends RecyclerView.Adapter<ViewHo
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, final int position) {
-        boolean selected = tracker.isSelected((long)position);
-        holder.setActivated(selected);
+        holder.setActivated(tracker.isSelected((long)position));
         holder.setContent(position, items.get(position));
-
-        if (selected && onSelected != null) {
-            onSelected.onSelected(items.get(position));
-        }
     }
 
     @Override
@@ -53,6 +48,19 @@ public class ListAdapter<T extends ListItem> extends RecyclerView.Adapter<ViewHo
     }
 
     public void setTracker(SelectionTracker<Long> tracker) {
+        tracker.addObserver(new SelectionTracker.SelectionObserver<>() {
+            @Override
+            public void onItemStateChanged(@NonNull Long key, boolean selected) {
+                super.onItemStateChanged(key, selected);
+                if (!selected || onSelected == null) {
+                    return;
+                }
+                int position = key.intValue();
+                if (position >= 0 && position < items.size()) {
+                    onSelected.onSelected(items.get(position));
+                }
+            }
+        });
         this.tracker = tracker;
     }
 

@@ -129,10 +129,6 @@ public class ChannelListViewAdapter extends RecyclerView.Adapter<ChannelListView
         boolean selected = tracker.isSelected((long)position);
         holder.setActivated(selected);
         holder.setContent(position, channels.get(position));
-
-        if (selected && onSelected != null) {
-            onSelected.onSelected(position);
-        }
     }
 
     @Override
@@ -141,6 +137,16 @@ public class ChannelListViewAdapter extends RecyclerView.Adapter<ChannelListView
     }
 
     public void setTracker(SelectionTracker<Long> tracker) {
+        tracker.addObserver(new SelectionTracker.SelectionObserver<Long>() {
+            @Override
+            public void onItemStateChanged(@NonNull Long key, boolean selected) {
+                super.onItemStateChanged(key, selected);
+                if (!selected || onSelected == null) {
+                    return;
+                }
+                onSelected.onSelected(key.intValue());
+            }
+        });
         this.tracker = tracker;
     }
 
