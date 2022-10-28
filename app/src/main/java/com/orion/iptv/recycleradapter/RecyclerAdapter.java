@@ -38,12 +38,7 @@ public class RecyclerAdapter<T extends ViewHolder<U>, U extends ListItem> extend
         }
 
         @Override
-        public boolean onDown(@NonNull MotionEvent e) {
-            return true;
-        }
-
-        @Override
-        public boolean onSingleTapConfirmed(@NonNull MotionEvent e) {
+        public boolean onSingleTapUp(@NonNull MotionEvent e) {
             View v = recyclerView.findChildViewUnder(e.getX(), e.getY());
             if (v == null) { return false; }
             RecyclerView.ViewHolder viewHolder = recyclerView.getChildViewHolder(v);
@@ -61,14 +56,14 @@ public class RecyclerAdapter<T extends ViewHolder<U>, U extends ListItem> extend
 
         @Override
         public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+            View v = rv.findChildViewUnder(e.getX(), e.getY());
+            if (v == null) { return false; }
             gestureDetector.onTouchEvent(e);
             return false;
         }
 
         @Override
-        public void onTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
-            gestureDetector.onTouchEvent(e);
-        }
+        public void onTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {}
 
         @Override
         public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) {}
@@ -100,15 +95,13 @@ public class RecyclerAdapter<T extends ViewHolder<U>, U extends ListItem> extend
     public void onSelected(int position) {
         Log.i("Adapter", String.format(Locale.ENGLISH, "position: %d, selected: %d", position, currentSelected));
         if (position == RecyclerView.NO_POSITION || position==currentSelected) { return; }
-        mHandler.post(()->{
-            lastSelected = currentSelected;
-            currentSelected = position;
-            notifyItemChanged(lastSelected);
-            notifyItemChanged(currentSelected);
-            if (position < items.size() && listener != null) {
-                listener.onSelected(position, items.get(position));
-            }
-        });
+        lastSelected = currentSelected;
+        notifyItemChanged(lastSelected);
+        currentSelected = position;
+        notifyItemChanged(currentSelected);
+        if (position < items.size() && listener != null) {
+            listener.onSelected(position, items.get(position));
+        }
     }
 
     public void setOnSelectedListener(OnSelectedListener<U> listener) {
