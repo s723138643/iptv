@@ -31,7 +31,7 @@ public class ChannelSourceDialog {
         mHandler = new Handler(context.getMainLooper());
 
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder = builder.setView(R.layout.channel_source_dialog);
+        builder = builder.setView(R.layout.dialog_live_channel_source);
         builder = builder.setPositiveButton("ok", (dialog, which) -> {
             AlertDialog alertDialog = (AlertDialog) dialog;
             EditText text = alertDialog.findViewById(R.id.channel_source_url);

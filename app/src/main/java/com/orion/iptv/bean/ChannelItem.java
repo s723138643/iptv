@@ -6,11 +6,12 @@ import androidx.annotation.NonNull;
 
 import com.google.android.exoplayer2.MediaItem;
 import com.orion.iptv.recycleradapter.ListItem;
+import com.orion.iptv.recycleradapter.ListItemWithNumber;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class ChannelItem implements ListItem {
+public class ChannelItem implements ListItemWithNumber {
     public final ChannelInfo info;
     public List<String> links;
 
@@ -23,7 +24,7 @@ public class ChannelItem implements ListItem {
         return String.valueOf(info.channelNumber);
     }
 
-    public String describe() {
+    public String content() {
         return info.channelName;
     }
 

@@ -19,6 +19,7 @@ import java.util.Locale;
 public class RecyclerAdapter<T extends ViewHolder<U>, U> extends RecyclerView.Adapter<T> {
     private final ViewHolderFactory<T, U> factory;
 
+    private boolean repeatClickEnabled = false;
     private OnSelectedListener<U> listener;
     private int lastSelected = RecyclerView.NO_POSITION;
     private int currentSelected = RecyclerView.NO_POSITION;
@@ -52,14 +53,16 @@ public class RecyclerAdapter<T extends ViewHolder<U>, U> extends RecyclerView.Ad
 
     private void onSelected(@NonNull RecyclerView.ViewHolder holder, int position) {
         Log.i("Adapter", String.format(Locale.ENGLISH, "position: %d, selected: %d", position, currentSelected));
-        if (position < 0 || position == currentSelected) {
+        if (position < 0 || (!repeatClickEnabled && position == currentSelected)) {
             return;
         }
-        lastSelected = currentSelected;
-        currentSelected = position;
-        changeState(holder, position);
-        if (lastSelected != RecyclerView.NO_POSITION) {
-            notifyItemChanged(lastSelected);
+        if (position != currentSelected) {
+            lastSelected = currentSelected;
+            currentSelected = position;
+            changeState(holder, position);
+            if (lastSelected != RecyclerView.NO_POSITION) {
+                notifyItemChanged(lastSelected);
+            }
         }
         if (listener != null) {
             listener.onSelected(position, items.get(position));
@@ -96,6 +99,19 @@ public class RecyclerAdapter<T extends ViewHolder<U>, U> extends RecyclerView.Ad
         }
 
         _selectQuiet(position);
+    }
+
+    public void setRepeatClickEnabled(boolean isEnable) {
+        repeatClickEnabled = isEnable;
+    }
+
+    public void deSelect(int position) {
+        if (position < 0 || position >= items.size() || position != currentSelected) {
+            return;
+        }
+        currentSelected = RecyclerView.NO_POSITION;
+        lastSelected = RecyclerView.NO_POSITION;
+        notifyItemChanged(position);
     }
 
     private void _clearSelection() {

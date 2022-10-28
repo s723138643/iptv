@@ -52,12 +52,7 @@ public class EpgProgram implements ListItem {
     }
 
     @Override
-    public String number() {
-        return "";
-    }
-
-    @Override
-    public String describe() {
+    public String content() {
         return String.format("%s-%s %s", startTime, endTime, program);
     }
 }

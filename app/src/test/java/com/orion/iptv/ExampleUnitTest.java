@@ -2,7 +2,26 @@ package com.orion.iptv;
 
 import static org.junit.Assert.assertEquals;
 
+import com.google.android.exoplayer2.util.Log;
+import com.google.gson.JsonObject;
+import com.orion.iptv.network.DownloadHelper;
+import com.orion.iptv.network.PropfindParser;
+import com.orion.iptv.network.WebDavClient;
+import com.orion.iptv.ui.shares.FileNode;
+import com.orion.iptv.ui.shares.Share;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 /**
  * Example local unit test, which will execute on the development machine (host).
@@ -11,7 +30,24 @@ import org.junit.Test;
  */
 public class ExampleUnitTest {
     @Test
-    public void addition_isCorrect() {
-        assertEquals(4, 2 + 2);
+    public void request_isCorrect() {
+        DownloadHelper.setClient(new OkHttpClient.Builder().build());
+        JSONObject config = new JSONObject();
+        try {
+            config.put("server", "http://orion:5000/");
+            Share share = new Share(config, ".config", "/.config/");
+            WebDavClient client = new WebDavClient(share);
+            Request request = client.makeRequest(share.getRoot());
+            Response response = DownloadHelper.getBlocked(request);
+            PropfindParser parse = new PropfindParser(share.getRoot());
+            String body = Objects.requireNonNull(response.body()).string();
+            Log.i("Test", body);
+            List<FileNode> children = parse.parse(body);
+            for (FileNode child : children) {
+                Log.i("Test", String.format(Locale.ENGLISH, "%s::%s %b", child.getName(), child.getPath(), child.isFile()));
+            }
+        } catch (JSONException | IOException e) {
+            Log.e("Test", e.toString());
+        }
     }
 }

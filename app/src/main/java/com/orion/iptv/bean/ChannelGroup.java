@@ -18,11 +18,7 @@ public class ChannelGroup implements ListItem {
         channels = new ArrayList<>();
     }
 
-    public String number() {
-        return String.valueOf(info.groupNumber);
-    }
-
-    public String describe() {
+    public String content() {
         return info.groupName;
     }
 

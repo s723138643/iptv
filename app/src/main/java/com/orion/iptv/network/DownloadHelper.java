@@ -54,6 +54,11 @@ public class DownloadHelper {
         });
     }
 
+    public static Response getBlocked(Request request) throws IOException {
+        Call call = helper.client.newCall(request);
+        return call.execute();
+    }
+
     public interface OnResponseListener {
         void onResponse(String response);
     }
