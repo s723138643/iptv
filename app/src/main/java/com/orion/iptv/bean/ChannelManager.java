@@ -76,28 +76,30 @@ public class ChannelManager {
         String group = defaultGroupName;
         try {
             for (String line = reader.readLine(); line != null; line = reader.readLine()) {
-                line = line.trim();
-                if (line.isEmpty() || line.startsWith("//") || line.startsWith("--")) {
+                String[] parts = line.split(",", 2);
+                if (parts.length != 2) {
+                    Log.i(TAG, "invalid channel line, " + line);
                     continue;
                 }
-                String[] parts = line.split(",", 2);
-                if (parts.length == 2) {
-                    String value = parts[1].trim();
-                    if (value.equals("#genre#")) {
-                        group = parts[0].trim().replace("#", "");
-                    } else {
-                        m.appendChannel(group, parts[0].trim(), value);
-                    }
+                String value = parts[1].trim();
+                if (value.equals("#genre#")) {
+                    group = parts[0].trim();
                 } else {
-                    Log.i(TAG, "invalid channel line, " + line);
+                    String[] links = value.split("#");
+                    for (String link : links) {
+                        String trimmed = link.trim();
+                        if (!trimmed.isEmpty()) {
+                            m.appendChannel(group, parts[0].trim(), trimmed);
+                        }
+                    }
                 }
             }
         } catch (IOException exc) {
-            Log.e(TAG, "parse channels failed, " + exc.toString());
+            Log.e(TAG, "parse channels failed, " + exc);
         }
-        m.groups = m.groups.stream().filter(channelGroup -> {
-            return channelGroup.channels.size() > 0;
-        }).collect(Collectors.toList());
+        m.groups = m.groups.stream()
+                .filter(channelGroup -> channelGroup.channels.size() > 0)
+                .collect(Collectors.toList());
         return m;
     }
 }
