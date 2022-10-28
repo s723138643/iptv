@@ -4,6 +4,7 @@
     <string name="channel_name_default">测试</string>
     <string name="codec_info_default">未知</string>
     <string name="media_info_default">未知</string>
+    <string name="bitrate_info_default">未知</string>
     <string name="link_info">[1/1]</string>
     <string name="current_link_number">1</string>
     <string name="total_link_number">1</string>

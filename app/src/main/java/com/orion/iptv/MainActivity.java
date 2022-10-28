@@ -14,8 +14,9 @@ import android.widget.EditText;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
-import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.Tracks;
+import com.google.android.exoplayer2.analytics.AnalyticsListener;
+import com.google.android.exoplayer2.decoder.DecoderReuseEvaluation;
+import com.google.android.exoplayer2.ui.AspectRatioFrameLayout;
 import com.orion.iptv.layout.liveplayersetting.LivePlayerSettingLayout;
 import com.orion.iptv.misc.PreferenceStore;
 import com.orion.iptv.network.StringRequest;
@@ -32,6 +33,7 @@ import com.orion.iptv.bean.ChannelItem;
 import com.orion.iptv.bean.ChannelManager;
 import com.orion.iptv.layout.livechannelinfo.LiveChannelInfoLayout;
 import com.orion.iptv.layout.livechannellist.LiveChannelListLayout;
+import com.orion.iptv.layout.bandwidth.Bandwidth;
 import com.orion.iptv.misc.CancelableRunnable;
 
 import java.util.ArrayList;
@@ -45,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
     protected LiveChannelInfoLayout channelInfoLayout;
     protected LiveChannelListLayout channelListLayout;
     protected LivePlayerSettingLayout livePlayerSettingLayout;
+    protected Bandwidth bandwidth;
     protected @Nullable ExoPlayer player;
     private RequestQueue reqQueue;
     private Handler mPlayerHandler;
@@ -63,6 +66,7 @@ public class MainActivity extends AppCompatActivity {
         channelListLayout = new LiveChannelListLayout(this, channelManager);
         channelInfoLayout = new LiveChannelInfoLayout(this);
         livePlayerSettingLayout = new LivePlayerSettingLayout(this);
+        bandwidth = new Bandwidth(this);
         gestureDetector = new GestureDetectorCompat(this, new GestureListener());
         preferenceStore = new PreferenceStore(this);
     }
@@ -186,23 +190,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onTracksChanged(Tracks tracks) {
-            for (Tracks.Group group : tracks.getGroups()) {
-                if (group.getType() == C.TRACK_TYPE_VIDEO) {
-                    for (int i=0; i<group.length; i++) {
-                        Format vf = group.getTrackFormat(i);
-                        if (vf.codecs != null) {
-                            channelInfoLayout.setCodecInfo(vf.codecs);
-                        }
-                        if (vf.width > 0 && vf.height > 0) {
-                            channelInfoLayout.setMediaInfo(String.format(Locale.ENGLISH, "%dx%d", vf.width, vf.height));
-                        }
-                    }
-                }
-            }
-        }
-
-        @Override
         public void onPlaybackStateChanged(@Player.State int state) {
             switch (state) {
                 case Player.STATE_READY:
@@ -225,22 +212,40 @@ public class MainActivity extends AppCompatActivity {
                     break;
             }
         }
+    }
 
+    private class PlayerAnalyticsListener implements AnalyticsListener {
         @Override
-        public void onMediaItemTransition(MediaItem mediaItem, @Player.MediaItemTransitionReason int reason) {
+        public void onMediaItemTransition(@NonNull EventTime eventTime, @Nullable MediaItem mediaItem, int reason) {
             assert player != null;
             channelInfoLayout.setVisibleDelayed(true, 0);
             channelInfoLayout.setLinkInfo(player.getCurrentMediaItemIndex()+1, player.getMediaItemCount());
-            if (mediaItem != null) {
-                if (mediaItem.localConfiguration != null && mediaItem.localConfiguration.tag != null) {
-                    Log.i(TAG, "start playing " + mediaItem.localConfiguration.uri);
-                    ChannelItem.Tag tag = (ChannelItem.Tag) mediaItem.localConfiguration.tag;
-                    channelInfoLayout.setChannelName(tag.channelName);
-                    channelInfoLayout.setChannelNumber(tag.channelNumber);
-                    channelInfoLayout.setCodecInfo(getString(R.string.codec_info_default));
-                    channelInfoLayout.setMediaInfo(getString(R.string.media_info_default));
-                }
+            if (mediaItem == null || mediaItem.localConfiguration == null) {
+                return;
             }
+            assert mediaItem.localConfiguration.tag != null;
+            Log.i(TAG, "start playing " + mediaItem.localConfiguration.uri);
+            ChannelItem.Tag tag = (ChannelItem.Tag) mediaItem.localConfiguration.tag;
+            channelInfoLayout.setChannelName(tag.channelName);
+            channelInfoLayout.setChannelNumber(tag.channelNumber);
+            channelInfoLayout.setBitrateInfo(0);
+            channelInfoLayout.setCodecInfo(getString(R.string.codec_info_default));
+            channelInfoLayout.setMediaInfo(getString(R.string.media_info_default));
+        }
+
+        @Override
+        public void onBandwidthEstimate(@NonNull EventTime eventTime, int totalLoadTimeMs, long totalBytesLoaded, long bitrateEstimate) {
+            Log.i(TAG, String.format(Locale.ENGLISH, "bitrate: %d", bitrateEstimate));
+            bandwidth.setBandwidth(bitrateEstimate);
+        }
+
+        @Override
+        public void onVideoInputFormatChanged(@NonNull EventTime eventTime, @NonNull Format format, @Nullable DecoderReuseEvaluation decoderReuseEvaluation) {
+            channelInfoLayout.setCodecInfo(format.codecs);
+            if (format.bitrate != Format.NO_VALUE) {
+                channelInfoLayout.setBitrateInfo(format.bitrate);
+            }
+            channelInfoLayout.setMediaInfo(String.format(Locale.ENGLISH, "%dx%d", format.width, format.height));
         }
     }
 
@@ -351,6 +356,7 @@ public class MainActivity extends AppCompatActivity {
         player = newPlayer();
         mPlayerHandler = new Handler(getMainLooper());
         player.addListener(new PlayerEventListener());
+        player.addAnalyticsListener(new PlayerAnalyticsListener());
         player.setRepeatMode(Player.REPEAT_MODE_ALL);
         videoView.setPlayer(player);
     }

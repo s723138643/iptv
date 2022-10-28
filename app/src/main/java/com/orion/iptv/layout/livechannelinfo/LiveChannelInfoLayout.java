@@ -16,10 +16,12 @@ public class LiveChannelInfoLayout {
     protected TextView channelName;
     protected TextView codecInfo;
     protected TextView mediaInfo;
+    protected TextView bitrateInfo;
     protected TextView linkInfo;
     protected TextView currentEpgProgram;
     protected TextView nextEpgProgram;
     protected View mLayout;
+    private final String[] units = {"bps", "kbps", "Mbps", "Gbps"};
     private final Handler mHandler;
     private CancelableRunnable setVisibilityDelayedTask;
 
@@ -29,6 +31,7 @@ public class LiveChannelInfoLayout {
         channelName = mLayout.findViewById(R.id.channelName);
         codecInfo = mLayout.findViewById(R.id.codecInfo);
         mediaInfo = mLayout.findViewById(R.id.mediaInfo);
+        bitrateInfo = mLayout.findViewById(R.id.bitrateInfo);
         linkInfo = mLayout.findViewById(R.id.linkInfo);
         currentEpgProgram = mLayout.findViewById(R.id.currentEpgProgram);
         nextEpgProgram = mLayout.findViewById(R.id.nextEpgProgram);
@@ -41,6 +44,31 @@ public class LiveChannelInfoLayout {
 
     public void setChannelNumber(int number) {
         mHandler.post(()-> this.channelNumber.setText(String.format(Locale.ENGLISH, "%d", number)));
+    }
+
+    private String formatBitrate(int bitrate) {
+        float base = 1000.0f;
+        float rate = (float) bitrate;
+        int i = 0;
+        for (; i<units.length; i++) {
+            if (rate < base) {
+                break;
+            }
+            rate /= base;
+        }
+        return String.format(Locale.ENGLISH, "%.2f%s", rate, units[i]);
+    }
+
+    public void setBitrateInfo(int bitrate) {
+        if (bitrate <= 0) {
+            mHandler.post(()->this.bitrateInfo.setVisibility(View.GONE));
+            return;
+        }
+        String formattedBitrate = formatBitrate(bitrate);
+        mHandler.post(()->{
+            this.bitrateInfo.setText(formattedBitrate);
+            this.bitrateInfo.setVisibility(View.VISIBLE);
+        });
     }
 
     public void setCodecInfo(String info) {
