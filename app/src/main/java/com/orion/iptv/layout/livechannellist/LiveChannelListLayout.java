@@ -90,7 +90,7 @@ public class LiveChannelListLayout {
                 channelSelectedListener.onChannelSelected(selectedGroup, selectedChannel);
             }
         });
-        channelList.addOnItemTouchListener(channelListViewAdapter.new OnItemTouchListener(activity, channelList));
+        channelList.addOnItemTouchListener(channelListViewAdapter.new OnItemTouchListener(mLayout.getContext(), channelList));
 
         groupList = mLayout.findViewById(R.id.channelGroup);
         groupListSpacer = mLayout.findViewById(R.id.channelSpacer1);
@@ -103,7 +103,7 @@ public class LiveChannelListLayout {
         groupListViewAdapter = new RecyclerAdapter<>(
                 mLayout.getContext(),
                 channelManager.groups,
-                new GroupListViewHolderFactory(activity, R.layout.live_channel_list_item)
+                new GroupListViewHolderFactory(mLayout.getContext(), R.layout.live_channel_list_item)
         );
         groupList.setAdapter(groupListViewAdapter);
         groupListViewAdapter.setOnSelectedListener((position, item) -> {
@@ -112,7 +112,7 @@ public class LiveChannelListLayout {
             Log.i(TAG, String.format("select group: %d, channels: %d", position, channels.size()));
             channelListViewAdapter.setData(channels);
         });
-        groupList.addOnItemTouchListener(groupListViewAdapter.new OnItemTouchListener(activity, groupList));
+        groupList.addOnItemTouchListener(groupListViewAdapter.new OnItemTouchListener(mLayout.getContext(), groupList));
     }
 
     public void setVisibleDelayed(boolean isVisible, int delayMillis) {

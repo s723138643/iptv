@@ -20,6 +20,7 @@ public class MyViewHolder<T extends ListItem> extends ViewHolder<T> {
             index.setVisibility(View.GONE);
         }
         desc = v.findViewById(R.id.list_item_desc);
+        desc.setSelected(true);
     }
 
     @Override

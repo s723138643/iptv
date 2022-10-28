@@ -29,12 +29,15 @@ public class LiveChannelInfoLayout {
         mLayout = activity.findViewById(R.id.channelInfoLayout);
         channelNumber = mLayout.findViewById(R.id.channelNumber);
         channelName = mLayout.findViewById(R.id.channelName);
+        channelName.setSelected(true);
         codecInfo = mLayout.findViewById(R.id.codecInfo);
         mediaInfo = mLayout.findViewById(R.id.mediaInfo);
         bitrateInfo = mLayout.findViewById(R.id.bitrateInfo);
         linkInfo = mLayout.findViewById(R.id.linkInfo);
         currentEpgProgram = mLayout.findViewById(R.id.currentEpgProgram);
+        currentEpgProgram.setSelected(true);
         nextEpgProgram = mLayout.findViewById(R.id.nextEpgProgram);
+        nextEpgProgram.setSelected(true);
         mHandler = new Handler(activity.getMainLooper());
     }
 
