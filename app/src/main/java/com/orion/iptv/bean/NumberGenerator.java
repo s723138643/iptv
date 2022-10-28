@@ -1,9 +1,9 @@
 package com.orion.iptv.bean;
 
-public class ChannelNumGenerator {
+public class NumberGenerator {
     private int n = 0;
 
-    ChannelNumGenerator(int start) {
+    NumberGenerator(int start) {
         n = start;
     }
 

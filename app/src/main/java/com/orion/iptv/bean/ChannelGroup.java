@@ -1,20 +1,31 @@
 package com.orion.iptv.bean;
 
 import com.google.android.exoplayer2.MediaItem;
+import com.orion.iptv.recycleradapter.ListItem;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class ChannelGroup {
+public class ChannelGroup implements ListItem {
+    public final int number;
     public final String name;
     public final List<ChannelItem> channels;
-    private final ChannelNumGenerator generator;
+    private final NumberGenerator generator;
 
-    public ChannelGroup(String name, ChannelNumGenerator generator) {
+    public ChannelGroup(int number, String name, NumberGenerator generator) {
+        this.number = number;
         this.name = name;
         this.generator = generator;
         channels = new ArrayList<>();
+    }
+
+    public String index() {
+        return String.valueOf(number);
+    }
+
+    public String name() {
+        return name;
     }
 
     public void appendChannel(String name, String link) {

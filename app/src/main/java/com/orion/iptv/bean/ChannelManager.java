@@ -16,7 +16,8 @@ public class ChannelManager {
     public static final String TAG = "ChannelManager";
     private final String defaultGroupName;
     public List<ChannelGroup> groups;
-    private final ChannelNumGenerator generator = new ChannelNumGenerator(0);
+    private final NumberGenerator groupNumGenerator = new NumberGenerator(0);
+    private final NumberGenerator channelNumGenerator = new NumberGenerator(0);
 
     public ChannelManager(String defaultGroupName) {
         this.defaultGroupName = defaultGroupName;
@@ -30,7 +31,7 @@ public class ChannelManager {
     private ChannelGroup getOrCreate(String group) {
         String realGroup = group.equals("") ? defaultGroupName : group;
         return get(realGroup).orElseGet(()->{
-            ChannelGroup g = new ChannelGroup(realGroup, generator);
+            ChannelGroup g = new ChannelGroup(groupNumGenerator.next(), realGroup, channelNumGenerator);
             groups.add(g);
             return g;
         });

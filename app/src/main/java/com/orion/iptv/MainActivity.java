@@ -16,7 +16,6 @@ import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.google.android.exoplayer2.analytics.AnalyticsListener;
 import com.google.android.exoplayer2.decoder.DecoderReuseEvaluation;
-import com.google.android.exoplayer2.ui.AspectRatioFrameLayout;
 import com.orion.iptv.layout.liveplayersetting.LivePlayerSettingLayout;
 import com.orion.iptv.misc.PreferenceStore;
 import com.orion.iptv.network.StringRequest;
@@ -325,13 +324,11 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
-        channelListLayout.onSaveInstanceState(outState);
     }
 
     @Override
     protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
-        channelListLayout.onRestoreInstanceState(savedInstanceState);
     }
 
     @Override

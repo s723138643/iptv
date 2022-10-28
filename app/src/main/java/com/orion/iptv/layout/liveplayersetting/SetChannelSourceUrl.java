@@ -19,8 +19,18 @@ public class SetChannelSourceUrl implements SettingMenu {
         }
 
         @Override
-        public String Name() {
+        public String index() {
+            return "";
+        }
+
+        @Override
+        public String name() {
             return "设置频道源";
+        }
+
+        @Override
+        public boolean isButton() {
+            return true;
         }
 
         @Override
@@ -49,7 +59,12 @@ public class SetChannelSourceUrl implements SettingMenu {
     }
 
     @Override
-    public String Name() {
+    public String index() {
+        return "";
+    }
+
+    @Override
+    public String name() {
         return "设置源";
     }
 

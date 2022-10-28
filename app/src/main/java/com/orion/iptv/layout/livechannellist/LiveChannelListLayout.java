@@ -1,18 +1,12 @@
 package com.orion.iptv.layout.livechannellist;
 
 import android.annotation.SuppressLint;
-import android.os.Bundle;
 import android.os.Handler;
 import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.ToggleButton;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.selection.ItemKeyProvider;
-import androidx.recyclerview.selection.SelectionPredicates;
-import androidx.recyclerview.selection.SelectionTracker;
-import androidx.recyclerview.selection.StorageStrategy;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.exoplayer2.MediaItem;
@@ -20,11 +14,13 @@ import com.orion.iptv.R;
 import com.orion.iptv.bean.ChannelGroup;
 import com.orion.iptv.bean.ChannelItem;
 import com.orion.iptv.bean.ChannelManager;
-import com.orion.iptv.bean.EpgProgram;
 import com.orion.iptv.misc.CancelableRunnable;
+import com.orion.iptv.recycleradapter.RecyclerAdapter;
+import com.orion.iptv.recycleradapter.ViewHolder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 import android.util.Log;
@@ -34,14 +30,10 @@ public class LiveChannelListLayout {
     private final View mLayout;
     private final RecyclerView groupList;
     private final View groupListSpacer;
-    private final GroupListViewAdapter groupListViewAdapter;
-    private final SelectionTracker<Long> groupListTracker;
-    private final ChannelListViewAdapter channelListViewAdapter;
-    private final SelectionTracker<Long> channelListTracker;
+    private final RecyclerAdapter<ViewHolder<ChannelGroup>, ChannelGroup> groupListViewAdapter;
+    private final RecyclerAdapter<ViewHolder<ChannelItem>, ChannelItem> channelListViewAdapter;
     private final View epgSpacer;
     private final RecyclerView epgList;
-    private final EpgListViewAdapter epgListViewAdapter;
-    private final SelectionTracker<Long> epgListTracker;
 
     private ChannelManager channelManager;
     private final Handler mHandler;
@@ -83,34 +75,22 @@ public class LiveChannelListLayout {
         });
         this.epgSpacer = mLayout.findViewById(R.id.channelSpacer3);
         this.epgList = mLayout.findViewById(R.id.channelEpgList);
-        epgListViewAdapter = new EpgListViewAdapter(mLayout.getContext(), new ArrayList<>());
-        this.epgList.setAdapter(epgListViewAdapter);
-        epgListTracker = new SelectionTracker.Builder<>(
-                "epg-list-view",
-                epgList,
-                epgListViewAdapter.new KeyProvider(ItemKeyProvider.SCOPE_MAPPED),
-                epgListViewAdapter.new ItemLookup(epgList),
-                StorageStrategy.createLongStorage()
-        ).withSelectionPredicate(SelectionPredicates.createSelectSingleAnything()).build();
-        epgListViewAdapter.setTracker(epgListTracker);
 
         RecyclerView channelList = mLayout.findViewById(R.id.channelList);
-        channelListViewAdapter = new ChannelListViewAdapter(mLayout.getContext(), channelManager.getChannels(selectedChannel).orElse(new ArrayList<>()));
+        channelListViewAdapter = new RecyclerAdapter<>(
+                mLayout.getContext(),
+                channelManager.getChannels(selectedChannel).orElse(new ArrayList<>()),
+                new ChannelListViewHolderFactory(mLayout.getContext(), R.layout.live_channel_list_item)
+        );
         channelList.setAdapter(channelListViewAdapter);
-        channelListTracker = new SelectionTracker.Builder<>(
-                "channel-list-view",
-                channelList,
-                channelListViewAdapter.new KeyProvider(ItemKeyProvider.SCOPE_MAPPED),
-                channelListViewAdapter.new ItemLookup(channelList),
-                StorageStrategy.createLongStorage()
-        ).withSelectionPredicate(SelectionPredicates.createSelectSingleAnything()).build();
-        channelListViewAdapter.setTracker(channelListTracker);
-        channelListViewAdapter.setOnSelectedListener(position -> {
+        channelListViewAdapter.setOnSelectedListener((position, item) -> {
+            Log.i(TAG, String.format(Locale.ENGLISH, "channel item: %d selected", position));
             selectedChannel = position;
             if (channelSelectedListener != null) {
                 channelSelectedListener.onChannelSelected(selectedGroup, selectedChannel);
             }
         });
+        channelList.addOnItemTouchListener(channelListViewAdapter.new OnItemTouchListener(activity, channelList));
 
         groupList = mLayout.findViewById(R.id.channelGroup);
         groupListSpacer = mLayout.findViewById(R.id.channelSpacer1);
@@ -120,49 +100,19 @@ public class LiveChannelListLayout {
                 groupListSpacer.setVisibility(View.VISIBLE);
             });
         }
-        groupListViewAdapter = new GroupListViewAdapter(mLayout.getContext(), channelManager.groups);
+        groupListViewAdapter = new RecyclerAdapter<>(
+                mLayout.getContext(),
+                channelManager.groups,
+                new GroupListViewHolderFactory(activity, R.layout.live_channel_list_item)
+        );
         groupList.setAdapter(groupListViewAdapter);
-        groupListTracker = new SelectionTracker.Builder<>(
-                "group-list-view",
-                groupList,
-                groupListViewAdapter.new KeyProvider(ItemKeyProvider.SCOPE_MAPPED),
-                groupListViewAdapter.new ItemLookup(groupList),
-                StorageStrategy.createLongStorage()
-        ).withSelectionPredicate(SelectionPredicates.createSelectSingleAnything()).build();
-        groupListViewAdapter.setTracker(groupListTracker);
-        groupListViewAdapter.setOnSelectedListener(position -> {
+        groupListViewAdapter.setOnSelectedListener((position, item) -> {
             selectedGroup = position;
             List<ChannelItem> channels = this.channelManager.getChannels(position).orElse(new ArrayList<>());
             Log.i(TAG, String.format("select group: %d, channels: %d", position, channels.size()));
-            setChannels(channels);
-        });
-    }
-
-    @SuppressLint("NotifyDataSetChanged")
-    private void setChannels(List<ChannelItem> channels) {
-        mHandler.post(()->{
-            channelListTracker.clearSelection();
             channelListViewAdapter.setData(channels);
-            channelListViewAdapter.notifyDataSetChanged();
         });
-    }
-
-    @SuppressLint("NotifyDataSetChanged")
-    private void setGroups(List<ChannelGroup> groups) {
-        mHandler.post(() -> {
-            groupListTracker.clearSelection();
-            groupListViewAdapter.setData(groups);
-            groupListViewAdapter.notifyDataSetChanged();
-        });
-    }
-
-    @SuppressLint("NotifyDataSetChanged")
-    private void setEpgs(List<EpgProgram> epgs) {
-        mHandler.post(() -> {
-            epgListTracker.clearSelection();
-            epgListViewAdapter.setData(epgs);
-            epgListViewAdapter.notifyDataSetChanged();
-        });
+        groupList.addOnItemTouchListener(groupListViewAdapter.new OnItemTouchListener(activity, groupList));
     }
 
     public void setVisibleDelayed(boolean isVisible, int delayMillis) {
@@ -194,30 +144,18 @@ public class LiveChannelListLayout {
         return channelManager.toMediaItems(selectedGroup, selectedChannel);
     }
 
-    public void onSaveInstanceState(@NonNull Bundle outSate) {
-        groupListTracker.onSaveInstanceState(outSate);
-        channelListTracker.onSaveInstanceState(outSate);
-        epgListTracker.onSaveInstanceState(outSate);
-    }
-
-    public void onRestoreInstanceState(@NonNull Bundle outSate) {
-        groupListTracker.onRestoreInstanceState(outSate);
-        channelListTracker.onRestoreInstanceState(outSate);
-        epgListTracker.onRestoreInstanceState(outSate);
-    }
-
     @SuppressLint("NotifyDataSetChanged")
     public void setData(ChannelManager m) {
         selectedGroup = 0;
         selectedChannel = 0;
         channelManager = m;
-        setGroups(m.groups);
+        groupListViewAdapter.setData(m.groups);
         int visibility = m.hasGroup() ? View.VISIBLE : View.GONE;
         mHandler.post(() -> {
             groupList.setVisibility(visibility);
             groupListSpacer.setVisibility(visibility);
         });
         List<ChannelItem> channels = m.getChannels(selectedGroup).orElse(new ArrayList<>());
-        setChannels(channels);
+        channelListViewAdapter.setData(channels);
     }
 }

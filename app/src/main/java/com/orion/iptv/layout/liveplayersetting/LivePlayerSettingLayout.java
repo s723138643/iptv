@@ -1,19 +1,16 @@
 package com.orion.iptv.layout.liveplayersetting;
 
-import android.annotation.SuppressLint;
 import android.os.Handler;
 import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.selection.ItemKeyProvider;
-import androidx.recyclerview.selection.SelectionPredicates;
-import androidx.recyclerview.selection.SelectionTracker;
-import androidx.recyclerview.selection.StorageStrategy;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.exoplayer2.util.Log;
 import com.orion.iptv.R;
 import com.orion.iptv.misc.CancelableRunnable;
+import com.orion.iptv.recycleradapter.RecyclerAdapter;
+import com.orion.iptv.recycleradapter.ViewHolder;
 
 import java.util.List;
 import java.util.Locale;
@@ -22,10 +19,8 @@ public class LivePlayerSettingLayout {
     private final View mLayout;
     private final RecyclerView settingMenuView;
     private final RecyclerView settingValueView;
-    private final ListAdapter<SettingMenu> menuViewAdapter;
-    private final ListAdapter<SettingValue> valueViewAdapter;
-    private final SelectionTracker<Long> valueTracker;
-    private final SelectionTracker<Long> menuTracker;
+    private final RecyclerAdapter<ViewHolder<SettingMenu>, SettingMenu> menuViewAdapter;
+    private final RecyclerAdapter<ViewHolder<SettingValue>, SettingValue> valueViewAdapter;
     private final Handler mHandler;
     private CancelableRunnable setVisibleTask;
 
@@ -39,47 +34,38 @@ public class LivePlayerSettingLayout {
         settingMenuView = mLayout.findViewById(R.id.livePlayerMenu);
         settingValueView = mLayout.findViewById(R.id.livePlayerValue);
 
-        valueViewAdapter = new ListAdapter<>(mLayout.getContext(), menus.get(0).getValues());
+        valueViewAdapter = new RecyclerAdapter<>(
+                mLayout.getContext(),
+                menus.get(0).getValues(),
+                new ValueListViewHolderFactory(activity, R.layout.live_channel_list_item)
+        );
+        valueViewAdapter.setOnSelectedListener(this::onValueSelected);
         settingValueView.setAdapter(valueViewAdapter);
-        valueTracker = new SelectionTracker.Builder<>(
-                "live_player_setting_value",
-                settingValueView,
-                new KeyProvider(ItemKeyProvider.SCOPE_MAPPED),
-                new ItemLookup(settingValueView),
-                StorageStrategy.createLongStorage()
-        ).withSelectionPredicate(SelectionPredicates.createSelectSingleAnything()).build();
-        valueViewAdapter.setTracker(valueTracker);
-        valueViewAdapter.setOnSelected(this::onValueSelected);
+        settingValueView.addOnItemTouchListener(valueViewAdapter.new OnItemTouchListener(activity, settingValueView));
 
-        menuViewAdapter = new ListAdapter<>(mLayout.getContext(), menus);
+
+        menuViewAdapter = new RecyclerAdapter<>(
+                mLayout.getContext(),
+                menus,
+                new MenuListViewHolderFactory(activity, R.layout.live_channel_list_item)
+        );
         settingMenuView.setAdapter(menuViewAdapter);
-        menuTracker = new SelectionTracker.Builder<>(
-                "live_player_setting_menu",
-                settingMenuView,
-                new KeyProvider(ItemKeyProvider.SCOPE_MAPPED),
-                new ItemLookup(settingMenuView),
-                StorageStrategy.createLongStorage()
-        ).withSelectionPredicate(SelectionPredicates.createSelectSingleAnything()).build();
-        menuViewAdapter.setTracker(menuTracker);
-        menuViewAdapter.setOnSelected(this::onMenuSelected);
+        settingMenuView.addOnItemTouchListener(menuViewAdapter.new OnItemTouchListener(activity, settingMenuView));
+        menuViewAdapter.setOnSelectedListener(this::onMenuSelected);
     }
 
-    private void onValueSelected(SettingValue value) {
-        Log.i("Setting", String.format(Locale.ENGLISH, "value: %s selected", value.Name()));
-        if (listener == null) {
-            return;
-        }
+    private void onValueSelected(int position, SettingValue value) {
+        if (listener == null) { return; }
         value.onSelected(listener);
+        if (value.isButton()) {
+            Log.i("Setting", "clear selection...");
+            valueViewAdapter.clearSelection();
+        }
     }
 
-    @SuppressLint("NotifyDataSetChanged")
-    private void onMenuSelected(SettingMenu menu) {
-        Log.i("Setting", String.format(Locale.ENGLISH, "menu %s selected", menu.Name()));
-        this.mHandler.post(()->{
-            this.valueTracker.clearSelection();
-            this.valueViewAdapter.setItems(menu.getValues());
-            this.valueViewAdapter.notifyDataSetChanged();
-        });
+    private void onMenuSelected(int position, SettingMenu menu) {
+        Log.i("Setting", String.format(Locale.ENGLISH, "menu %s selected", menu.name()));
+        this.valueViewAdapter.setData(menu.getValues());
     }
 
     public void setOnSettingChangedListener(OnSettingChangedListener listener) {

@@ -5,11 +5,12 @@ import android.net.Uri;
 import androidx.annotation.NonNull;
 
 import com.google.android.exoplayer2.MediaItem;
+import com.orion.iptv.recycleradapter.ListItem;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class ChannelItem {
+public class ChannelItem implements ListItem {
     public final String group;
     public final String name;
     public final int number;
@@ -20,6 +21,14 @@ public class ChannelItem {
         this.name = name;
         this.group = group;
         links = new ArrayList<>();
+    }
+
+    public String index() {
+        return String.valueOf(number);
+    }
+
+    public String name() {
+        return name;
     }
 
     public void append(String link) {
