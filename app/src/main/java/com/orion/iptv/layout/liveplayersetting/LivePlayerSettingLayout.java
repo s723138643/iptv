@@ -59,7 +59,7 @@ public class LivePlayerSettingLayout {
         value.onSelected(listener);
         if (value.isButton()) {
             Log.i("Setting", "clear selection...");
-            valueViewAdapter.clearSelection();
+            mHandler.postDelayed(valueViewAdapter::clearSelection, 800);
         }
     }
 

@@ -45,10 +45,17 @@ public class RecyclerAdapter<T extends ViewHolder<U>, U extends ListItem> extend
             onSelected(viewHolder.getBindingAdapterPosition());
             return true;
         }
+
+        @Override
+        public boolean onDoubleTap(@NonNull MotionEvent e) {
+            // translate double tap as single tap
+            return e.getActionMasked() == MotionEvent.ACTION_UP && onSingleTapUp(e);
+        }
     }
 
     public class OnItemTouchListener implements RecyclerView.OnItemTouchListener {
         private final GestureDetectorCompat gestureDetector;
+        private boolean mDisallowIntercept = false;
 
         public OnItemTouchListener(Context context, RecyclerView rv) {
             gestureDetector = new GestureDetectorCompat(context, new GestureListener(rv));
@@ -56,17 +63,30 @@ public class RecyclerAdapter<T extends ViewHolder<U>, U extends ListItem> extend
 
         @Override
         public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
-            View v = rv.findChildViewUnder(e.getX(), e.getY());
-            if (v == null) { return false; }
-            gestureDetector.onTouchEvent(e);
-            return false;
+            if (mDisallowIntercept && e.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                mDisallowIntercept = false;
+            }
+            return !mDisallowIntercept && gestureDetector.onTouchEvent(e);
         }
 
         @Override
-        public void onTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {}
+        public void onTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+            if (!mDisallowIntercept) { gestureDetector.onTouchEvent(e); }
+        }
 
         @Override
-        public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) {}
+        public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) {
+            if (!disallowIntercept) { return; }
+            mDisallowIntercept = true;
+            gestureDetector.onTouchEvent(MotionEvent.obtain(
+                    0,
+                    1,
+                    MotionEvent.ACTION_CANCEL,
+                    0,
+                    0,
+                    0
+            ));
+        }
     }
 
     public RecyclerAdapter(Context context, List<U> items, ViewHolderFactory<T, U> factory) {

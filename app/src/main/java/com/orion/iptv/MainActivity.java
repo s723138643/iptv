@@ -72,9 +72,7 @@ public class MainActivity extends AppCompatActivity {
 
     private class GestureListener extends GestureDetector.SimpleOnGestureListener {
         @Override
-        public boolean onDown(MotionEvent e) {
-            return true;
-        }
+        public boolean onDown(@NonNull MotionEvent e) { return true; }
 
         @Override
         public boolean onSingleTapConfirmed(MotionEvent e) {
