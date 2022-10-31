@@ -25,6 +25,7 @@ import android.graphics.RectF;
 import android.opengl.GLSurfaceView;
 import android.os.Looper;
 import android.util.AttributeSet;
+import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.SurfaceView;
 import android.view.TextureView;
@@ -35,6 +36,7 @@ import android.widget.TextView;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
 import com.google.android.exoplayer2.PlaybackException;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout;
@@ -50,6 +52,14 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 public class PlayerView extends FrameLayout {
+
+  public static class DefaultErrorMessageProvider implements ErrorMessageProvider<PlaybackException> {
+    @NonNull
+    @Override
+    public Pair<Integer, String> getErrorMessage(PlaybackException e) {
+      return new Pair<>(e.errorCode, e.getMessage());
+    }
+  }
 
   /**
    * Determines when the buffering view is shown. One of {@link #SHOW_BUFFERING_NEVER}, {@link

@@ -70,6 +70,7 @@ public class MainActivity extends AppCompatActivity {
         reqQueue = Volley.newRequestQueue(this);
         videoView = findViewById(R.id.videoView);
         videoView.setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING);
+        videoView.setErrorMessageProvider(new PlayerView.DefaultErrorMessageProvider());
         ChannelManager channelManager = new ChannelManager(this.getString(R.string.default_group_name));
         channelListLayout = new LiveChannelListLayout(this, channelManager);
         channelInfoLayout = new LiveChannelInfoLayout(this);
@@ -195,7 +196,6 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onPlayerError(PlaybackException error) {
             Log.e(TAG, error.toString());
-            videoView.setCustomErrorMessage(error.toString());
             seekToNextMediaItem(1000);
         }
 
