@@ -1,5 +1,6 @@
 package com.orion.iptv.layout.bandwidth;
 
+import android.view.View;
 import android.widget.TextView;
 
 import android.os.Handler;
@@ -10,14 +11,34 @@ import com.orion.iptv.R;
 import java.util.Locale;
 
 public class Bandwidth {
-    private final TextView bandwidth;
-    private final String[] units = {"bps", "kbps", "Mbps", "Gbps"};
+    private final TextView bandwidthView;
+    public static final String[] units = {"bps", "kbps", "Mbps", "Gbps"};
+    private final Handler mHandler;
+    private long newBandwidth;
+    private long displayInterval = 300;
+    private final Runnable showBandwidth = new Runnable() {
+        private long bandwidth = 0;
+
+        @Override
+        public void run() {
+            if (bandwidthView.getVisibility() == View.GONE) { return; }
+
+            if (newBandwidth != bandwidth) {
+                bandwidth = newBandwidth;
+                String formattedBandwidth = Bandwidth.format(newBandwidth);
+                bandwidthView.setText(formattedBandwidth);
+            }
+            mHandler.postDelayed(this, displayInterval);
+        }
+    };
 
     public Bandwidth(AppCompatActivity activity) {
-        bandwidth = activity.findViewById(R.id.bandwidth);
+        bandwidthView = activity.findViewById(R.id.bandwidth);
+        mHandler = new Handler(activity.getMainLooper());
+        mHandler.post(showBandwidth);
     }
 
-    private String format(long bandwidth) {
+    public static String format(long bandwidth) {
         double base = 1000.0f;
         double band = (double) bandwidth;
         int i = 0;
@@ -31,7 +52,26 @@ public class Bandwidth {
     }
 
     public void setBandwidth(long bandwidth) {
-        String formattedBandwidth = format(bandwidth);
-        this.bandwidth.setText(formattedBandwidth);
+        // ensure there is no data race
+        mHandler.post(()->newBandwidth = bandwidth);
+    }
+
+    public void setVisible(boolean isVisible) {
+        if (isVisible) {
+            mHandler.removeCallbacks(showBandwidth);
+            mHandler.post(()->{
+                // ensure it is visible before refresh bandwidth data
+                bandwidthView.setVisibility(View.VISIBLE);
+                mHandler.post(showBandwidth);
+            });
+        } else {
+            // do not need remove showBandwidth, it will auto stop
+            mHandler.post(()->bandwidthView.setVisibility(View.GONE));
+        }
+    }
+
+    public void setDisplayInterval(long milliSec) {
+        // ensure there is no data race
+        mHandler.post(()->displayInterval = milliSec);
     }
 }
