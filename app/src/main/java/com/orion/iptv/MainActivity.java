@@ -57,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
     protected @Nullable ExoPlayer player;
     private RequestQueue reqQueue;
     private Handler mPlayerHandler;
+    private Handler mHandler;
     private CancelableRunnable playerDelayedTask;
     private GestureDetectorCompat gestureDetector;
     private PreferenceStore preferenceStore;
@@ -83,6 +84,7 @@ public class MainActivity extends AppCompatActivity {
         xFlyingThreshold = metrics.xdpi * 0.8f;
         // y flying 2cm on screen in pixel unit
         yFlyingThreshold = metrics.ydpi * 0.8f;
+        mHandler = new Handler(this.getMainLooper());
     }
 
     private class GestureListener extends GestureDetector.SimpleOnGestureListener {
@@ -121,9 +123,9 @@ public class MainActivity extends AppCompatActivity {
             if (Math.abs(distY) > yFlyingThreshold) {
                 Log.i(TAG, String.format(Locale.ENGLISH, "scrollY event detect, dist: %.2f, direction: %.2f", distY, velocityY));
                 if (distY < 0) {
-                    channelInfoLayout.displayAsToast(5000);
+                    mHandler.post(() -> channelInfoLayout.displayAsToast(5000));
                 } else {
-                    channelInfoLayout.hide();
+                    mHandler.post(() -> channelInfoLayout.hide());
                 }
                 return true;
             }
@@ -229,7 +231,7 @@ public class MainActivity extends AppCompatActivity {
         public void onMediaItemTransition(@NonNull EventTime eventTime, @Nullable MediaItem mediaItem, int reason) {
             assert player != null;
             channelInfoLayout.setVisibleDelayed(true, 0);
-            mPlayerHandler.post(()->{
+            mHandler.post(()->{
                 channelInfoLayout.setLinkInfo(player.getCurrentMediaItemIndex()+1, player.getMediaItemCount());
                 if (mediaItem == null || mediaItem.localConfiguration == null) {
                     return;
@@ -248,7 +250,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onBandwidthEstimate(@NonNull EventTime eventTime, int totalLoadTimeMs, long totalBytesLoaded, long bitrateEstimate) {
             Log.i(TAG, String.format(Locale.ENGLISH, "bitrate: %d", bitrateEstimate));
-            mPlayerHandler.post(()->bandwidth.setBandwidth(bitrateEstimate));
+            mHandler.post(()->bandwidth.setBandwidth(bitrateEstimate));
         }
 
         private Optional<Format> getSelectedVideoTrackFormat(Tracks tracks) {
@@ -268,7 +270,7 @@ public class MainActivity extends AppCompatActivity {
         public void onTracksChanged(@NonNull EventTime eventTime, @NonNull Tracks tracks) {
             getSelectedVideoTrackFormat(tracks).map((track)->{
                 Log.i(TAG, String.format(Locale.ENGLISH, "selected track change to codec:%s, bitrate:%d, size: %dx%d", track.codecs, track.bitrate, track.width, track.height));
-                mPlayerHandler.post(()->{
+                mHandler.post(()->{
                     channelInfoLayout.setBitrateInfo(track.bitrate);
                     channelInfoLayout.setCodecInfo(track.codecs);
                     channelInfoLayout.setMediaInfo(String.format(Locale.ENGLISH, "%dx%d", track.width, track.height));
@@ -280,7 +282,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onVideoSizeChanged(@NonNull EventTime eventTime, @NonNull VideoSize videoSize) {
             Log.i(TAG, String.format(Locale.ENGLISH, "video size change to %dx%d", videoSize.width, videoSize.height));
-            mPlayerHandler.post(()-> channelInfoLayout.setMediaInfo(String.format(Locale.ENGLISH, "%dx%d", videoSize.width, videoSize.height)));
+            mHandler.post(()-> channelInfoLayout.setMediaInfo(String.format(Locale.ENGLISH, "%dx%d", videoSize.width, videoSize.height)));
         }
     }
 
@@ -300,7 +302,7 @@ public class MainActivity extends AppCompatActivity {
                     })
                     .orElseGet(() -> manager.getFirst().orElse(null));
             if (channel == null) { return; }
-            mPlayerHandler.post(()->channelListLayout.resume(manager, channel.info));
+            mHandler.post(()->channelListLayout.resume(manager, channel.info));
             List<MediaItem> items = channel.toMediaItems();
             if (items.size() > 0 ) {
                 setMediaItems(items, 0);
@@ -324,7 +326,7 @@ public class MainActivity extends AppCompatActivity {
             if (input.equals("")) {
                 return;
             }
-            mPlayerHandler.post(()->{
+            mHandler.post(()->{
                 preferenceStore.setString("channel_source_url", input);
                 fetchChannelList(input);
             });
@@ -361,7 +363,7 @@ public class MainActivity extends AppCompatActivity {
             if (key.equals("channel_source_url")) {
                 String value = (String)originValue;
                 if (value.equals("")) { return; }
-                mPlayerHandler.post(()->{
+                mHandler.post(()->{
                    preferenceStore.setString(key, value);
                    fetchChannelList(value);
                 });
@@ -405,7 +407,7 @@ public class MainActivity extends AppCompatActivity {
     protected void initializePlayer() {
         releasePlayer();
         player = newPlayer();
-        mPlayerHandler = new Handler(getMainLooper());
+        mPlayerHandler = new Handler(player.getApplicationLooper());
         player.addListener(new PlayerEventListener());
         player.addAnalyticsListener(new PlayerAnalyticsListener());
         player.setRepeatMode(Player.REPEAT_MODE_ALL);
