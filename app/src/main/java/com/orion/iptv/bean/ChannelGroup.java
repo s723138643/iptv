@@ -8,24 +8,22 @@ import java.util.List;
 import java.util.Optional;
 
 public class ChannelGroup implements ListItem {
-    public final int number;
-    public final String name;
+    public final GroupInfo info;
     public final List<ChannelItem> channels;
     private final NumberGenerator generator;
 
-    public ChannelGroup(int number, String name, NumberGenerator generator) {
-        this.number = number;
-        this.name = name;
+    public ChannelGroup(int groupNumber, String groupName, NumberGenerator generator) {
+        this.info = new GroupInfo(groupNumber, groupName);
         this.generator = generator;
         channels = new ArrayList<>();
     }
 
     public String index() {
-        return String.valueOf(number);
+        return String.valueOf(info.groupNumber);
     }
 
     public String name() {
-        return name;
+        return info.groupName;
     }
 
     public void appendChannel(String name, String link) {
@@ -34,46 +32,62 @@ public class ChannelGroup implements ListItem {
     }
 
     private ChannelItem getOrCreateChannel(String channel) {
-        return get(channel).orElseGet(()->{
-            ChannelItem ch = new ChannelItem(generator.next(), channel, name);
+        return getByName(channel).orElseGet(()->{
+            ChannelItem ch = new ChannelItem(generator.next(), channel, info);
             channels.add(ch);
             return ch;
         });
     }
 
-    private Optional<ChannelItem> get(String channel) {
+    private Optional<ChannelItem> getByName(String channel) {
+        return channels.stream().filter((ch)->channel.equals(ch.info.channelName)).findFirst();
+    }
+
+    private Optional<ChannelItem> getByNumber(int channel) {
+        return channels.stream().filter((ch)->channel == ch.info.channelNumber).findFirst();
+    }
+
+    protected Optional<ChannelItem> getByIndex(int index) {
+        return index >= channels.size() || index < 0 ? Optional.empty() : Optional.of(channels.get(index));
+    }
+
+    public boolean contains(String channel) {
+        return indexOf(channel).isPresent();
+    }
+
+    public boolean contains(int channel) {
+        return indexOf(channel).isPresent();
+    }
+
+    public Optional<Integer> indexOf(String channel) {
         for (int i=0; i<channels.size(); i++) {
             ChannelItem ch = channels.get(i);
-            if (channel.equals(ch.name)) {
-                return Optional.of(ch);
+            if (channel.equals(ch.info.channelName)) {
+                return Optional.of(i);
             }
         }
         return Optional.empty();
     }
 
-    private Optional<ChannelItem> get(int index) {
-        return index >= channels.size() || index < 0 ? Optional.empty() : Optional.of(channels.get(index));
-    }
-
-    public boolean contains(String channel) {
-        return indexOf(channel) >= 0;
-    }
-
-    public int indexOf(String channel) {
+    public Optional<Integer> indexOf(int channel) {
         for (int i=0; i<channels.size(); i++) {
             ChannelItem ch = channels.get(i);
-            if (channel.equals(ch.name)) {
-                return i;
+            if (channel == ch.info.channelNumber) {
+                return Optional.of(i);
             }
         }
-        return -1;
+        return Optional.empty();
     }
 
-    public Optional<List<MediaItem>> toMediaItems(int channel) {
-        return get(channel).map(ChannelItem::toMediaItems);
+    public Optional<ChannelItem> getChannel(int channelNumber) {
+        return getByNumber(channelNumber);
     }
 
-    public Optional<ChannelItem.PreferredMediaItems> toMediaItems(int channel, String preferredLink) {
-        return get(channel).map((ch)-> ch.toMediaItems(preferredLink));
+    public Optional<List<MediaItem>> toMediaItems(int channelIndex) {
+        return getByIndex(channelIndex).map(ChannelItem::toMediaItems);
+    }
+
+    public Optional<ChannelItem.PreferredMediaItems> toMediaItems(int channelIndex, String preferredLink) {
+        return getByIndex(channelIndex).map((ch)-> ch.toMediaItems(preferredLink));
     }
 }

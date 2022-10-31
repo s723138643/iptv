@@ -9,7 +9,7 @@
     android:keepScreenOn="true"
     tools:context=".MainActivity">
 
-    <com.google.android.exoplayer2.ui.StyledPlayerView
+    <com.orion.iptv.layout.player.PlayerView
         android:id="@+id/videoView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -18,8 +18,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:surface_type="surface_view"
-        app:use_controller="false" />
+        app:surface_type="surface_view" />
 
     <TextView
         android:id="@+id/bandwidth"
@@ -187,7 +186,7 @@
             android:id="@+id/epgProgramSpacer"
             android:layout_width="0dp"
             android:layout_height="1px"
-            android:background="@color/white"
+            android:background="@color/gray_600"
             app:layout_constraintBottom_toTopOf="@+id/nextEpgProgram"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/channelInfoLeft"
@@ -246,7 +245,7 @@
             android:id="@+id/channelSpacer1"
             android:layout_width="1px"
             android:layout_height="match_parent"
-            android:background="@color/white"
+            android:background="@color/gray_600"
             android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/channelList"
@@ -268,7 +267,7 @@
             android:id="@+id/channelSpacer2"
             android:layout_width="1px"
             android:layout_height="match_parent"
-            android:background="@color/white"
+            android:background="@color/gray_600"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/showEpgButton"
             app:layout_constraintStart_toEndOf="@+id/channelList"
@@ -290,7 +289,7 @@
             android:id="@+id/channelSpacer3"
             android:layout_width="1px"
             android:layout_height="match_parent"
-            android:background="@color/white"
+            android:background="@color/gray_600"
             android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/channelEpgList"
@@ -342,7 +341,7 @@
             android:id="@+id/livePlayerSettingSpacer"
             android:layout_width="1px"
             android:layout_height="match_parent"
-            android:background="@color/white"
+            android:background="@color/gray_600"
             android:visibility="visible"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/livePlayerMenu"

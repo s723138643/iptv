@@ -43,7 +43,6 @@ public class LivePlayerSettingLayout {
         settingValueView.setAdapter(valueViewAdapter);
         settingValueView.addOnItemTouchListener(valueViewAdapter.new OnItemTouchListener(activity, settingValueView));
 
-
         menuViewAdapter = new RecyclerAdapter<>(
                 mLayout.getContext(),
                 menus,
@@ -52,6 +51,7 @@ public class LivePlayerSettingLayout {
         settingMenuView.setAdapter(menuViewAdapter);
         settingMenuView.addOnItemTouchListener(menuViewAdapter.new OnItemTouchListener(activity, settingMenuView));
         menuViewAdapter.setOnSelectedListener(this::onMenuSelected);
+        menuViewAdapter.selectQuiet(0);
     }
 
     private void onValueSelected(int position, SettingValue value) {

@@ -11,24 +11,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ChannelItem implements ListItem {
-    public final String group;
-    public final String name;
-    public final int number;
+    public final ChannelInfo info;
     public List<String> links;
 
-    public ChannelItem(int number, String name, String group) {
-        this.number = number;
-        this.name = name;
-        this.group = group;
+    public ChannelItem(int channelNumber, String channelName, GroupInfo groupInfo) {
+        info = new ChannelInfo(channelNumber, channelName, groupInfo);
         links = new ArrayList<>();
     }
 
     public String index() {
-        return String.valueOf(number);
+        return String.valueOf(info.channelNumber);
     }
 
     public String name() {
-        return name;
+        return info.channelName;
     }
 
     public void append(String link) {
@@ -45,18 +41,6 @@ public class ChannelItem implements ListItem {
         return links.indexOf(link);
     }
 
-    public static class Tag {
-        public final String channelGroup;
-        public final String channelName;
-        public final int channelNumber;
-
-        public Tag(int number, String name, String group) {
-            channelName = name;
-            channelGroup= group;
-            channelNumber = number;
-        }
-    }
-
     @NonNull
     public List<MediaItem> toMediaItems() {
         ArrayList<MediaItem> items = new ArrayList<>();
@@ -67,7 +51,7 @@ public class ChannelItem implements ListItem {
             }
             MediaItem.Builder builder = new MediaItem.Builder();
             builder.setUri(Uri.parse(link));
-            builder.setTag(new Tag(number, name, group));
+            builder.setTag(info);
             items.add(builder.build());
         }
         return items;
@@ -97,7 +81,7 @@ public class ChannelItem implements ListItem {
             }
             MediaItem.Builder builder = new MediaItem.Builder();
             builder.setUri(Uri.parse(link));
-            builder.setTag(new Tag(number, name, group));
+            builder.setTag(info);
             mediaItems.add(builder.build());
         }
         return new PreferredMediaItems(position, mediaItems);

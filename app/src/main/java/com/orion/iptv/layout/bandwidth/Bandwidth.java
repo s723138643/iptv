@@ -11,12 +11,10 @@ import java.util.Locale;
 
 public class Bandwidth {
     private final TextView bandwidth;
-    private final Handler mHandler;
     private final String[] units = {"bps", "kbps", "Mbps", "Gbps"};
 
     public Bandwidth(AppCompatActivity activity) {
         bandwidth = activity.findViewById(R.id.bandwidth);
-        mHandler = new Handler(activity.getMainLooper());
     }
 
     private String format(long bandwidth) {
@@ -34,8 +32,6 @@ public class Bandwidth {
 
     public void setBandwidth(long bandwidth) {
         String formattedBandwidth = format(bandwidth);
-        mHandler.post(()->{
-            this.bandwidth.setText(formattedBandwidth);
-        });
+        this.bandwidth.setText(formattedBandwidth);
     }
 }

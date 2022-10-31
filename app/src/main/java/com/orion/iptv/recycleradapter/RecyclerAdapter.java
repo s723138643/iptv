@@ -19,7 +19,6 @@ import java.util.Locale;
 
 public class RecyclerAdapter<T extends ViewHolder<U>, U extends ListItem> extends RecyclerView.Adapter<T> {
     private final ViewHolderFactory<T, U> factory;
-    private final Handler mHandler;
 
     private OnSelectedListener<U> listener;
     private int lastSelected = RecyclerView.NO_POSITION;
@@ -42,7 +41,7 @@ public class RecyclerAdapter<T extends ViewHolder<U>, U extends ListItem> extend
             View v = recyclerView.findChildViewUnder(e.getX(), e.getY());
             if (v == null) { return false; }
             RecyclerView.ViewHolder viewHolder = recyclerView.getChildViewHolder(v);
-            onSelected(viewHolder.getBindingAdapterPosition());
+            onSelected(viewHolder, viewHolder.getBindingAdapterPosition());
             return true;
         }
 
@@ -92,7 +91,6 @@ public class RecyclerAdapter<T extends ViewHolder<U>, U extends ListItem> extend
     public RecyclerAdapter(Context context, List<U> items, ViewHolderFactory<T, U> factory) {
         this.factory = factory;
         this.items = items;
-        this.mHandler = new Handler(context.getMainLooper());
     }
 
     @NonNull
@@ -112,14 +110,20 @@ public class RecyclerAdapter<T extends ViewHolder<U>, U extends ListItem> extend
         return items.size();
     }
 
-    public void onSelected(int position) {
+    private void changeState(@NonNull RecyclerView.ViewHolder holder, int position) {
+        onBindViewHolder((T)holder, position);
+    }
+
+    private void onSelected(@NonNull RecyclerView.ViewHolder holder, int position) {
         Log.i("Adapter", String.format(Locale.ENGLISH, "position: %d, selected: %d", position, currentSelected));
-        if (position == RecyclerView.NO_POSITION || position==currentSelected) { return; }
+        if (position < 0 || position==currentSelected) { return; }
         lastSelected = currentSelected;
-        notifyItemChanged(lastSelected);
         currentSelected = position;
-        notifyItemChanged(currentSelected);
-        if (position < items.size() && listener != null) {
+        changeState(holder, position);
+        if (lastSelected != RecyclerView.NO_POSITION) {
+            notifyItemChanged(lastSelected);
+        }
+        if (listener != null) {
             listener.onSelected(position, items.get(position));
         }
     }
@@ -128,25 +132,53 @@ public class RecyclerAdapter<T extends ViewHolder<U>, U extends ListItem> extend
         this.listener = listener;
     }
 
+    private void _selectQuiet(int position) {
+        lastSelected = currentSelected;
+        currentSelected = position;
+        if (lastSelected != RecyclerView.NO_POSITION) {
+            notifyItemChanged(lastSelected);
+        }
+        notifyItemChanged(currentSelected);
+    }
+
+    public void select(int position) {
+        if (position < 0 || position >= items.size() || position == currentSelected) { return; }
+        _selectQuiet(position);
+        if (listener != null) {
+            listener.onSelected(position, items.get(position));
+        }
+    }
+
+    public void selectQuiet(int position) {
+        Log.i("Adapter", String.format(Locale.ENGLISH, "position: %d, selected: %d", position, currentSelected));
+        if (position < 0 || position >= items.size() || position == currentSelected) { return; }
+
+        _selectQuiet(position);
+    }
+
     private void _clearSelection() {
         lastSelected = RecyclerView.NO_POSITION;
         currentSelected = RecyclerView.NO_POSITION;
     }
 
     public void clearSelection() {
-        mHandler.post(()-> {
-            int selected = currentSelected;
-            _clearSelection();
-            if (selected != RecyclerView.NO_POSITION) { notifyItemChanged(selected); }
-        });
+        int selected = currentSelected;
+        _clearSelection();
+        if (selected != RecyclerView.NO_POSITION) { notifyItemChanged(selected); }
     }
 
     @SuppressLint("NotifyDataSetChanged")
     public void setData(List<U> items) {
-        mHandler.post(()->{
-            _clearSelection();
-            this.items = items;
-            notifyDataSetChanged();
-        });
+        _clearSelection();
+        this.items = items;
+        notifyDataSetChanged();
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
+    public void resume(List<U> items, int position) {
+        lastSelected = currentSelected;
+        currentSelected = position;
+        this.items = items;
+        notifyDataSetChanged();
     }
 }

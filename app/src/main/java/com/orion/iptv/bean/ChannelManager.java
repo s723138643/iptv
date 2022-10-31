@@ -24,31 +24,65 @@ public class ChannelManager {
         groups = new ArrayList<>();
     }
 
-    public boolean hasGroup() {
+    public boolean shouldShowGroup() {
         return groups.size() > 1;
     }
 
     private ChannelGroup getOrCreate(String group) {
         String realGroup = group.equals("") ? defaultGroupName : group;
-        return get(realGroup).orElseGet(()->{
+        return getByName(realGroup).orElseGet(()->{
             ChannelGroup g = new ChannelGroup(groupNumGenerator.next(), realGroup, channelNumGenerator);
             groups.add(g);
             return g;
         });
     }
 
-    private Optional<ChannelGroup> get(String group) {
+    private Optional<ChannelGroup> getByName(String group) {
+        return groups.stream().filter((g)->group.equals(g.info.groupName)).findFirst();
+    }
+
+    private Optional<ChannelGroup> getByNumber(int group) {
+        return groups.stream().filter((g)-> group == g.info.groupNumber).findFirst();
+    }
+
+    private Optional<ChannelGroup> getByIndex(int index) {
+        return index >= groups.size() || index < 0 ? Optional.empty() : Optional.of(groups.get(index));
+    }
+
+    public Optional<Integer> indexOf(int group) {
         for (int i=0; i<groups.size(); i++) {
             ChannelGroup g = groups.get(i);
-            if (group.equals(g.name)) {
-                return Optional.of(g);
+            if (group == g.info.groupNumber) {
+                return Optional.of(i);
             }
         }
         return Optional.empty();
     }
 
-    private Optional<ChannelGroup> get(int index) {
-        return index >= groups.size() || index < 0 ? Optional.empty() : Optional.of(groups.get(index));
+    public Optional<Integer> indexOf(String group) {
+        for (int i=0; i<groups.size(); i++) {
+            ChannelGroup g = groups.get(i);
+            if (group.equals(g.info.groupName)) {
+                return Optional.of(i);
+            }
+        }
+        return Optional.empty();
+    }
+
+    public Optional<Integer> indexOfChannel(int groupNumber, int channelNumber) {
+        return getByNumber(groupNumber).flatMap((g)->g.indexOf(channelNumber));
+    }
+
+    public Optional<ChannelGroup> getChannelGroup(int groupNumber) {
+        return getByNumber(groupNumber);
+    }
+
+    public Optional<ChannelItem> getFirst() {
+        return getByIndex(0).flatMap((group)-> group.getByIndex(0));
+    }
+
+    public Optional<ChannelItem> getChannel(int groupNumber, int channelNumber) {
+        return getChannelGroup(groupNumber).flatMap((group)->group.getChannel(channelNumber));
     }
 
     public void appendChannel(String group, String channel, String link) {
@@ -56,19 +90,16 @@ public class ChannelManager {
         g.appendChannel(channel, link);
     }
 
-    public Optional<List<MediaItem>> toMediaItems(int group, int channel) {
-        return get(group).flatMap((g)-> g.toMediaItems(channel));
+    public Optional<List<MediaItem>> toMediaItems(int groupIndex, int channelIndex) {
+        return getByIndex(groupIndex).flatMap((g)-> g.toMediaItems(channelIndex));
     }
 
-    public Optional<ChannelItem.PreferredMediaItems> toMediaItems(int group, int channel, String preferredLink) {
-        return get(group).flatMap((g)-> g.toMediaItems(channel, preferredLink));
+    public Optional<ChannelItem.PreferredMediaItems> toMediaItems(int groupIndex, int channelIndex, String preferredLink) {
+        return getByIndex(groupIndex).flatMap((g)-> g.toMediaItems(channelIndex, preferredLink));
     }
 
     public Optional<List<ChannelItem>> getChannels(int groupIndex) {
-        if (groupIndex>=groups.size() || groupIndex<0) {
-            return Optional.empty();
-        }
-        return Optional.of(groups.get(groupIndex).channels);
+        return getByIndex(groupIndex).map((item)->item.channels);
     }
 
     public static ChannelManager from(String defaultGroupName, String channels) {

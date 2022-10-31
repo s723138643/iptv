@@ -8,15 +8,23 @@ import androidx.core.view.GestureDetectorCompat;
 import android.app.AlertDialog;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.DisplayMetrics;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.widget.EditText;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
+import com.google.android.exoplayer2.C;
+import com.google.android.exoplayer2.Tracks;
 import com.google.android.exoplayer2.analytics.AnalyticsListener;
 import com.google.android.exoplayer2.decoder.DecoderReuseEvaluation;
+import com.google.android.exoplayer2.source.MediaLoadData;
+import com.google.android.exoplayer2.source.TrackGroup;
+import com.google.android.exoplayer2.video.VideoSize;
+import com.orion.iptv.bean.ChannelInfo;
 import com.orion.iptv.layout.liveplayersetting.LivePlayerSettingLayout;
+import com.orion.iptv.layout.player.PlayerView;
 import com.orion.iptv.misc.PreferenceStore;
 import com.orion.iptv.network.StringRequest;
 import com.android.volley.toolbox.Volley;
@@ -26,7 +34,6 @@ import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.PlaybackException;
 import com.google.android.exoplayer2.Player;
-import com.google.android.exoplayer2.ui.StyledPlayerView;
 import com.google.android.exoplayer2.util.Log;
 import com.orion.iptv.bean.ChannelItem;
 import com.orion.iptv.bean.ChannelManager;
@@ -35,14 +42,14 @@ import com.orion.iptv.layout.livechannellist.LiveChannelListLayout;
 import com.orion.iptv.layout.bandwidth.Bandwidth;
 import com.orion.iptv.misc.CancelableRunnable;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG  = "LivePlayer";
-    protected StyledPlayerView videoView;
+    protected PlayerView videoView;
     protected LiveChannelInfoLayout channelInfoLayout;
     protected LiveChannelListLayout channelListLayout;
     protected LivePlayerSettingLayout livePlayerSettingLayout;
@@ -53,6 +60,8 @@ public class MainActivity extends AppCompatActivity {
     private CancelableRunnable playerDelayedTask;
     private GestureDetectorCompat gestureDetector;
     private PreferenceStore preferenceStore;
+    private float xFlyingThreshold;
+    private float yFlyingThreshold;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         reqQueue = Volley.newRequestQueue(this);
         videoView = findViewById(R.id.videoView);
-        videoView.setShowBuffering(StyledPlayerView.SHOW_BUFFERING_WHEN_PLAYING);
+        videoView.setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING);
         ChannelManager channelManager = new ChannelManager(this.getString(R.string.default_group_name));
         channelListLayout = new LiveChannelListLayout(this, channelManager);
         channelInfoLayout = new LiveChannelInfoLayout(this);
@@ -68,6 +77,11 @@ public class MainActivity extends AppCompatActivity {
         bandwidth = new Bandwidth(this);
         gestureDetector = new GestureDetectorCompat(this, new GestureListener());
         preferenceStore = new PreferenceStore(this);
+        DisplayMetrics metrics = this.getResources().getDisplayMetrics();
+        // x flying 2cm on screen in pixel unit
+        xFlyingThreshold = metrics.xdpi * 0.8f;
+        // y flying 2cm on screen in pixel unit
+        yFlyingThreshold = metrics.ydpi * 0.8f;
     }
 
     private class GestureListener extends GestureDetector.SimpleOnGestureListener {
@@ -87,10 +101,9 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            final float flyingXThreshold = 300.0f;
             float distX = e2.getX() - e1.getX();
             // distance is too short ignore this event
-            if (Math.abs(distX) > flyingXThreshold) {
+            if (Math.abs(distX) > xFlyingThreshold) {
                 Log.i(TAG, String.format(Locale.ENGLISH, "scrollX event detect, dist: %.2f, direction: %.2f", distX, velocityX));
                 if (player != null && player.getMediaItemCount() > 0) {
                     if (distX < 0) {
@@ -103,9 +116,8 @@ public class MainActivity extends AppCompatActivity {
                 }
                 return true;
             }
-            final float flyingYThreshold = 300.0f;
             float distY = e2.getY() - e1.getY();
-            if (Math.abs(distY) > flyingYThreshold) {
+            if (Math.abs(distY) > yFlyingThreshold) {
                 Log.i(TAG, String.format(Locale.ENGLISH, "scrollY event detect, dist: %.2f, direction: %.2f", distY, velocityY));
                 if (distY < 0) {
                     channelInfoLayout.displayAsToast(5000);
@@ -183,6 +195,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onPlayerError(PlaybackException error) {
             Log.e(TAG, error.toString());
+            videoView.setCustomErrorMessage(error.toString());
             seekToNextMediaItem(1000);
         }
 
@@ -216,40 +229,79 @@ public class MainActivity extends AppCompatActivity {
         public void onMediaItemTransition(@NonNull EventTime eventTime, @Nullable MediaItem mediaItem, int reason) {
             assert player != null;
             channelInfoLayout.setVisibleDelayed(true, 0);
-            channelInfoLayout.setLinkInfo(player.getCurrentMediaItemIndex()+1, player.getMediaItemCount());
-            if (mediaItem == null || mediaItem.localConfiguration == null) {
-                return;
-            }
-            assert mediaItem.localConfiguration.tag != null;
-            Log.i(TAG, "start playing " + mediaItem.localConfiguration.uri);
-            ChannelItem.Tag tag = (ChannelItem.Tag) mediaItem.localConfiguration.tag;
-            channelInfoLayout.setChannelName(tag.channelName);
-            channelInfoLayout.setChannelNumber(tag.channelNumber);
-            channelInfoLayout.setBitrateInfo(0);
-            channelInfoLayout.setCodecInfo(getString(R.string.codec_info_default));
-            channelInfoLayout.setMediaInfo(getString(R.string.media_info_default));
+            mPlayerHandler.post(()->{
+                channelInfoLayout.setLinkInfo(player.getCurrentMediaItemIndex()+1, player.getMediaItemCount());
+                if (mediaItem == null || mediaItem.localConfiguration == null) {
+                    return;
+                }
+                assert mediaItem.localConfiguration.tag != null;
+                Log.i(TAG, "start playing " + mediaItem.localConfiguration.uri);
+                ChannelInfo tag = (ChannelInfo) mediaItem.localConfiguration.tag;
+                channelInfoLayout.setChannelName(tag.channelName);
+                channelInfoLayout.setChannelNumber(tag.channelNumber);
+                channelInfoLayout.setBitrateInfo(0);
+                channelInfoLayout.setCodecInfo(getString(R.string.codec_info_default));
+                channelInfoLayout.setMediaInfo(getString(R.string.media_info_default));
+            });
         }
 
         @Override
         public void onBandwidthEstimate(@NonNull EventTime eventTime, int totalLoadTimeMs, long totalBytesLoaded, long bitrateEstimate) {
             Log.i(TAG, String.format(Locale.ENGLISH, "bitrate: %d", bitrateEstimate));
-            bandwidth.setBandwidth(bitrateEstimate);
+            mPlayerHandler.post(()->bandwidth.setBandwidth(bitrateEstimate));
+        }
+
+        private Optional<Format> getSelectedVideoTrackFormat(Tracks tracks) {
+            for (Tracks.Group group : tracks.getGroups()) {
+                if (group.isSelected() && group.getType() == C.TRACK_TYPE_VIDEO) {
+                    for (int i=0; i<group.length; i++) {
+                        if (group.isTrackSelected(i)) {
+                            return Optional.of(group.getTrackFormat(i));
+                        }
+                    }
+                }
+            }
+            return Optional.empty();
         }
 
         @Override
-        public void onVideoInputFormatChanged(@NonNull EventTime eventTime, @NonNull Format format, @Nullable DecoderReuseEvaluation decoderReuseEvaluation) {
-            channelInfoLayout.setCodecInfo(format.codecs);
-            if (format.bitrate != Format.NO_VALUE) {
-                channelInfoLayout.setBitrateInfo(format.bitrate);
-            }
-            channelInfoLayout.setMediaInfo(String.format(Locale.ENGLISH, "%dx%d", format.width, format.height));
+        public void onTracksChanged(@NonNull EventTime eventTime, @NonNull Tracks tracks) {
+            getSelectedVideoTrackFormat(tracks).map((track)->{
+                Log.i(TAG, String.format(Locale.ENGLISH, "selected track change to codec:%s, bitrate:%d, size: %dx%d", track.codecs, track.bitrate, track.width, track.height));
+                mPlayerHandler.post(()->{
+                    channelInfoLayout.setBitrateInfo(track.bitrate);
+                    channelInfoLayout.setCodecInfo(track.codecs);
+                    channelInfoLayout.setMediaInfo(String.format(Locale.ENGLISH, "%dx%d", track.width, track.height));
+                });
+                return null;
+            });
+        }
+
+        @Override
+        public void onVideoSizeChanged(@NonNull EventTime eventTime, @NonNull VideoSize videoSize) {
+            Log.i(TAG, String.format(Locale.ENGLISH, "video size change to %dx%d", videoSize.width, videoSize.height));
+            mPlayerHandler.post(()-> channelInfoLayout.setMediaInfo(String.format(Locale.ENGLISH, "%dx%d", videoSize.width, videoSize.height)));
         }
     }
 
     private void fetchChannelList(String url) {
         StringRequest stringRequest = new StringRequest(Request.Method.GET, url, response -> {
-            channelListLayout.setData(ChannelManager.from(getString(R.string.default_group_name), response));
-            List<MediaItem> items = channelListLayout.getCurrentChannelSources().orElse(new ArrayList<>());
+            ChannelManager manager = ChannelManager.from(getString(R.string.default_group_name), response);
+            int savedGroupNumber = this.preferenceStore.getInt("selected_group_number", -1);
+            int savedChannelNumber = this.preferenceStore.getInt("selected_channel_number", -1);
+            ChannelItem channel = manager.getChannel(savedGroupNumber, savedChannelNumber)
+                    .map((item)->{
+                        String savedGroupName = this.preferenceStore.getString("selected_group_name", "");
+                        String savedChannelName = this.preferenceStore.getString("selected_channel_name", "");
+                        if (savedChannelName.equals(item.info.channelName) && savedGroupName.equals(item.info.groupInfo.groupName)) {
+                            return item;
+                        }
+                        return null;
+                    })
+                    .orElseGet(() -> manager.getFirst().orElse(null));
+            if (channel == null) { return; }
+            mPlayerHandler.post(()->channelListLayout.resume(manager, channel.info));
+            List<MediaItem> items = channel.toMediaItems();
             if (items.size() > 0 ) {
                 setMediaItems(items, 0);
             }
@@ -294,10 +346,14 @@ public class MainActivity extends AppCompatActivity {
             fetchChannelList(url);
         }
 
-        channelListLayout.setOnChannelSelectedListener((groupIndex, channelIndex) -> {
-            List<MediaItem> items = channelListLayout.getCurrentChannelSources().orElse(new ArrayList<>());
+        channelListLayout.setOnChannelSelectedListener((channel) -> {
+            List<MediaItem> items = channel.toMediaItems();
             if (items.size() > 0) {
                 setMediaItems(items, 0);
+                preferenceStore.setString("selected_group_name", channel.info.groupInfo.groupName);
+                preferenceStore.setInt("selected_group_number", channel.info.groupInfo.groupNumber);
+                preferenceStore.setString("selected_channel_name", channel.info.channelName);
+                preferenceStore.setInt("selected_channel_number", channel.info.channelNumber);
             }
         });
 
@@ -354,6 +410,7 @@ public class MainActivity extends AppCompatActivity {
         player.addAnalyticsListener(new PlayerAnalyticsListener());
         player.setRepeatMode(Player.REPEAT_MODE_ALL);
         videoView.setPlayer(player);
+        videoView.setAspectRatioListener((targetAspectRatio, naturalAspectRatio, aspectRatioMismatch)-> Log.i(TAG, String.format(Locale.ENGLISH, "aspectRatio changed, target: %.2f, natural: %.2f, mismatch: %b", targetAspectRatio, naturalAspectRatio, aspectRatioMismatch)));
     }
 
     protected void releasePlayer() {

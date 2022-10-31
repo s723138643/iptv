@@ -42,11 +42,11 @@ public class LiveChannelInfoLayout {
     }
 
     public void setChannelName(String name) {
-        mHandler.post(()-> this.channelName.setText(name));
+        this.channelName.setText(name);
     }
 
     public void setChannelNumber(int number) {
-        mHandler.post(()-> this.channelNumber.setText(String.format(Locale.ENGLISH, "%d", number)));
+        this.channelNumber.setText(String.format(Locale.ENGLISH, "%d", number));
     }
 
     private String formatBitrate(int bitrate) {
@@ -64,34 +64,32 @@ public class LiveChannelInfoLayout {
 
     public void setBitrateInfo(int bitrate) {
         if (bitrate <= 0) {
-            mHandler.post(()->this.bitrateInfo.setVisibility(View.GONE));
+            this.bitrateInfo.setVisibility(View.GONE);
             return;
         }
         String formattedBitrate = formatBitrate(bitrate);
-        mHandler.post(()->{
-            this.bitrateInfo.setText(formattedBitrate);
-            this.bitrateInfo.setVisibility(View.VISIBLE);
-        });
+        this.bitrateInfo.setText(formattedBitrate);
+        this.bitrateInfo.setVisibility(View.VISIBLE);
     }
 
     public void setCodecInfo(String info) {
-        mHandler.post(()-> this.codecInfo.setText(info));
+        this.codecInfo.setText(info);
     }
 
     public void setMediaInfo(String info) {
-        mHandler.post(()-> this.mediaInfo.setText(info));
+        this.mediaInfo.setText(info);
     }
 
     public void setLinkInfo(int currentIndex, int totalLinks) {
-        mHandler.post(()-> this.linkInfo.setText(String.format(Locale.ENGLISH, "[%d/%d]", currentIndex, totalLinks)));
+        this.linkInfo.setText(String.format(Locale.ENGLISH, "[%d/%d]", currentIndex, totalLinks));
     }
 
     public void setCurrentEpgProgram(String program) {
-        mHandler.post(()-> this.currentEpgProgram.setText(program));
+        this.currentEpgProgram.setText(program);
     }
 
     public void setNextEpgProgram(String program) {
-        mHandler.post(()-> this.nextEpgProgram.setText(program));
+        this.nextEpgProgram.setText(program);
     }
 
     private void _setVisibility(boolean isVisible) {
@@ -140,17 +138,17 @@ public class LiveChannelInfoLayout {
 
     public void hide() {
         mHandler.post(()->{
-           if (!isVisible()) { return; }
-           if (setVisibilityDelayedTask != null) {
-               setVisibilityDelayedTask.cancel();
-           }
-           setVisibilityDelayedTask = new CancelableRunnable() {
-               @Override
-               public void callback() {
-                   _setVisibility(false);
-               }
-           };
-           mHandler.post(setVisibilityDelayedTask);
+            if (!isVisible()) { return; }
+            if (setVisibilityDelayedTask != null) {
+                setVisibilityDelayedTask.cancel();
+            }
+            setVisibilityDelayedTask = new CancelableRunnable() {
+                @Override
+                public void callback() {
+                    _setVisibility(false);
+                }
+            };
+            mHandler.post(setVisibilityDelayedTask);
         });
     }
 }

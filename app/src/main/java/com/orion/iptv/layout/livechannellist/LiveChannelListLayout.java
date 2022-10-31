@@ -9,9 +9,9 @@ import android.widget.ToggleButton;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.exoplayer2.MediaItem;
 import com.orion.iptv.R;
 import com.orion.iptv.bean.ChannelGroup;
+import com.orion.iptv.bean.ChannelInfo;
 import com.orion.iptv.bean.ChannelItem;
 import com.orion.iptv.bean.ChannelManager;
 import com.orion.iptv.misc.CancelableRunnable;
@@ -21,7 +21,6 @@ import com.orion.iptv.recycleradapter.ViewHolder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 
 import android.util.Log;
 
@@ -31,6 +30,7 @@ public class LiveChannelListLayout {
     private final RecyclerView groupList;
     private final View groupListSpacer;
     private final RecyclerAdapter<ViewHolder<ChannelGroup>, ChannelGroup> groupListViewAdapter;
+    private final RecyclerView channelList;
     private final RecyclerAdapter<ViewHolder<ChannelItem>, ChannelItem> channelListViewAdapter;
     private final View epgSpacer;
     private final RecyclerView epgList;
@@ -41,6 +41,7 @@ public class LiveChannelListLayout {
     private OnChannelSelectedListener channelSelectedListener;
 
     private int selectedGroup = 0;
+    private int provisionalSelectedGroup = 0;
     private int selectedChannel = 0;
 
     public boolean getIsVisible() {
@@ -48,7 +49,7 @@ public class LiveChannelListLayout {
     }
 
     public interface OnChannelSelectedListener {
-        void onChannelSelected(int groupIndex, int channelIndex);
+        void onChannelSelected(ChannelItem channelItem);
     }
 
     public LiveChannelListLayout(AppCompatActivity activity, ChannelManager channelManager) {
@@ -61,22 +62,18 @@ public class LiveChannelListLayout {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
-                    mHandler.post(() -> {
-                        epgSpacer.setVisibility(View.VISIBLE);
-                        epgList.setVisibility(View.VISIBLE);
-                    });
+                    epgSpacer.setVisibility(View.VISIBLE);
+                    epgList.setVisibility(View.VISIBLE);
                 } else {
-                    mHandler.post(() -> {
-                        epgSpacer.setVisibility(View.GONE);
-                        epgList.setVisibility(View.GONE);
-                    });
+                    epgSpacer.setVisibility(View.GONE);
+                    epgList.setVisibility(View.GONE);
                 }
             }
         });
         this.epgSpacer = mLayout.findViewById(R.id.channelSpacer3);
         this.epgList = mLayout.findViewById(R.id.channelEpgList);
 
-        RecyclerView channelList = mLayout.findViewById(R.id.channelList);
+        channelList = mLayout.findViewById(R.id.channelList);
         channelListViewAdapter = new RecyclerAdapter<>(
                 mLayout.getContext(),
                 channelManager.getChannels(selectedChannel).orElse(new ArrayList<>()),
@@ -86,19 +83,18 @@ public class LiveChannelListLayout {
         channelListViewAdapter.setOnSelectedListener((position, item) -> {
             Log.i(TAG, String.format(Locale.ENGLISH, "channel item: %d selected", position));
             selectedChannel = position;
+            selectedGroup = provisionalSelectedGroup;
             if (channelSelectedListener != null) {
-                channelSelectedListener.onChannelSelected(selectedGroup, selectedChannel);
+                channelSelectedListener.onChannelSelected(item);
             }
         });
         channelList.addOnItemTouchListener(channelListViewAdapter.new OnItemTouchListener(mLayout.getContext(), channelList));
 
         groupList = mLayout.findViewById(R.id.channelGroup);
         groupListSpacer = mLayout.findViewById(R.id.channelSpacer1);
-        if (channelManager.hasGroup()) {
-            mHandler.post(() -> {
-                groupList.setVisibility(View.VISIBLE);
-                groupListSpacer.setVisibility(View.VISIBLE);
-            });
+        if (channelManager.shouldShowGroup()) {
+            groupList.setVisibility(View.VISIBLE);
+            groupListSpacer.setVisibility(View.VISIBLE);
         }
         groupListViewAdapter = new RecyclerAdapter<>(
                 mLayout.getContext(),
@@ -107,10 +103,16 @@ public class LiveChannelListLayout {
         );
         groupList.setAdapter(groupListViewAdapter);
         groupListViewAdapter.setOnSelectedListener((position, item) -> {
-            selectedGroup = position;
+            provisionalSelectedGroup = position;
+            boolean needResumeSelection = position == selectedGroup;
             List<ChannelItem> channels = this.channelManager.getChannels(position).orElse(new ArrayList<>());
             Log.i(TAG, String.format("select group: %d, channels: %d", position, channels.size()));
-            channelListViewAdapter.setData(channels);
+            if (needResumeSelection) {
+                channelListViewAdapter.resume(channels, selectedChannel);
+                channelList.smoothScrollToPosition(selectedChannel);
+            } else {
+                channelListViewAdapter.setData(channels);
+            }
         });
         groupList.addOnItemTouchListener(groupListViewAdapter.new OnItemTouchListener(mLayout.getContext(), groupList));
     }
@@ -140,22 +142,19 @@ public class LiveChannelListLayout {
         channelSelectedListener = listener;
     }
 
-    public Optional<List<MediaItem>> getCurrentChannelSources() {
-        return channelManager.toMediaItems(selectedGroup, selectedChannel);
-    }
-
     @SuppressLint("NotifyDataSetChanged")
-    public void setData(ChannelManager m) {
-        selectedGroup = 0;
-        selectedChannel = 0;
+    public void resume(ChannelManager m, ChannelInfo info) {
+        selectedGroup = m.indexOf(info.groupInfo.groupNumber).orElse(0);
+        selectedChannel = m.indexOfChannel(info.groupInfo.groupNumber, info.channelNumber).orElse(0);
+
         channelManager = m;
-        groupListViewAdapter.setData(m.groups);
-        int visibility = m.hasGroup() ? View.VISIBLE : View.GONE;
-        mHandler.post(() -> {
-            groupList.setVisibility(visibility);
-            groupListSpacer.setVisibility(visibility);
-        });
+        groupListViewAdapter.resume(m.groups, selectedGroup);
+        int visibility = m.shouldShowGroup() ? View.VISIBLE : View.GONE;
+        groupList.setVisibility(visibility);
+        groupListSpacer.setVisibility(visibility);
+        groupList.scrollToPosition(selectedGroup);
         List<ChannelItem> channels = m.getChannels(selectedGroup).orElse(new ArrayList<>());
-        channelListViewAdapter.setData(channels);
+        channelListViewAdapter.resume(channels, selectedChannel);
+        channelList.scrollToPosition(selectedChannel);
     }
 }
