@@ -33,18 +33,18 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.TextView;
+
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.google.android.exoplayer2.PlaybackException;
 import com.google.android.exoplayer2.Player;
-import com.google.android.exoplayer2.ui.AspectRatioFrameLayout;
-import com.google.android.exoplayer2.ui.AspectRatioFrameLayout.ResizeMode;
 import com.google.android.exoplayer2.util.Assertions;
 import com.google.android.exoplayer2.util.ErrorMessageProvider;
 import com.google.android.exoplayer2.video.VideoSize;
 import com.orion.iptv.R;
+import com.orion.iptv.layout.player.AspectRatioFrameLayout.ResizeMode;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
@@ -133,9 +133,7 @@ public class PlayerView extends FrameLayout {
     int resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT;
     int showBuffering = SHOW_BUFFERING_NEVER;
     if (attrs != null) {
-      TypedArray a = context
-              .getTheme()
-              .obtainStyledAttributes(attrs, R.styleable.PlayerView, defStyleAttr,/* defStyleRes= */0);
+      TypedArray a = context.getTheme().obtainStyledAttributes(attrs, R.styleable.PlayerView, defStyleAttr,/* defStyleRes= */0);
       try {
         playerLayoutId = a.getResourceId(R.styleable.PlayerView_player_layout_id, playerLayoutId);
         surfaceType = a.getInt(R.styleable.PlayerView_surface_type, surfaceType);
@@ -428,9 +426,9 @@ public class PlayerView extends FrameLayout {
    * @param contentFrame The content frame, or {@code null}.
    * @param aspectRatio The aspect ratio to apply.
    */
-  protected void onContentAspectRatioChanged(@Nullable AspectRatioFrameLayout contentFrame, float aspectRatio) {
+  protected void onContentAspectRatioChanged(@Nullable AspectRatioFrameLayout contentFrame, int width, int height, float aspectRatio) {
     if (contentFrame != null) {
-      contentFrame.setAspectRatio(aspectRatio);
+      contentFrame.setAspectRatio(width, height, aspectRatio);
     }
   }
 
@@ -468,13 +466,6 @@ public class PlayerView extends FrameLayout {
 
   private void updateAspectRatio(VideoSize videoSize) {
     assert surfaceView != null;
-    if (videoSize != VideoSize.UNKNOWN && (videoSize.width > surfaceView.getWidth() || videoSize.height > surfaceView.getHeight())) {
-      assert contentFrame != null;
-      ViewGroup.LayoutParams params = contentFrame.getLayoutParams();
-      params.width = videoSize.width;
-      params.height = videoSize.height;
-      contentFrame.setLayoutParams(params);
-    }
     int width = videoSize.width;
     int height = videoSize.height;
     int unAppliedRotationDegrees = videoSize.unappliedRotationDegrees;
@@ -499,7 +490,7 @@ public class PlayerView extends FrameLayout {
       applyTextureViewRotation((TextureView) surfaceView, textureViewRotation);
     }
 
-    onContentAspectRatioChanged(contentFrame, surfaceViewIgnoresVideoAspectRatio ? 0 : videoAspectRatio);
+    onContentAspectRatioChanged(contentFrame, width, height, videoAspectRatio);
   }
 
   @SuppressWarnings("ResourceType")

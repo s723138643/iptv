@@ -76,6 +76,7 @@ public class MainActivity extends AppCompatActivity {
         gestureDetector = new GestureDetectorCompat(this, new GestureListener());
         preferenceStore = new PreferenceStore(this);
         DisplayMetrics metrics = this.getResources().getDisplayMetrics();
+        Log.i(TAG, String.format(Locale.ENGLISH, "display size: %dx%d", metrics.widthPixels, metrics.heightPixels));
         // x flying 2cm on screen in pixel unit
         xFlyingThreshold = metrics.xdpi * 0.8f;
         // y flying 2cm on screen in pixel unit

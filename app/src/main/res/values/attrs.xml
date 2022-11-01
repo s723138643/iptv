@@ -9,4 +9,7 @@
         <attr name="resize_mode"/>
         <attr name="animation_enabled"/>
     </declare-styleable>
+    <declare-styleable name="AspectRatioFrameLayout">
+        <attr name="resize_mode"/>
+    </declare-styleable>
 </resources>
