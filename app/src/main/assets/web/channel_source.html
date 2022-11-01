@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>设置频道源</title>
+    <style>
+        #container {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            top: 50%;
+            left: 50%;
+        }
+
+        #urlForm {
+            display: flex;
+            justify-content: center;
+            justify-items: center;
+        }
+
+        input#url {
+            min-width: 500px;
+            min-height: 32px;
+            margin-right: 5px;
+        }
+
+        button#submit {
+            min-width: 80px;
+            min-height: 32px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container">
+        <form id="urlForm">
+            <input id="url" placeholder="请输入频道源地址" name="url" />
+            <button id="submit">上传</button>
+        </form>
+    </div>
+    <script>
+        function post(url, data) {
+            return new Promise((resolve, reject) => {
+                let xhr = new XMLHttpRequest();
+                xhr.open("POST", url);
+                xhr.onload = resolve;
+                xhr.onabort = reject;
+                xhr.send(data);
+            });
+        }
+
+        function sendData(url, data) {
+            post(url, data).then((resp) => {
+                console.log("post data successful");
+            }).catch((e) => {
+                console.log(`post data failed, ${e}`);
+            });
+        }
+        const form = document.querySelector("#urlForm");
+        form.addEventListener("submit", (event) => {
+            event.preventDefault();
+            sendData(document.url, new FormData(form));
+        });
+    </script>
+</body>
+
+</html>

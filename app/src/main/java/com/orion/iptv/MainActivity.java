@@ -5,24 +5,20 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GestureDetectorCompat;
 
-import android.app.AlertDialog;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.DisplayMetrics;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
-import android.widget.EditText;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Tracks;
 import com.google.android.exoplayer2.analytics.AnalyticsListener;
-import com.google.android.exoplayer2.decoder.DecoderReuseEvaluation;
-import com.google.android.exoplayer2.source.MediaLoadData;
-import com.google.android.exoplayer2.source.TrackGroup;
 import com.google.android.exoplayer2.video.VideoSize;
 import com.orion.iptv.bean.ChannelInfo;
+import com.orion.iptv.layout.dialog.ChannelSourceDialog;
 import com.orion.iptv.layout.liveplayersetting.LivePlayerSettingLayout;
 import com.orion.iptv.layout.player.PlayerView;
 import com.orion.iptv.misc.PreferenceStore;
@@ -244,6 +240,7 @@ public class MainActivity extends AppCompatActivity {
                 channelInfoLayout.setBitrateInfo(0);
                 channelInfoLayout.setCodecInfo(getString(R.string.codec_info_default));
                 channelInfoLayout.setMediaInfo(getString(R.string.media_info_default));
+                bandwidth.setBandwidth(0);
             });
         }
 
@@ -312,26 +309,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void getChannelSourceUrl() {
-        AlertDialog.Builder builder =  new AlertDialog.Builder(this);
-        builder = builder.setTitle("setting channel source");
-        builder = builder.setView(R.layout.channel_source_dialog);
-        builder = builder.setPositiveButton("ok", (dialog, which) -> {
-            AlertDialog alertDialog = (AlertDialog)dialog;
-            EditText text = alertDialog.findViewById(R.id.channel_source_url);
-            if (text == null) {
-                return;
-            }
-            String input = text.getText().toString();
-            Log.i(TAG, String.format(Locale.ENGLISH, "got channel resource url: %s", input));
-            if (input.equals("")) {
-                return;
-            }
+        ChannelSourceDialog dialog = new ChannelSourceDialog(this);
+        dialog.setOnChannelSourceSubmitListener((url)->{
+            Log.i(TAG, String.format(Locale.ENGLISH, "got channel resource url: %s", url));
             mHandler.post(()->{
-                preferenceStore.setString("channel_source_url", input);
-                fetchChannelList(input);
+                preferenceStore.setString("channel_source_url", url);
+                fetchChannelList(url);
             });
         });
-        builder.create().show();
+        dialog.show();
     }
 
     @Override
