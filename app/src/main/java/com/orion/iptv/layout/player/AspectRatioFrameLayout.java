@@ -193,10 +193,17 @@ public final class AspectRatioFrameLayout extends FrameLayout {
         break;
       case RESIZE_MODE_ZOOM:
       case RESIZE_MODE_FIT:
+        // fit height first
         width = displayHeight * videoAspectRatio;
         if (width > displayWidth) {
+          // if width is overflow, then fit width
           width = displayWidth;
           height = displayWidth / videoAspectRatio;
+          // prevent float calculation error
+          height = width == videoWidth && Math.abs(videoHeight - height) <= 5.0f && videoHeight <= displayHeight ? videoHeight : height;
+        } else {
+          // prevent float calculation error
+          width = height == videoHeight && Math.abs(videoWidth - width) <= 5.0f && videoWidth <= displayWidth ? videoWidth : width;
         }
         break;
       case RESIZE_MODE_FILL:
