@@ -4,7 +4,12 @@
 <head>
     <title>设置频道源</title>
     <style>
+        body {
+            font-size: 17px;
+        }
+
         #container {
+            margin: 10px;
             position: absolute;
             transform: translate(-50%, -50%);
             top: 50%;
@@ -20,24 +25,38 @@
         input#url {
             min-width: 500px;
             min-height: 32px;
-            margin-right: 5px;
+            border: solid 1px #ccc;
+            appearance: none;
+            outline: none;
+            padding: 6px 12px;
+            transition: border-color ease-in-out .5s, outline ease-in-out .5s;
+        }
+
+        input#url:focus {
+            outline: 1px solid cadetblue;
         }
 
         button#submit {
-            min-width: 80px;
+            min-width: 96px;
             min-height: 32px;
+            margin-left: 5px;
+            border: solid 1px #ccc;
+        }
+
+        button#submit:hover {
+            background-color: cadetblue;
         }
     </style>
 </head>
 
 <body>
-    <div id="container">
-        <form id="urlForm">
-            <input id="url" placeholder="请输入频道源地址" name="url" />
-            <button id="submit">上传</button>
-        </form>
+<div id="container">
+    <div id="urlForm">
+        <input id="url" placeholder="请输入url地址" name="url" />
+        <button id="submit">上传</button>
     </div>
-    <script>
+</div>
+<script>
         function post(url, data) {
             return new Promise((resolve, reject) => {
                 let xhr = new XMLHttpRequest();
@@ -55,11 +74,12 @@
                 console.log(`post data failed, ${e}`);
             });
         }
-        const form = document.querySelector("#urlForm");
-        form.addEventListener("submit", (event) => {
-            event.preventDefault();
-            sendData(document.url, new FormData(form));
-        });
+        document.querySelector("#submit").onclick = (event) => {
+            let url = new URL(document.querySelector("#url").value);
+            let data = new FormData();
+            data.set("url", url.toString());
+            sendData(document.url, data);
+        };
     </script>
 </body>
 

@@ -2,6 +2,8 @@ package com.orion.iptv.layout.liveplayersetting;
 
 import android.content.Context;
 import com.orion.iptv.layout.dialog.ChannelSourceDialog;
+import com.orion.iptv.misc.PreferenceStore;
+
 import java.util.List;
 
 public class SetChannelSourceUrl implements SettingMenu {
@@ -34,6 +36,9 @@ public class SetChannelSourceUrl implements SettingMenu {
         public void onSelected(OnSettingChangedListener listener) {
             ChannelSourceDialog dialog = new ChannelSourceDialog(context);
             dialog.setOnChannelSourceSubmitListener((url)->listener.onSettingChanged(settingKey, url));
+            dialog.setTitle(name());
+            dialog.setDefaultValue(PreferenceStore.getString("channel_source_url", ""));
+            dialog.setInputHint("请输入url地址");
             dialog.show();
         }
     }

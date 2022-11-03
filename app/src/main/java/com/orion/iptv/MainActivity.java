@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GestureDetectorCompat;
+import androidx.preference.PreferenceManager;
 
 import android.os.Bundle;
 import android.os.Handler;
@@ -11,19 +12,18 @@ import android.util.DisplayMetrics;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Tracks;
 import com.google.android.exoplayer2.analytics.AnalyticsListener;
+import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource;
+import com.google.android.exoplayer2.source.DefaultMediaSourceFactory;
+import com.google.android.exoplayer2.upstream.DefaultDataSource;
 import com.google.android.exoplayer2.video.VideoSize;
 import com.orion.iptv.bean.ChannelInfo;
 import com.orion.iptv.layout.dialog.ChannelSourceDialog;
 import com.orion.iptv.layout.liveplayersetting.LivePlayerSettingLayout;
 import com.orion.iptv.layout.player.PlayerView;
 import com.orion.iptv.misc.PreferenceStore;
-import com.orion.iptv.network.StringRequest;
-import com.android.volley.toolbox.Volley;
 import com.google.android.exoplayer2.DefaultRenderersFactory;
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.Format;
@@ -37,10 +37,18 @@ import com.orion.iptv.layout.livechannelinfo.LiveChannelInfoLayout;
 import com.orion.iptv.layout.livechannellist.LiveChannelListLayout;
 import com.orion.iptv.layout.bandwidth.Bandwidth;
 import com.orion.iptv.misc.CancelableRunnable;
+import com.orion.iptv.misc.SourceTypeDetector;
+import com.orion.iptv.network.DownloadHelper;
 
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+
+import okhttp3.Cache;
+import okhttp3.CacheControl;
+import okhttp3.Call;
+import okhttp3.OkHttpClient;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -51,12 +59,10 @@ public class MainActivity extends AppCompatActivity {
     protected LivePlayerSettingLayout livePlayerSettingLayout;
     protected Bandwidth bandwidth;
     protected @Nullable ExoPlayer player;
-    private RequestQueue reqQueue;
     private Handler mPlayerHandler;
     private Handler mHandler;
     private CancelableRunnable playerDelayedTask;
     private GestureDetectorCompat gestureDetector;
-    private PreferenceStore preferenceStore;
     private float xFlyingThreshold;
     private float yFlyingThreshold;
 
@@ -64,7 +70,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        reqQueue = Volley.newRequestQueue(this);
+        PreferenceStore.setPreferences(PreferenceManager.getDefaultSharedPreferences(this));
+        OkHttpClient client = new OkHttpClient.Builder()
+                .cache(new Cache(this.getCacheDir(), 50*1024*1024))
+                .followSslRedirects(true)
+                .build();
+        DownloadHelper.setClient(client);
         videoView = findViewById(R.id.videoView);
         videoView.setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING);
         videoView.setErrorMessageProvider(new PlayerView.DefaultErrorMessageProvider());
@@ -74,7 +85,6 @@ public class MainActivity extends AppCompatActivity {
         livePlayerSettingLayout = new LivePlayerSettingLayout(this);
         bandwidth = new Bandwidth(this);
         gestureDetector = new GestureDetectorCompat(this, new GestureListener());
-        preferenceStore = new PreferenceStore(this);
         DisplayMetrics metrics = this.getResources().getDisplayMetrics();
         Log.i(TAG, String.format(Locale.ENGLISH, "display size: %dx%d", metrics.widthPixels, metrics.heightPixels));
         // x flying 2cm on screen in pixel unit
@@ -284,37 +294,69 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void processChannelList(String channelList) {
+        ChannelManager manager = ChannelManager.from(getString(R.string.default_group_name), channelList);
+        int savedGroupNumber = PreferenceStore.getInt("selected_group_number", -1);
+        int savedChannelNumber = PreferenceStore.getInt("selected_channel_number", -1);
+        ChannelItem channel = manager.getChannel(savedGroupNumber, savedChannelNumber)
+                .map(item -> {
+                    String savedGroupName = PreferenceStore.getString("selected_group_name", "");
+                    String savedChannelName = PreferenceStore.getString("selected_channel_name", "");
+                    if (savedChannelName.equals(item.info.channelName) && savedGroupName.equals(item.info.groupInfo.groupName)) {
+                        return item;
+                    }
+                    return null;
+                })
+                .orElseGet(() -> manager.getFirst().orElse(null));
+        if (channel == null) {
+            return;
+        }
+        mHandler.post(()->channelListLayout.resume(manager, channel.info));
+        List<MediaItem> items = channel.toMediaItems();
+        if (items.size() > 0 ) {
+            setMediaItems(items, 0);
+        }
+    }
+
     private void fetchChannelList(String url) {
-        StringRequest stringRequest = new StringRequest(Request.Method.GET, url, response -> {
-            ChannelManager manager = ChannelManager.from(getString(R.string.default_group_name), response);
-            int savedGroupNumber = this.preferenceStore.getInt("selected_group_number", -1);
-            int savedChannelNumber = this.preferenceStore.getInt("selected_channel_number", -1);
-            ChannelItem channel = manager.getChannel(savedGroupNumber, savedChannelNumber)
-                    .map((item)->{
-                        String savedGroupName = this.preferenceStore.getString("selected_group_name", "");
-                        String savedChannelName = this.preferenceStore.getString("selected_channel_name", "");
-                        if (savedChannelName.equals(item.info.channelName) && savedGroupName.equals(item.info.groupInfo.groupName)) {
-                            return item;
+        _fetchChannelList(url, 1);
+    }
+
+    private void _fetchChannelList(String url, int depth) {
+        if (depth > 3) {
+            return;
+        }
+        CacheControl cacheControl = new CacheControl.Builder()
+                .maxAge(30, TimeUnit.MINUTES)
+                .build();
+        DownloadHelper.get(
+                url,
+                cacheControl,
+                response -> {
+                    if (SourceTypeDetector.isJson(response)) {
+                        String liveUrl = SourceTypeDetector.getLiveUrl(response);
+                        Log.i(TAG, "got live url: " + liveUrl);
+                        if (liveUrl.isEmpty()) {
+                            return;
                         }
-                        return null;
-                    })
-                    .orElseGet(() -> manager.getFirst().orElse(null));
-            if (channel == null) { return; }
-            mHandler.post(()->channelListLayout.resume(manager, channel.info));
-            List<MediaItem> items = channel.toMediaItems();
-            if (items.size() > 0 ) {
-                setMediaItems(items, 0);
-            }
-        }, error -> Log.e(TAG, "got channel list failed, " + error.toString()));
-        reqQueue.add(stringRequest.setTag(TAG));
+                        _fetchChannelList(liveUrl, depth+1);
+                    } else {
+                        processChannelList(response);
+                    }
+                },
+                error -> Log.e(TAG, "got channel list failed, " + error.toString())
+        );
     }
 
     private void getChannelSourceUrl() {
         ChannelSourceDialog dialog = new ChannelSourceDialog(this);
-        dialog.setOnChannelSourceSubmitListener((url)->{
+        dialog.setTitle("设置频道源");
+        dialog.setDefaultValue(PreferenceStore.getString("channel_source_url", ""));
+        dialog.setInputHint("请输入url地址");
+        dialog.setOnChannelSourceSubmitListener(url -> {
             Log.i(TAG, String.format(Locale.ENGLISH, "got channel resource url: %s", url));
             mHandler.post(()->{
-                preferenceStore.setString("channel_source_url", url);
+                PreferenceStore.setString("channel_source_url", url);
                 fetchChannelList(url);
             });
         });
@@ -327,7 +369,7 @@ public class MainActivity extends AppCompatActivity {
         initializePlayer();
         assert player != null;
 
-        String url = this.preferenceStore.getString("channel_source_url", "");
+        String url = PreferenceStore.getString("channel_source_url", "");
         if (url.equals("")) {
             getChannelSourceUrl();
         } else {
@@ -339,10 +381,10 @@ public class MainActivity extends AppCompatActivity {
             List<MediaItem> items = channel.toMediaItems();
             if (items.size() > 0) {
                 setMediaItems(items, 0);
-                preferenceStore.setString("selected_group_name", channel.info.groupInfo.groupName);
-                preferenceStore.setInt("selected_group_number", channel.info.groupInfo.groupNumber);
-                preferenceStore.setString("selected_channel_name", channel.info.channelName);
-                preferenceStore.setInt("selected_channel_number", channel.info.channelNumber);
+                PreferenceStore.setString("selected_group_name", channel.info.groupInfo.groupName);
+                PreferenceStore.setInt("selected_group_number", channel.info.groupInfo.groupNumber);
+                PreferenceStore.setString("selected_channel_name", channel.info.channelName);
+                PreferenceStore.setInt("selected_channel_number", channel.info.channelNumber);
             }
         });
 
@@ -351,7 +393,7 @@ public class MainActivity extends AppCompatActivity {
                 String value = (String)originValue;
                 if (value.equals("")) { return; }
                 mHandler.post(()->{
-                   preferenceStore.setString(key, value);
+                   PreferenceStore.setString(key, value);
                    fetchChannelList(value);
                 });
             }
@@ -377,9 +419,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onStop() {
         super.onStop();
-        reqQueue.cancelAll(TAG);
         releasePlayer();
-        preferenceStore.commit();
+        PreferenceStore.commit();
     }
 
     private ExoPlayer newPlayer() {
@@ -388,6 +429,13 @@ public class MainActivity extends AppCompatActivity {
         DefaultRenderersFactory renderFactory = new DefaultRenderersFactory(this.getApplicationContext());
         renderFactory = renderFactory.setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON);
         builder.setRenderersFactory(renderFactory);
+
+        OkHttpClient client = new OkHttpClient.Builder().build();
+        DefaultDataSource.Factory dataSourceFactory = new DefaultDataSource.Factory(
+                this,
+                new OkHttpDataSource.Factory((Call.Factory) client)
+        );
+        builder.setMediaSourceFactory(new DefaultMediaSourceFactory(this).setDataSourceFactory(dataSourceFactory));
         return builder.build();
     }
 

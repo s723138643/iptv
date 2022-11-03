@@ -47,7 +47,7 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.5.1'
     implementation 'androidx.recyclerview:recyclerview:1.2.1'
     implementation 'androidx.recyclerview:recyclerview-selection:1.1.0'
-    implementation 'com.android.volley:volley:1.2.1'
+    implementation 'com.squareup.okhttp3:okhttp:4.10.0'
     implementation 'org.nanohttpd:nanohttpd:2.3.1'
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'
@@ -59,7 +59,7 @@ dependencies {
     implementation project(':exoplayer-library-rtsp')
     implementation project(':exoplayer-library-smoothstreaming')
     implementation project(':exoplayer-library-ui')
-    implementation project(':exoplayer-extension-cronet')
+    implementation project(':exoplayer-extension-okhttp')
     implementation project(':exoplayer-extension-ima')
     //implementation project(modulePrefix + 'extension-av1')
     implementation project(':exoplayer-extension-ffmpeg')
