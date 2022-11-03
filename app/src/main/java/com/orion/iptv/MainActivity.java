@@ -29,6 +29,8 @@ import com.google.android.exoplayer2.video.VideoSize;
 import com.orion.iptv.bean.ChannelInfo;
 import com.orion.iptv.bean.ChannelItem;
 import com.orion.iptv.bean.ChannelManager;
+import com.orion.iptv.bean.EpgProgram;
+import com.orion.iptv.epg.m51zmt.M51ZMT;
 import com.orion.iptv.layout.bandwidth.Bandwidth;
 import com.orion.iptv.layout.dialog.ChannelSourceDialog;
 import com.orion.iptv.layout.livechannelinfo.LiveChannelInfoLayout;
@@ -40,6 +42,7 @@ import com.orion.iptv.misc.PreferenceStore;
 import com.orion.iptv.misc.SourceTypeDetector;
 import com.orion.iptv.network.DownloadHelper;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -58,8 +61,7 @@ public class MainActivity extends AppCompatActivity {
     protected LiveChannelListLayout channelListLayout;
     protected LivePlayerSettingLayout livePlayerSettingLayout;
     protected Bandwidth bandwidth;
-    protected @Nullable
-    ExoPlayer player;
+    protected @Nullable ExoPlayer player;
     private Handler mPlayerHandler;
     private Handler mHandler;
     private CancelableRunnable playerDelayedTask;
@@ -181,6 +183,7 @@ public class MainActivity extends AppCompatActivity {
         List<MediaItem> items = channel.toMediaItems();
         if (items.size() > 0) {
             setMediaItems(items, 0);
+            updateEpgInfo(channel);
         }
     }
 
@@ -229,6 +232,43 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
+    private void updateEpgInfo(ChannelItem channel) {
+        // 清除旧信息
+        channelInfoLayout.setCurrentEpgProgram(getString(R.string.current_epg_program_default));
+        channelInfoLayout.setNextEpgProgram(getString(R.string.next_epg_program_default));
+        channelListLayout.setEpgPrograms(new EpgProgram[0], 0);
+        Date today = new Date();
+        M51ZMT.get(
+                channel.name(),
+                today,
+                programs -> {
+                    int i = EpgProgram.indexOfCurrentProgram(programs, today);
+                    if (i < 0) {
+                        return;
+                    }
+                    mHandler.post(() -> {
+                        assert player != null;
+                        MediaItem media = player.getCurrentMediaItem();
+                        if (media == null) {
+                            return;
+                        }
+                        assert media.localConfiguration != null && media.localConfiguration.tag != null;
+                        ChannelInfo tag = (ChannelInfo) media.localConfiguration.tag;
+                        if (!tag.channelName.equals(channel.info.channelName)) {
+                            return;
+                        }
+                        channelInfoLayout.setCurrentEpgProgram(programs[i].program);
+                        if (i + 1 < programs.length) {
+                            channelInfoLayout.setNextEpgProgram(programs[i+1].program);
+                        }
+                        channelListLayout.setEpgPrograms(programs, i);
+                    });
+                },
+                err -> {
+                    Log.e(TAG, "update epg for " + channel.name() + " failed");
+                });
+    }
+
     @Override
     public void onStart() {
         super.onStart();
@@ -251,6 +291,7 @@ public class MainActivity extends AppCompatActivity {
                 PreferenceStore.setInt("selected_group_number", channel.info.groupInfo.groupNumber);
                 PreferenceStore.setString("selected_channel_name", channel.info.channelName);
                 PreferenceStore.setInt("selected_channel_number", channel.info.channelNumber);
+                updateEpgInfo(channel);
             }
         });
 

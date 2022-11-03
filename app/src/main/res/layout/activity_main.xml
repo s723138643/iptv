@@ -298,7 +298,7 @@
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/channelEpgList"
-            android:layout_width="150dp"
+            android:layout_width="200dp"
             android:layout_height="match_parent"
             android:layout_margin="2dp"
             android:visibility="gone"

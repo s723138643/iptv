@@ -15,6 +15,7 @@ import com.orion.iptv.bean.ChannelGroup;
 import com.orion.iptv.bean.ChannelInfo;
 import com.orion.iptv.bean.ChannelItem;
 import com.orion.iptv.bean.ChannelManager;
+import com.orion.iptv.bean.EpgProgram;
 import com.orion.iptv.misc.CancelableRunnable;
 import com.orion.iptv.recycleradapter.RecyclerAdapter;
 import com.orion.iptv.recycleradapter.ViewHolder;
@@ -32,6 +33,7 @@ public class LiveChannelListLayout {
     private final RecyclerView channelList;
     private final RecyclerAdapter<ViewHolder<ChannelItem>, ChannelItem> channelListViewAdapter;
     private final View epgSpacer;
+    private final RecyclerAdapter<ViewHolder<EpgProgram>, EpgProgram> epgListViewAdapter;
     private final RecyclerView epgList;
     private final Handler mHandler;
     private ChannelManager channelManager;
@@ -47,6 +49,8 @@ public class LiveChannelListLayout {
         this.channelManager = channelManager;
         this.mHandler = new Handler(activity.getMainLooper());
 
+        epgSpacer = mLayout.findViewById(R.id.channelSpacer3);
+        epgList = mLayout.findViewById(R.id.channelEpgList);
         ToggleButton showEpg = mLayout.findViewById(R.id.showEpgButton);
         showEpg.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -60,8 +64,12 @@ public class LiveChannelListLayout {
                 }
             }
         });
-        this.epgSpacer = mLayout.findViewById(R.id.channelSpacer3);
-        this.epgList = mLayout.findViewById(R.id.channelEpgList);
+        epgListViewAdapter = new RecyclerAdapter<>(
+                mLayout.getContext(),
+                new ArrayList<>(),
+                new EpgListViewHolderFactory(mLayout.getContext(), R.layout.live_channel_list_item)
+        );
+        epgList.setAdapter(epgListViewAdapter);
 
         channelList = mLayout.findViewById(R.id.channelList);
         channelListViewAdapter = new RecyclerAdapter<>(
@@ -134,6 +142,11 @@ public class LiveChannelListLayout {
 
     public void setOnChannelSelectedListener(OnChannelSelectedListener listener) {
         channelSelectedListener = listener;
+    }
+
+    public void setEpgPrograms(EpgProgram[] programs, int current) {
+        epgListViewAdapter.resume(List.of(programs), current);
+        epgList.smoothScrollToPosition(current);
     }
 
     @SuppressLint("NotifyDataSetChanged")
