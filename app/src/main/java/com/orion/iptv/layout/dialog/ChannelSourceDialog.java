@@ -20,10 +20,6 @@ import fi.iki.elonen.NanoHTTPD;
 
 public class ChannelSourceDialog {
 
-    public interface OnChannelSourceSubmitListener {
-        void onChannelSourceSubmit(String url);
-    }
-
     private final String TAG = "ChannelSourceDialog";
     private final Handler mHandler;
     private final AlertDialog.Builder builder;
@@ -31,14 +27,13 @@ public class ChannelSourceDialog {
     private OnChannelSourceSubmitListener listener;
     private String inputHint;
     private String defaultValue;
-
     public ChannelSourceDialog(Context context) {
         mHandler = new Handler(context.getMainLooper());
 
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder = builder.setView(R.layout.channel_source_dialog);
         builder = builder.setPositiveButton("ok", (dialog, which) -> {
-            AlertDialog alertDialog = (AlertDialog)dialog;
+            AlertDialog alertDialog = (AlertDialog) dialog;
             EditText text = alertDialog.findViewById(R.id.channel_source_url);
             String input = text.getText().toString();
             if (input.equals("") || listener == null) {
@@ -74,9 +69,9 @@ public class ChannelSourceDialog {
 
     public void show() {
         AlertDialog dialog = builder.create();
-        server.setOnPostUrlListener((url)->{
-            mHandler.post(()->{
-                EditText view =  dialog.findViewById(R.id.channel_source_url);
+        server.setOnPostUrlListener((url) -> {
+            mHandler.post(() -> {
+                EditText view = dialog.findViewById(R.id.channel_source_url);
                 view.setText(url);
             });
         });
@@ -98,5 +93,9 @@ public class ChannelSourceDialog {
         } else if (!inputHint.isEmpty()) {
             v.setAutofillHints(inputHint);
         }
+    }
+
+    public interface OnChannelSourceSubmitListener {
+        void onChannelSourceSubmit(String url);
     }
 }

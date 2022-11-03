@@ -1,7 +1,7 @@
 package com.orion.iptv.webserver;
 
-import android.util.Log;
 import android.content.Context;
+import android.util.Log;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,18 +9,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+
 import fi.iki.elonen.NanoHTTPD;
 
 public class WebServer extends NanoHTTPD {
     private static final String TAG = "WebServer";
     private static final String MIME_HTML = "text/html; charset=UTF-8";
     private static final String MIME_PLAIN = "text/plain; charset=UTF-8";
-    private OnPostUrlListener listener;
     private final Context context;
-
-    public interface OnPostUrlListener {
-        void onPostUrl(String url);
-    }
+    private OnPostUrlListener listener;
 
     public WebServer(Context context, int port) {
         super(port);
@@ -65,7 +62,13 @@ public class WebServer extends NanoHTTPD {
         }
         String url = entry.get(0);
         Log.i(TAG, String.format(Locale.ENGLISH, "got url: %s", entry.get(0)));
-        if (listener != null) { listener.onPostUrl(url); }
+        if (listener != null) {
+            listener.onPostUrl(url);
+        }
         return newFixedLengthResponse(Response.Status.ACCEPTED, MIME_PLAIN, "ok");
+    }
+
+    public interface OnPostUrlListener {
+        void onPostUrl(String url);
     }
 }

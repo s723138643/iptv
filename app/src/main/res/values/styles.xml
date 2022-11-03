@@ -3,6 +3,7 @@
     <style name="Widget.Theme.MyTVBoxOS.MyView" parent="">
         <item name="android:background">@color/gray_400</item>
     </style>
+
     <style name="Theme.FullScreen" parent="Theme.AppCompat.NoActionBar">
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowFullscreen">true</item>

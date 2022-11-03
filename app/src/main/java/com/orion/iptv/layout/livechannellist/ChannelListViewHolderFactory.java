@@ -17,6 +17,7 @@ public class ChannelListViewHolderFactory implements ViewHolderFactory<ViewHolde
         this.context = context;
         this.layoutId = layoutId;
     }
+
     @Override
     public ViewHolder<ChannelItem> create(ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(context).inflate(layoutId, parent, false);

@@ -46,13 +46,14 @@
         button#submit:hover {
             background-color: cadetblue;
         }
+
     </style>
 </head>
 
 <body>
 <div id="container">
     <div id="urlForm">
-        <input id="url" placeholder="请输入url地址" name="url" />
+        <input id="url" name="url" placeholder="请输入url地址"/>
         <button id="submit">上传</button>
     </div>
 </div>
@@ -80,7 +81,8 @@
             data.set("url", url.toString());
             sendData(document.url, data);
         };
-    </script>
+
+</script>
 </body>
 
 </html>

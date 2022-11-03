@@ -22,9 +22,8 @@ public class LivePlayerSettingLayout {
     private final RecyclerAdapter<ViewHolder<SettingMenu>, SettingMenu> menuViewAdapter;
     private final RecyclerAdapter<ViewHolder<SettingValue>, SettingValue> valueViewAdapter;
     private final Handler mHandler;
-    private CancelableRunnable setVisibleTask;
-
     private final List<SettingMenu> menus;
+    private CancelableRunnable setVisibleTask;
     private OnSettingChangedListener listener;
 
     public LivePlayerSettingLayout(AppCompatActivity activity) {
@@ -55,7 +54,9 @@ public class LivePlayerSettingLayout {
     }
 
     private void onValueSelected(int position, SettingValue value) {
-        if (listener == null) { return; }
+        if (listener == null) {
+            return;
+        }
         value.onSelected(listener);
         if (value.isButton()) {
             Log.i("Setting", "clear selection...");

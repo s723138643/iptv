@@ -32,7 +32,7 @@ public class ChannelGroup implements ListItem {
     }
 
     private ChannelItem getOrCreateChannel(String channel) {
-        return getByName(channel).orElseGet(()->{
+        return getByName(channel).orElseGet(() -> {
             ChannelItem ch = new ChannelItem(generator.next(), channel, info);
             channels.add(ch);
             return ch;
@@ -40,11 +40,11 @@ public class ChannelGroup implements ListItem {
     }
 
     private Optional<ChannelItem> getByName(String channel) {
-        return channels.stream().filter((ch)->channel.equals(ch.info.channelName)).findFirst();
+        return channels.stream().filter((ch) -> channel.equals(ch.info.channelName)).findFirst();
     }
 
     private Optional<ChannelItem> getByNumber(int channel) {
-        return channels.stream().filter((ch)->channel == ch.info.channelNumber).findFirst();
+        return channels.stream().filter((ch) -> channel == ch.info.channelNumber).findFirst();
     }
 
     protected Optional<ChannelItem> getByIndex(int index) {
@@ -60,7 +60,7 @@ public class ChannelGroup implements ListItem {
     }
 
     public Optional<Integer> indexOf(String channel) {
-        for (int i=0; i<channels.size(); i++) {
+        for (int i = 0; i < channels.size(); i++) {
             ChannelItem ch = channels.get(i);
             if (channel.equals(ch.info.channelName)) {
                 return Optional.of(i);
@@ -70,7 +70,7 @@ public class ChannelGroup implements ListItem {
     }
 
     public Optional<Integer> indexOf(int channel) {
-        for (int i=0; i<channels.size(); i++) {
+        for (int i = 0; i < channels.size(); i++) {
             ChannelItem ch = channels.get(i);
             if (channel == ch.info.channelNumber) {
                 return Optional.of(i);
@@ -88,6 +88,6 @@ public class ChannelGroup implements ListItem {
     }
 
     public Optional<ChannelItem.PreferredMediaItems> toMediaItems(int channelIndex, String preferredLink) {
-        return getByIndex(channelIndex).map((ch)-> ch.toMediaItems(preferredLink));
+        return getByIndex(channelIndex).map((ch) -> ch.toMediaItems(preferredLink));
     }
 }

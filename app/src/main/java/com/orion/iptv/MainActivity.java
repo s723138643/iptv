@@ -1,42 +1,42 @@
 package com.orion.iptv;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.view.GestureDetectorCompat;
-import androidx.preference.PreferenceManager;
-
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.DisplayMetrics;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.GestureDetectorCompat;
+import androidx.preference.PreferenceManager;
+
 import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.Tracks;
-import com.google.android.exoplayer2.analytics.AnalyticsListener;
-import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource;
-import com.google.android.exoplayer2.source.DefaultMediaSourceFactory;
-import com.google.android.exoplayer2.upstream.DefaultDataSource;
-import com.google.android.exoplayer2.video.VideoSize;
-import com.orion.iptv.bean.ChannelInfo;
-import com.orion.iptv.layout.dialog.ChannelSourceDialog;
-import com.orion.iptv.layout.liveplayersetting.LivePlayerSettingLayout;
-import com.orion.iptv.layout.player.PlayerView;
-import com.orion.iptv.misc.PreferenceStore;
 import com.google.android.exoplayer2.DefaultRenderersFactory;
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.PlaybackException;
 import com.google.android.exoplayer2.Player;
+import com.google.android.exoplayer2.Tracks;
+import com.google.android.exoplayer2.analytics.AnalyticsListener;
+import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource;
+import com.google.android.exoplayer2.source.DefaultMediaSourceFactory;
+import com.google.android.exoplayer2.upstream.DefaultDataSource;
 import com.google.android.exoplayer2.util.Log;
+import com.google.android.exoplayer2.video.VideoSize;
+import com.orion.iptv.bean.ChannelInfo;
 import com.orion.iptv.bean.ChannelItem;
 import com.orion.iptv.bean.ChannelManager;
+import com.orion.iptv.layout.bandwidth.Bandwidth;
+import com.orion.iptv.layout.dialog.ChannelSourceDialog;
 import com.orion.iptv.layout.livechannelinfo.LiveChannelInfoLayout;
 import com.orion.iptv.layout.livechannellist.LiveChannelListLayout;
-import com.orion.iptv.layout.bandwidth.Bandwidth;
+import com.orion.iptv.layout.liveplayersetting.LivePlayerSettingLayout;
+import com.orion.iptv.layout.player.PlayerView;
 import com.orion.iptv.misc.CancelableRunnable;
+import com.orion.iptv.misc.PreferenceStore;
 import com.orion.iptv.misc.SourceTypeDetector;
 import com.orion.iptv.network.DownloadHelper;
 
@@ -52,13 +52,14 @@ import okhttp3.OkHttpClient;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String TAG  = "LivePlayer";
+    private static final String TAG = "LivePlayer";
     protected PlayerView videoView;
     protected LiveChannelInfoLayout channelInfoLayout;
     protected LiveChannelListLayout channelListLayout;
     protected LivePlayerSettingLayout livePlayerSettingLayout;
     protected Bandwidth bandwidth;
-    protected @Nullable ExoPlayer player;
+    protected @Nullable
+    ExoPlayer player;
     private Handler mPlayerHandler;
     private Handler mHandler;
     private CancelableRunnable playerDelayedTask;
@@ -72,7 +73,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         PreferenceStore.setPreferences(PreferenceManager.getDefaultSharedPreferences(this));
         OkHttpClient client = new OkHttpClient.Builder()
-                .cache(new Cache(this.getCacheDir(), 50*1024*1024))
+                .cache(new Cache(this.getCacheDir(), 50 * 1024 * 1024))
                 .followSslRedirects(true)
                 .build();
         DownloadHelper.setClient(client);
@@ -94,52 +95,6 @@ public class MainActivity extends AppCompatActivity {
         mHandler = new Handler(this.getMainLooper());
     }
 
-    private class GestureListener extends GestureDetector.SimpleOnGestureListener {
-        @Override
-        public boolean onDown(@NonNull MotionEvent e) { return true; }
-
-        @Override
-        public boolean onSingleTapConfirmed(MotionEvent e) {
-            channelListLayout.setVisibleDelayed(!channelListLayout.getIsVisible(), 0);
-            return true;
-        }
-
-        @Override
-        public void onLongPress(@NonNull MotionEvent e) {
-            livePlayerSettingLayout.setVisible(!livePlayerSettingLayout.getIsVisible());
-        }
-
-        @Override
-        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            float distX = e2.getX() - e1.getX();
-            // distance is too short ignore this event
-            if (Math.abs(distX) > xFlyingThreshold) {
-                Log.i(TAG, String.format(Locale.ENGLISH, "scrollX event detect, dist: %.2f, direction: %.2f", distX, velocityX));
-                if (player != null && player.getMediaItemCount() > 0) {
-                    if (distX < 0) {
-                        // from right to left
-                        seekToNextMediaItem(0);
-                    } else {
-                        // from left to right
-                        seekToPrevMediaItem(0);
-                    }
-                }
-                return true;
-            }
-            float distY = e2.getY() - e1.getY();
-            if (Math.abs(distY) > yFlyingThreshold) {
-                Log.i(TAG, String.format(Locale.ENGLISH, "scrollY event detect, dist: %.2f, direction: %.2f", distY, velocityY));
-                if (distY < 0) {
-                    mHandler.post(() -> channelInfoLayout.displayAsToast(5000));
-                } else {
-                    mHandler.post(() -> channelInfoLayout.hide());
-                }
-                return true;
-            }
-            return false;
-        }
-    }
-
     private void postDelayedPlayerTask(int delayMillis, CancelableRunnable task) {
         if (playerDelayedTask != null) {
             playerDelayedTask.cancel();
@@ -150,7 +105,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void _seekToNextMediaItem() {
-        if (player == null) { return; }
+        if (player == null) {
+            return;
+        }
         player.seekToNextMediaItem();
         if (player.getPlaybackState() == Player.STATE_IDLE) {
             player.prepare();
@@ -168,7 +125,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void _seekToPrevMediaItem() {
-        if (player == null) { return; }
+        if (player == null) {
+            return;
+        }
         player.seekToPreviousMediaItem();
         if (player.getPlaybackState() == Player.STATE_IDLE) {
             player.prepare();
@@ -189,7 +148,9 @@ public class MainActivity extends AppCompatActivity {
         postDelayedPlayerTask(delayMillis, new CancelableRunnable() {
             @Override
             public void callback() {
-                if (player == null) { return; }
+                if (player == null) {
+                    return;
+                }
                 player.setMediaItems(items);
                 if (player.getPlaybackState() == Player.STATE_IDLE) {
                     player.prepare();
@@ -197,101 +158,6 @@ public class MainActivity extends AppCompatActivity {
                 player.setPlayWhenReady(true);
             }
         });
-    }
-
-    private class PlayerEventListener implements Player.Listener {
-        public PlayerEventListener() {}
-
-        @Override
-        public void onPlayerError(PlaybackException error) {
-            Log.e(TAG, error.toString());
-            seekToNextMediaItem(1000);
-        }
-
-        @Override
-        public void onPlaybackStateChanged(@Player.State int state) {
-            switch (state) {
-                case Player.STATE_READY:
-                    Log.w(TAG, "player change state to STATE_READY");
-                    if (playerDelayedTask != null) {
-                        playerDelayedTask.cancel();
-                    }
-                    channelInfoLayout.setVisibleDelayed(false, 3000);
-                    break;
-                case Player.STATE_BUFFERING:
-                    Log.w(TAG, "player change state to STATE_BUFFERING");
-                    /* TODO set timeout value via setting layout */
-                    seekToNextMediaItem(15*1000);
-                    break;
-                case Player.STATE_ENDED:
-                    Log.w(TAG, "player change state to STATE_ENDED");
-                    break;
-                case Player.STATE_IDLE:
-                    Log.w(TAG, "player change state to STATE_IDLE");
-                    break;
-            }
-        }
-    }
-
-    private class PlayerAnalyticsListener implements AnalyticsListener {
-        @Override
-        public void onMediaItemTransition(@NonNull EventTime eventTime, @Nullable MediaItem mediaItem, int reason) {
-            assert player != null;
-            channelInfoLayout.setVisibleDelayed(true, 0);
-            mHandler.post(()->{
-                channelInfoLayout.setLinkInfo(player.getCurrentMediaItemIndex()+1, player.getMediaItemCount());
-                if (mediaItem == null || mediaItem.localConfiguration == null) {
-                    return;
-                }
-                assert mediaItem.localConfiguration.tag != null;
-                Log.i(TAG, "start playing " + mediaItem.localConfiguration.uri);
-                ChannelInfo tag = (ChannelInfo) mediaItem.localConfiguration.tag;
-                channelInfoLayout.setChannelName(tag.channelName);
-                channelInfoLayout.setChannelNumber(tag.channelNumber);
-                channelInfoLayout.setBitrateInfo(0);
-                channelInfoLayout.setCodecInfo(getString(R.string.codec_info_default));
-                channelInfoLayout.setMediaInfo(getString(R.string.media_info_default));
-                bandwidth.setBandwidth(0);
-            });
-        }
-
-        @Override
-        public void onBandwidthEstimate(@NonNull EventTime eventTime, int totalLoadTimeMs, long totalBytesLoaded, long bitrateEstimate) {
-            Log.i(TAG, String.format(Locale.ENGLISH, "bitrate: %d", bitrateEstimate));
-            mHandler.post(()->bandwidth.setBandwidth(bitrateEstimate));
-        }
-
-        private Optional<Format> getSelectedVideoTrackFormat(Tracks tracks) {
-            for (Tracks.Group group : tracks.getGroups()) {
-                if (group.isSelected() && group.getType() == C.TRACK_TYPE_VIDEO) {
-                    for (int i=0; i<group.length; i++) {
-                        if (group.isTrackSelected(i)) {
-                            return Optional.of(group.getTrackFormat(i));
-                        }
-                    }
-                }
-            }
-            return Optional.empty();
-        }
-
-        @Override
-        public void onTracksChanged(@NonNull EventTime eventTime, @NonNull Tracks tracks) {
-            getSelectedVideoTrackFormat(tracks).map((track)->{
-                Log.i(TAG, String.format(Locale.ENGLISH, "selected track change to codec:%s, bitrate:%d, size: %dx%d", track.codecs, track.bitrate, track.width, track.height));
-                mHandler.post(()->{
-                    channelInfoLayout.setBitrateInfo(track.bitrate);
-                    channelInfoLayout.setCodecInfo(track.codecs);
-                    channelInfoLayout.setMediaInfo(String.format(Locale.ENGLISH, "%dx%d", track.width, track.height));
-                });
-                return null;
-            });
-        }
-
-        @Override
-        public void onVideoSizeChanged(@NonNull EventTime eventTime, @NonNull VideoSize videoSize) {
-            Log.i(TAG, String.format(Locale.ENGLISH, "video size change to %dx%d", videoSize.width, videoSize.height));
-            mHandler.post(()-> channelInfoLayout.setMediaInfo(String.format(Locale.ENGLISH, "%dx%d", videoSize.width, videoSize.height)));
-        }
     }
 
     private void processChannelList(String channelList) {
@@ -311,9 +177,9 @@ public class MainActivity extends AppCompatActivity {
         if (channel == null) {
             return;
         }
-        mHandler.post(()->channelListLayout.resume(manager, channel.info));
+        mHandler.post(() -> channelListLayout.resume(manager, channel.info));
         List<MediaItem> items = channel.toMediaItems();
-        if (items.size() > 0 ) {
+        if (items.size() > 0) {
             setMediaItems(items, 0);
         }
     }
@@ -339,7 +205,7 @@ public class MainActivity extends AppCompatActivity {
                         if (liveUrl.isEmpty()) {
                             return;
                         }
-                        _fetchChannelList(liveUrl, depth+1);
+                        _fetchChannelList(liveUrl, depth + 1);
                     } else {
                         processChannelList(response);
                     }
@@ -355,7 +221,7 @@ public class MainActivity extends AppCompatActivity {
         dialog.setInputHint("请输入url地址");
         dialog.setOnChannelSourceSubmitListener(url -> {
             Log.i(TAG, String.format(Locale.ENGLISH, "got channel resource url: %s", url));
-            mHandler.post(()->{
+            mHandler.post(() -> {
                 PreferenceStore.setString("channel_source_url", url);
                 fetchChannelList(url);
             });
@@ -388,13 +254,15 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        livePlayerSettingLayout.setOnSettingChangedListener((key, originValue)->{
+        livePlayerSettingLayout.setOnSettingChangedListener((key, originValue) -> {
             if (key.equals("channel_source_url")) {
-                String value = (String)originValue;
-                if (value.equals("")) { return; }
-                mHandler.post(()->{
-                   PreferenceStore.setString(key, value);
-                   fetchChannelList(value);
+                String value = (String) originValue;
+                if (value.equals("")) {
+                    return;
+                }
+                mHandler.post(() -> {
+                    PreferenceStore.setString(key, value);
+                    fetchChannelList(value);
                 });
             }
         });
@@ -447,13 +315,157 @@ public class MainActivity extends AppCompatActivity {
         player.addAnalyticsListener(new PlayerAnalyticsListener());
         player.setRepeatMode(Player.REPEAT_MODE_ALL);
         videoView.setPlayer(player);
-        videoView.setAspectRatioListener((targetAspectRatio, naturalAspectRatio, aspectRatioMismatch)-> Log.i(TAG, String.format(Locale.ENGLISH, "aspectRatio changed, target: %.2f, natural: %.2f, mismatch: %b", targetAspectRatio, naturalAspectRatio, aspectRatioMismatch)));
+        videoView.setAspectRatioListener((targetAspectRatio, naturalAspectRatio, aspectRatioMismatch) -> Log.i(TAG, String.format(Locale.ENGLISH, "aspectRatio changed, target: %.2f, natural: %.2f, mismatch: %b", targetAspectRatio, naturalAspectRatio, aspectRatioMismatch)));
     }
 
     protected void releasePlayer() {
         if (player != null) {
             player.release();
             player = null;
+        }
+    }
+
+    private class GestureListener extends GestureDetector.SimpleOnGestureListener {
+        @Override
+        public boolean onDown(@NonNull MotionEvent e) {
+            return true;
+        }
+
+        @Override
+        public boolean onSingleTapConfirmed(MotionEvent e) {
+            channelListLayout.setVisibleDelayed(!channelListLayout.getIsVisible(), 0);
+            return true;
+        }
+
+        @Override
+        public void onLongPress(@NonNull MotionEvent e) {
+            livePlayerSettingLayout.setVisible(!livePlayerSettingLayout.getIsVisible());
+        }
+
+        @Override
+        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            float distX = e2.getX() - e1.getX();
+            // distance is too short ignore this event
+            if (Math.abs(distX) > xFlyingThreshold) {
+                Log.i(TAG, String.format(Locale.ENGLISH, "scrollX event detect, dist: %.2f, direction: %.2f", distX, velocityX));
+                if (player != null && player.getMediaItemCount() > 0) {
+                    if (distX < 0) {
+                        // from right to left
+                        seekToNextMediaItem(0);
+                    } else {
+                        // from left to right
+                        seekToPrevMediaItem(0);
+                    }
+                }
+                return true;
+            }
+            float distY = e2.getY() - e1.getY();
+            if (Math.abs(distY) > yFlyingThreshold) {
+                Log.i(TAG, String.format(Locale.ENGLISH, "scrollY event detect, dist: %.2f, direction: %.2f", distY, velocityY));
+                if (distY < 0) {
+                    mHandler.post(() -> channelInfoLayout.displayAsToast(5000));
+                } else {
+                    mHandler.post(() -> channelInfoLayout.hide());
+                }
+                return true;
+            }
+            return false;
+        }
+    }
+
+    private class PlayerEventListener implements Player.Listener {
+        public PlayerEventListener() {
+        }
+
+        @Override
+        public void onPlayerError(PlaybackException error) {
+            Log.e(TAG, error.toString());
+            seekToNextMediaItem(1000);
+        }
+
+        @Override
+        public void onPlaybackStateChanged(@Player.State int state) {
+            switch (state) {
+                case Player.STATE_READY:
+                    Log.w(TAG, "player change state to STATE_READY");
+                    if (playerDelayedTask != null) {
+                        playerDelayedTask.cancel();
+                    }
+                    channelInfoLayout.setVisibleDelayed(false, 3000);
+                    break;
+                case Player.STATE_BUFFERING:
+                    Log.w(TAG, "player change state to STATE_BUFFERING");
+                    /* TODO set timeout value via setting layout */
+                    seekToNextMediaItem(15 * 1000);
+                    break;
+                case Player.STATE_ENDED:
+                    Log.w(TAG, "player change state to STATE_ENDED");
+                    break;
+                case Player.STATE_IDLE:
+                    Log.w(TAG, "player change state to STATE_IDLE");
+                    break;
+            }
+        }
+    }
+
+    private class PlayerAnalyticsListener implements AnalyticsListener {
+        @Override
+        public void onMediaItemTransition(@NonNull EventTime eventTime, @Nullable MediaItem mediaItem, int reason) {
+            assert player != null;
+            channelInfoLayout.setVisibleDelayed(true, 0);
+            mHandler.post(() -> {
+                channelInfoLayout.setLinkInfo(player.getCurrentMediaItemIndex() + 1, player.getMediaItemCount());
+                if (mediaItem == null || mediaItem.localConfiguration == null) {
+                    return;
+                }
+                assert mediaItem.localConfiguration.tag != null;
+                Log.i(TAG, "start playing " + mediaItem.localConfiguration.uri);
+                ChannelInfo tag = (ChannelInfo) mediaItem.localConfiguration.tag;
+                channelInfoLayout.setChannelName(tag.channelName);
+                channelInfoLayout.setChannelNumber(tag.channelNumber);
+                channelInfoLayout.setBitrateInfo(0);
+                channelInfoLayout.setCodecInfo(getString(R.string.codec_info_default));
+                channelInfoLayout.setMediaInfo(getString(R.string.media_info_default));
+                bandwidth.setBandwidth(0);
+            });
+        }
+
+        @Override
+        public void onBandwidthEstimate(@NonNull EventTime eventTime, int totalLoadTimeMs, long totalBytesLoaded, long bitrateEstimate) {
+            Log.i(TAG, String.format(Locale.ENGLISH, "bitrate: %d", bitrateEstimate));
+            mHandler.post(() -> bandwidth.setBandwidth(bitrateEstimate));
+        }
+
+        private Optional<Format> getSelectedVideoTrackFormat(Tracks tracks) {
+            for (Tracks.Group group : tracks.getGroups()) {
+                if (group.isSelected() && group.getType() == C.TRACK_TYPE_VIDEO) {
+                    for (int i = 0; i < group.length; i++) {
+                        if (group.isTrackSelected(i)) {
+                            return Optional.of(group.getTrackFormat(i));
+                        }
+                    }
+                }
+            }
+            return Optional.empty();
+        }
+
+        @Override
+        public void onTracksChanged(@NonNull EventTime eventTime, @NonNull Tracks tracks) {
+            getSelectedVideoTrackFormat(tracks).map((track) -> {
+                Log.i(TAG, String.format(Locale.ENGLISH, "selected track change to codec:%s, bitrate:%d, size: %dx%d", track.codecs, track.bitrate, track.width, track.height));
+                mHandler.post(() -> {
+                    channelInfoLayout.setBitrateInfo(track.bitrate);
+                    channelInfoLayout.setCodecInfo(track.codecs);
+                    channelInfoLayout.setMediaInfo(String.format(Locale.ENGLISH, "%dx%d", track.width, track.height));
+                });
+                return null;
+            });
+        }
+
+        @Override
+        public void onVideoSizeChanged(@NonNull EventTime eventTime, @NonNull VideoSize videoSize) {
+            Log.i(TAG, String.format(Locale.ENGLISH, "video size change to %dx%d", videoSize.width, videoSize.height));
+            mHandler.post(() -> channelInfoLayout.setMediaInfo(String.format(Locale.ENGLISH, "%dx%d", videoSize.width, videoSize.height)));
         }
     }
 }

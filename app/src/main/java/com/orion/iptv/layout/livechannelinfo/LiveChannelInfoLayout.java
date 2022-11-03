@@ -1,8 +1,8 @@
 package com.orion.iptv.layout.livechannelinfo;
 
+import android.os.Handler;
 import android.view.View;
 import android.widget.TextView;
-import android.os.Handler;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -12,6 +12,8 @@ import com.orion.iptv.misc.CancelableRunnable;
 import java.util.Locale;
 
 public class LiveChannelInfoLayout {
+    private final String[] units = {"bps", "kbps", "Mbps", "Gbps"};
+    private final Handler mHandler;
     protected TextView channelNumber;
     protected TextView channelName;
     protected TextView codecInfo;
@@ -21,8 +23,6 @@ public class LiveChannelInfoLayout {
     protected TextView currentEpgProgram;
     protected TextView nextEpgProgram;
     protected View mLayout;
-    private final String[] units = {"bps", "kbps", "Mbps", "Gbps"};
-    private final Handler mHandler;
     private CancelableRunnable setVisibilityDelayedTask;
 
     public LiveChannelInfoLayout(AppCompatActivity activity) {
@@ -53,7 +53,7 @@ public class LiveChannelInfoLayout {
         float base = 1000.0f;
         float rate = (float) bitrate;
         int i = 0;
-        for (; i<units.length; i++) {
+        for (; i < units.length; i++) {
             if (rate < base) {
                 break;
             }
@@ -120,8 +120,10 @@ public class LiveChannelInfoLayout {
     // do nothing if is already visible,
     // or display it and hide after displayMillis milliseconds
     public void displayAsToast(int displayMillis) {
-        mHandler.post(()->{
-            if (isVisible()) { return; }
+        mHandler.post(() -> {
+            if (isVisible()) {
+                return;
+            }
             if (setVisibilityDelayedTask != null) {
                 setVisibilityDelayedTask.cancel();
             }
@@ -137,8 +139,10 @@ public class LiveChannelInfoLayout {
     }
 
     public void hide() {
-        mHandler.post(()->{
-            if (!isVisible()) { return; }
+        mHandler.post(() -> {
+            if (!isVisible()) {
+                return;
+            }
             if (setVisibilityDelayedTask != null) {
                 setVisibilityDelayedTask.cancel();
             }

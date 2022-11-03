@@ -1,15 +1,13 @@
 package com.orion.iptv.misc;
 
-import android.annotation.SuppressLint;
-import android.content.Context;
 import android.content.SharedPreferences;
-import androidx.preference.PreferenceManager;
 
 public class PreferenceStore {
     private static final PreferenceStore store = new PreferenceStore();
     private SharedPreferences preferences;
 
-    private PreferenceStore() {}
+    private PreferenceStore() {
+    }
 
     public static void setPreferences(SharedPreferences preferences) {
         store.preferences = preferences;

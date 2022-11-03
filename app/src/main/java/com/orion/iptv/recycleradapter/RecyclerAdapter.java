@@ -1,12 +1,11 @@
 package com.orion.iptv.recycleradapter;
 
 import android.annotation.SuppressLint;
-import android.os.Handler;
+import android.content.Context;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.content.Context;
 
 import androidx.annotation.NonNull;
 import androidx.core.view.GestureDetectorCompat;
@@ -25,6 +24,108 @@ public class RecyclerAdapter<T extends ViewHolder<U>, U extends ListItem> extend
     private int currentSelected = RecyclerView.NO_POSITION;
     private List<U> items;
 
+    public RecyclerAdapter(Context context, List<U> items, ViewHolderFactory<T, U> factory) {
+        this.factory = factory;
+        this.items = items;
+    }
+
+    @NonNull
+    @Override
+    public T onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        return factory.create(parent, viewType);
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull T holder, int position) {
+        holder.setActivated(position == currentSelected);
+        holder.setContent(position, items.get(position));
+    }
+
+    @Override
+    public int getItemCount() {
+        return items.size();
+    }
+
+    private void changeState(@NonNull RecyclerView.ViewHolder holder, int position) {
+        onBindViewHolder((T) holder, position);
+    }
+
+    private void onSelected(@NonNull RecyclerView.ViewHolder holder, int position) {
+        Log.i("Adapter", String.format(Locale.ENGLISH, "position: %d, selected: %d", position, currentSelected));
+        if (position < 0 || position == currentSelected) {
+            return;
+        }
+        lastSelected = currentSelected;
+        currentSelected = position;
+        changeState(holder, position);
+        if (lastSelected != RecyclerView.NO_POSITION) {
+            notifyItemChanged(lastSelected);
+        }
+        if (listener != null) {
+            listener.onSelected(position, items.get(position));
+        }
+    }
+
+    public void setOnSelectedListener(OnSelectedListener<U> listener) {
+        this.listener = listener;
+    }
+
+    private void _selectQuiet(int position) {
+        lastSelected = currentSelected;
+        currentSelected = position;
+        if (lastSelected != RecyclerView.NO_POSITION) {
+            notifyItemChanged(lastSelected);
+        }
+        notifyItemChanged(currentSelected);
+    }
+
+    public void select(int position) {
+        if (position < 0 || position >= items.size() || position == currentSelected) {
+            return;
+        }
+        _selectQuiet(position);
+        if (listener != null) {
+            listener.onSelected(position, items.get(position));
+        }
+    }
+
+    public void selectQuiet(int position) {
+        Log.i("Adapter", String.format(Locale.ENGLISH, "position: %d, selected: %d", position, currentSelected));
+        if (position < 0 || position >= items.size() || position == currentSelected) {
+            return;
+        }
+
+        _selectQuiet(position);
+    }
+
+    private void _clearSelection() {
+        lastSelected = RecyclerView.NO_POSITION;
+        currentSelected = RecyclerView.NO_POSITION;
+    }
+
+    public void clearSelection() {
+        int selected = currentSelected;
+        _clearSelection();
+        if (selected != RecyclerView.NO_POSITION) {
+            notifyItemChanged(selected);
+        }
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
+    public void setData(List<U> items) {
+        _clearSelection();
+        this.items = items;
+        notifyDataSetChanged();
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
+    public void resume(List<U> items, int position) {
+        lastSelected = currentSelected;
+        currentSelected = position;
+        this.items = items;
+        notifyDataSetChanged();
+    }
+
     public interface OnSelectedListener<K> {
         void onSelected(int position, K item);
     }
@@ -39,7 +140,9 @@ public class RecyclerAdapter<T extends ViewHolder<U>, U extends ListItem> extend
         @Override
         public boolean onSingleTapUp(@NonNull MotionEvent e) {
             View v = recyclerView.findChildViewUnder(e.getX(), e.getY());
-            if (v == null) { return false; }
+            if (v == null) {
+                return false;
+            }
             RecyclerView.ViewHolder viewHolder = recyclerView.getChildViewHolder(v);
             onSelected(viewHolder, viewHolder.getBindingAdapterPosition());
             return true;
@@ -70,12 +173,16 @@ public class RecyclerAdapter<T extends ViewHolder<U>, U extends ListItem> extend
 
         @Override
         public void onTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
-            if (!mDisallowIntercept) { gestureDetector.onTouchEvent(e); }
+            if (!mDisallowIntercept) {
+                gestureDetector.onTouchEvent(e);
+            }
         }
 
         @Override
         public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) {
-            if (!disallowIntercept) { return; }
+            if (!disallowIntercept) {
+                return;
+            }
             mDisallowIntercept = true;
             gestureDetector.onTouchEvent(MotionEvent.obtain(
                     0,
@@ -86,99 +193,5 @@ public class RecyclerAdapter<T extends ViewHolder<U>, U extends ListItem> extend
                     0
             ));
         }
-    }
-
-    public RecyclerAdapter(Context context, List<U> items, ViewHolderFactory<T, U> factory) {
-        this.factory = factory;
-        this.items = items;
-    }
-
-    @NonNull
-    @Override
-    public T onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        return factory.create(parent, viewType);
-    }
-
-    @Override
-    public void onBindViewHolder(@NonNull T holder, int position) {
-        holder.setActivated(position == currentSelected);
-        holder.setContent(position, items.get(position));
-    }
-
-    @Override
-    public int getItemCount() {
-        return items.size();
-    }
-
-    private void changeState(@NonNull RecyclerView.ViewHolder holder, int position) {
-        onBindViewHolder((T)holder, position);
-    }
-
-    private void onSelected(@NonNull RecyclerView.ViewHolder holder, int position) {
-        Log.i("Adapter", String.format(Locale.ENGLISH, "position: %d, selected: %d", position, currentSelected));
-        if (position < 0 || position==currentSelected) { return; }
-        lastSelected = currentSelected;
-        currentSelected = position;
-        changeState(holder, position);
-        if (lastSelected != RecyclerView.NO_POSITION) {
-            notifyItemChanged(lastSelected);
-        }
-        if (listener != null) {
-            listener.onSelected(position, items.get(position));
-        }
-    }
-
-    public void setOnSelectedListener(OnSelectedListener<U> listener) {
-        this.listener = listener;
-    }
-
-    private void _selectQuiet(int position) {
-        lastSelected = currentSelected;
-        currentSelected = position;
-        if (lastSelected != RecyclerView.NO_POSITION) {
-            notifyItemChanged(lastSelected);
-        }
-        notifyItemChanged(currentSelected);
-    }
-
-    public void select(int position) {
-        if (position < 0 || position >= items.size() || position == currentSelected) { return; }
-        _selectQuiet(position);
-        if (listener != null) {
-            listener.onSelected(position, items.get(position));
-        }
-    }
-
-    public void selectQuiet(int position) {
-        Log.i("Adapter", String.format(Locale.ENGLISH, "position: %d, selected: %d", position, currentSelected));
-        if (position < 0 || position >= items.size() || position == currentSelected) { return; }
-
-        _selectQuiet(position);
-    }
-
-    private void _clearSelection() {
-        lastSelected = RecyclerView.NO_POSITION;
-        currentSelected = RecyclerView.NO_POSITION;
-    }
-
-    public void clearSelection() {
-        int selected = currentSelected;
-        _clearSelection();
-        if (selected != RecyclerView.NO_POSITION) { notifyItemChanged(selected); }
-    }
-
-    @SuppressLint("NotifyDataSetChanged")
-    public void setData(List<U> items) {
-        _clearSelection();
-        this.items = items;
-        notifyDataSetChanged();
-    }
-
-    @SuppressLint("NotifyDataSetChanged")
-    public void resume(List<U> items, int position) {
-        lastSelected = currentSelected;
-        currentSelected = position;
-        this.items = items;
-        notifyDataSetChanged();
     }
 }

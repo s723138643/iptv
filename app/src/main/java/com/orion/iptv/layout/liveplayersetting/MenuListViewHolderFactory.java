@@ -17,6 +17,7 @@ public class MenuListViewHolderFactory implements ViewHolderFactory<ViewHolder<S
         this.context = context;
         this.layoutId = layoutId;
     }
+
     @Override
     public ViewHolder<SettingMenu> create(ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(context).inflate(layoutId, parent, false);

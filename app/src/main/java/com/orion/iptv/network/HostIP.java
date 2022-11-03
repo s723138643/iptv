@@ -26,7 +26,7 @@ public class HostIP {
     private static List<String> _getHostIP() throws SocketException {
         ArrayList<String> ips = new ArrayList<>();
         Enumeration<NetworkInterface> nis = NetworkInterface.getNetworkInterfaces();
-        while(nis.hasMoreElements()) {
+        while (nis.hasMoreElements()) {
             getAddress(nis.nextElement()).map(ips::add);
         }
         return ips;

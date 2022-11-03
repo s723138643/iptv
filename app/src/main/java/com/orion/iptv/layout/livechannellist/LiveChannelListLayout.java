@@ -2,6 +2,7 @@ package com.orion.iptv.layout.livechannellist;
 
 import android.annotation.SuppressLint;
 import android.os.Handler;
+import android.util.Log;
 import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.ToggleButton;
@@ -22,8 +23,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import android.util.Log;
-
 public class LiveChannelListLayout {
     private final String TAG = "LiveChannelListLayout";
     private final View mLayout;
@@ -34,23 +33,14 @@ public class LiveChannelListLayout {
     private final RecyclerAdapter<ViewHolder<ChannelItem>, ChannelItem> channelListViewAdapter;
     private final View epgSpacer;
     private final RecyclerView epgList;
-
-    private ChannelManager channelManager;
     private final Handler mHandler;
+    private ChannelManager channelManager;
     private CancelableRunnable setVisibilityDelayedTask;
     private OnChannelSelectedListener channelSelectedListener;
 
     private int selectedGroup = 0;
     private int provisionalSelectedGroup = 0;
     private int selectedChannel = 0;
-
-    public boolean getIsVisible() {
-        return mLayout.getVisibility() == View.VISIBLE;
-    }
-
-    public interface OnChannelSelectedListener {
-        void onChannelSelected(ChannelItem channelItem);
-    }
 
     public LiveChannelListLayout(AppCompatActivity activity, ChannelManager channelManager) {
         this.mLayout = activity.findViewById(R.id.channelListLayout);
@@ -117,6 +107,10 @@ public class LiveChannelListLayout {
         groupList.addOnItemTouchListener(groupListViewAdapter.new OnItemTouchListener(mLayout.getContext(), groupList));
     }
 
+    public boolean getIsVisible() {
+        return mLayout.getVisibility() == View.VISIBLE;
+    }
+
     public void setVisibleDelayed(boolean isVisible, int delayMillis) {
         if (setVisibilityDelayedTask != null) {
             setVisibilityDelayedTask.cancel();
@@ -156,5 +150,9 @@ public class LiveChannelListLayout {
         List<ChannelItem> channels = m.getChannels(selectedGroup).orElse(new ArrayList<>());
         channelListViewAdapter.resume(channels, selectedChannel);
         channelList.scrollToPosition(selectedChannel);
+    }
+
+    public interface OnChannelSelectedListener {
+        void onChannelSelected(ChannelItem channelItem);
     }
 }

@@ -7,7 +7,6 @@ import android.util.Log;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -48,10 +47,14 @@ public class SourceTypeDetector {
     private static String eatStarComment(String firstLine, BufferedReader reader) throws IOException {
         String starCommentEnd = "*/";
         int e = firstLine.indexOf(starCommentEnd);
-        if (e > 0) { return firstLine.substring(e + starCommentEnd.length()).trim(); }
+        if (e > 0) {
+            return firstLine.substring(e + starCommentEnd.length()).trim();
+        }
         for (String line = reader.readLine(); line != null; line = reader.readLine()) {
             e = line.indexOf(starCommentEnd);
-            if (e >= 0) { return line.substring(e + starCommentEnd.length()).trim(); }
+            if (e >= 0) {
+                return line.substring(e + starCommentEnd.length()).trim();
+            }
         }
         return "";
     }
