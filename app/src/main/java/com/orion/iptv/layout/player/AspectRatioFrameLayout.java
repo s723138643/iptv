@@ -144,6 +144,10 @@ public final class AspectRatioFrameLayout extends FrameLayout {
         }
     }
 
+    private float fixSize(float calculated, int displaySize, int videoSize) {
+        return Math.abs(videoSize - calculated) <= 5.0f && videoSize <= displaySize ? videoSize : calculated;
+    }
+
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         Log.i(TAG, String.format(Locale.ENGLISH, "measureSpec: %dx%d", widthMeasureSpec, heightMeasureSpec));
@@ -175,10 +179,10 @@ public final class AspectRatioFrameLayout extends FrameLayout {
                     width = displayWidth;
                     height = displayWidth / videoAspectRatio;
                     // prevent float calculation error
-                    height = width == videoWidth && Math.abs(videoHeight - height) <= 5.0f && videoHeight <= displayHeight ? videoHeight : height;
+                    height = (width == videoWidth) ? fixSize(height, displayHeight, videoHeight) : height;
                 } else {
                     // prevent float calculation error
-                    width = height == videoHeight && Math.abs(videoWidth - width) <= 5.0f && videoWidth <= displayWidth ? videoWidth : width;
+                    width = (height == videoHeight) ? fixSize(width, displayWidth, videoWidth) : width;
                 }
                 break;
             case RESIZE_MODE_FILL:
