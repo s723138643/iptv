@@ -184,7 +184,7 @@ public class MainActivity extends AppCompatActivity {
         List<MediaItem> items = channel.toMediaItems();
         if (items.size() > 0) {
             setMediaItems(items, 0);
-            updateEpgInfo(channel);
+            updateEpgInfo(channel.info);
         }
     }
 
@@ -211,7 +211,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                         _fetchChannelList(liveUrl, depth + 1);
                     } else {
-                        processChannelList(response);
+                        mHandler.post(() -> processChannelList(response));
                     }
                 },
                 error -> Log.e(TAG, "got channel list failed, " + error.toString())
@@ -233,7 +233,7 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private void updateEpgInfo(ChannelItem channel) {
+    private void updateEpgInfo(ChannelInfo channel) {
         // 清除旧信息
         epgRefresher.stop();
         channelInfoLayout.setCurrentEpgProgram(getString(R.string.current_epg_program_default));
@@ -241,7 +241,7 @@ public class MainActivity extends AppCompatActivity {
         channelListLayout.setEpgPrograms(new EpgProgram[0], 0);
         Date today = new Date();
         M51ZMT.get(
-                channel.name(),
+                channel.channelName,
                 today,
                 programs -> {
                     if (programs.length == 0) {
@@ -256,7 +256,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                         assert media.localConfiguration != null && media.localConfiguration.tag != null;
                         ChannelInfo tag = (ChannelInfo) media.localConfiguration.tag;
-                        if (!tag.channelName.equals(channel.info.channelName)) {
+                        if (!tag.channelName.equals(channel.channelName)) {
                             return;
                         }
                         if (i >= 0) {
@@ -271,7 +271,7 @@ public class MainActivity extends AppCompatActivity {
                         epgRefresher.start(programs, i);
                     });
                 },
-                err -> Log.e(TAG, "update epg for " + channel.name() + " failed")
+                err -> Log.e(TAG, "update epg for " + channel.channelName + " failed")
         );
     }
 
@@ -297,7 +297,7 @@ public class MainActivity extends AppCompatActivity {
                 PreferenceStore.setInt("selected_group_number", channel.info.groupInfo.groupNumber);
                 PreferenceStore.setString("selected_channel_name", channel.info.channelName);
                 PreferenceStore.setInt("selected_channel_number", channel.info.channelNumber);
-                updateEpgInfo(channel);
+                updateEpgInfo(channel.info);
             }
         });
 
