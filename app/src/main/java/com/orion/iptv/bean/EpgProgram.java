@@ -20,6 +20,11 @@ public class EpgProgram implements ListItem {
     }
 
     public static int indexOfCurrentProgram(EpgProgram[] epgPrograms, Date date) {
+        assert epgPrograms != null && epgPrograms.length > 0;
+        return binarySearch(epgPrograms, date);
+    }
+
+    private static int search(EpgProgram[] epgPrograms, Date date) {
         long time = date.getTime();
         for (int i=0; i<epgPrograms.length; i++) {
             EpgProgram item = epgPrograms[i];
@@ -27,8 +32,23 @@ public class EpgProgram implements ListItem {
                 return i-1;
             }
         }
-        int last = epgPrograms.length - 1;
-        return epgPrograms[last].end >= time ? last : -1;
+        return epgPrograms.length - 1;
+    }
+
+    private static int binarySearch(EpgProgram[] epgPrograms, Date date) {
+        long time = date.getTime();
+        int low = 0;
+        int high = epgPrograms.length;
+        int mid = low + (high - low) / 2;
+        while (low < high) {
+            if (time >= epgPrograms[mid].start) {
+                low = mid + 1;
+            } else {
+                high = mid;
+            }
+            mid = low + (high - low) / 2;
+        }
+        return mid - 1;
     }
 
     @Override
@@ -38,6 +58,6 @@ public class EpgProgram implements ListItem {
 
     @Override
     public String name() {
-        return startTime + "-" + endTime + "  " + program;
+        return String.format("%s-%s %s", startTime, endTime, program);
     }
 }

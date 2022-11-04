@@ -149,6 +149,16 @@ public class LiveChannelListLayout {
         epgList.smoothScrollToPosition(current);
     }
 
+    public void setEpgPrograms(EpgProgram[] programs) {
+        epgListViewAdapter.setData(List.of(programs));
+        epgList.smoothScrollToPosition(0);
+    }
+
+    public void selectEpgProgram(int position) {
+        epgListViewAdapter.selectQuiet(position);
+        epgList.smoothScrollToPosition(position);
+    }
+
     @SuppressLint("NotifyDataSetChanged")
     public void resume(ChannelManager m, ChannelInfo info) {
         selectedGroup = m.indexOf(info.groupInfo.groupNumber).orElse(0);

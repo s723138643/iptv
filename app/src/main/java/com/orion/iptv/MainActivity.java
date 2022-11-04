@@ -68,6 +68,7 @@ public class MainActivity extends AppCompatActivity {
     private GestureDetectorCompat gestureDetector;
     private float xFlyingThreshold;
     private float yFlyingThreshold;
+    private final EpgRefresher epgRefresher = new EpgRefresher();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -234,6 +235,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateEpgInfo(ChannelItem channel) {
         // 清除旧信息
+        epgRefresher.stop();
         channelInfoLayout.setCurrentEpgProgram(getString(R.string.current_epg_program_default));
         channelInfoLayout.setNextEpgProgram(getString(R.string.next_epg_program_default));
         channelListLayout.setEpgPrograms(new EpgProgram[0], 0);
@@ -242,10 +244,10 @@ public class MainActivity extends AppCompatActivity {
                 channel.name(),
                 today,
                 programs -> {
-                    int i = EpgProgram.indexOfCurrentProgram(programs, today);
-                    if (i < 0) {
+                    if (programs.length == 0) {
                         return;
                     }
+                    int i = EpgProgram.indexOfCurrentProgram(programs, today);
                     mHandler.post(() -> {
                         assert player != null;
                         MediaItem media = player.getCurrentMediaItem();
@@ -257,16 +259,20 @@ public class MainActivity extends AppCompatActivity {
                         if (!tag.channelName.equals(channel.info.channelName)) {
                             return;
                         }
-                        channelInfoLayout.setCurrentEpgProgram(programs[i].program);
-                        if (i + 1 < programs.length) {
-                            channelInfoLayout.setNextEpgProgram(programs[i+1].program);
+                        if (i >= 0) {
+                            channelListLayout.setEpgPrograms(programs, i);
+                            channelInfoLayout.setCurrentEpgProgram(programs[i].name());
+                        } else {
+                            channelListLayout.setEpgPrograms(programs);
                         }
-                        channelListLayout.setEpgPrograms(programs, i);
+                        if (i + 1 < programs.length) {
+                            channelInfoLayout.setNextEpgProgram(programs[i+1].name());
+                        }
+                        epgRefresher.start(programs, i);
                     });
                 },
-                err -> {
-                    Log.e(TAG, "update epg for " + channel.name() + " failed");
-                });
+                err -> Log.e(TAG, "update epg for " + channel.name() + " failed")
+        );
     }
 
     @Override
@@ -356,7 +362,6 @@ public class MainActivity extends AppCompatActivity {
         player.addAnalyticsListener(new PlayerAnalyticsListener());
         player.setRepeatMode(Player.REPEAT_MODE_ALL);
         videoView.setPlayer(player);
-        videoView.setAspectRatioListener((targetAspectRatio, naturalAspectRatio, aspectRatioMismatch) -> Log.i(TAG, String.format(Locale.ENGLISH, "aspectRatio changed, target: %.2f, natural: %.2f, mismatch: %b", targetAspectRatio, naturalAspectRatio, aspectRatioMismatch)));
     }
 
     protected void releasePlayer() {
@@ -473,7 +478,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onBandwidthEstimate(@NonNull EventTime eventTime, int totalLoadTimeMs, long totalBytesLoaded, long bitrateEstimate) {
-            Log.i(TAG, String.format(Locale.ENGLISH, "bitrate: %d", bitrateEstimate));
+            Log.d(TAG, String.format(Locale.ENGLISH, "bitrate: %d", bitrateEstimate));
             mHandler.post(() -> bandwidth.setBandwidth(bitrateEstimate));
         }
 
@@ -509,4 +514,47 @@ public class MainActivity extends AppCompatActivity {
             mHandler.post(() -> channelInfoLayout.setMediaInfo(String.format(Locale.ENGLISH, "%dx%d", videoSize.width, videoSize.height)));
         }
     }
+
+    private class EpgRefresher implements Runnable {
+        private EpgProgram[] epgs;
+        private int current = -1;
+
+        private long now() {
+            return new Date().getTime();
+        }
+
+        @Override
+        public void run() {
+            int next = current + 1;
+            if (next >= epgs.length) {
+                return;
+            }
+            EpgProgram epg = epgs[next];
+            if (epg.start > now()) {
+                mHandler.postDelayed(this, epg.start - now());
+                return;
+            }
+
+            current = next;
+            channelListLayout.selectEpgProgram(current);
+            channelInfoLayout.setCurrentEpgProgram(epg.name());
+            next = current + 1;
+            if (next >= epgs.length) {
+                return;
+            }
+            epg = epgs[next];
+            channelInfoLayout.setNextEpgProgram(epg.name());
+            mHandler.postDelayed(this, epg.start - now());
+        }
+
+        public void start(EpgProgram[] epgs, int current) {
+            this.epgs = epgs;
+            this.current = current;
+            mHandler.post(this);
+        }
+
+        public void stop() {
+            mHandler.removeCallbacks(this);
+        }
+    };
 }

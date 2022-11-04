@@ -39,7 +39,7 @@ public class M51ZMT {
             OnResponseListener listener,
             DownloadHelper.OnErrorListener errorListener) {
         CacheControl cacheControl = new CacheControl.Builder()
-                .maxAge(6, TimeUnit.HOURS)
+                .maxAge(3, TimeUnit.HOURS)
                 .build();
         Request request = newRequest(channelName, date).cacheControl(cacheControl).build();
         Log.i(TAG, "request epg url: " + request.url());
