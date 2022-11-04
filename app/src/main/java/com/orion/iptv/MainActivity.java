@@ -531,7 +531,7 @@ public class MainActivity extends AppCompatActivity {
             }
             EpgProgram epg = epgs[next];
             if (epg.start > now()) {
-                mHandler.postDelayed(this, epg.start - now());
+                mHandler.postDelayed(this, Math.max(epg.start - now(), 1));
                 return;
             }
 
@@ -544,7 +544,7 @@ public class MainActivity extends AppCompatActivity {
             }
             epg = epgs[next];
             channelInfoLayout.setNextEpgProgram(epg.name());
-            mHandler.postDelayed(this, epg.start - now());
+            mHandler.postDelayed(this, Math.max(epg.start - now(), 1));
         }
 
         public void start(EpgProgram[] epgs, int current) {
