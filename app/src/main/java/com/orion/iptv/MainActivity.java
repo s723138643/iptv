@@ -31,11 +31,11 @@ import com.orion.iptv.bean.ChannelItem;
 import com.orion.iptv.bean.ChannelManager;
 import com.orion.iptv.bean.EpgProgram;
 import com.orion.iptv.epg.m51zmt.M51ZMT;
-import com.orion.iptv.layout.bandwidth.Bandwidth;
 import com.orion.iptv.layout.dialog.ChannelSourceDialog;
 import com.orion.iptv.layout.livechannelinfo.LiveChannelInfoLayout;
 import com.orion.iptv.layout.livechannellist.LiveChannelListLayout;
 import com.orion.iptv.layout.liveplayersetting.LivePlayerSettingLayout;
+import com.orion.iptv.layout.networkspeed.NetworkSpeed;
 import com.orion.iptv.layout.player.PlayerView;
 import com.orion.iptv.misc.CancelableRunnable;
 import com.orion.iptv.misc.PreferenceStore;
@@ -60,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
     protected LiveChannelInfoLayout channelInfoLayout;
     protected LiveChannelListLayout channelListLayout;
     protected LivePlayerSettingLayout livePlayerSettingLayout;
-    protected Bandwidth bandwidth;
+    protected NetworkSpeed networkSpeed;
     protected @Nullable ExoPlayer player;
     private Handler mPlayerHandler;
     private Handler mHandler;
@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
         channelListLayout = new LiveChannelListLayout(this, channelManager);
         channelInfoLayout = new LiveChannelInfoLayout(this);
         livePlayerSettingLayout = new LivePlayerSettingLayout(this);
-        bandwidth = new Bandwidth(this);
+        networkSpeed = new NetworkSpeed(this);
         gestureDetector = new GestureDetectorCompat(this, new GestureListener());
         DisplayMetrics metrics = this.getResources().getDisplayMetrics();
         Log.i(TAG, String.format(Locale.ENGLISH, "display size: %dx%d", metrics.widthPixels, metrics.heightPixels));
@@ -350,7 +350,10 @@ public class MainActivity extends AppCompatActivity {
                 this,
                 new OkHttpDataSource.Factory((Call.Factory) client)
         );
-        builder.setMediaSourceFactory(new DefaultMediaSourceFactory(this).setDataSourceFactory(dataSourceFactory));
+        dataSourceFactory.setTransferListener(networkSpeed.new SimpleTransferListener());
+        DefaultMediaSourceFactory mediaSourceFactory = new DefaultMediaSourceFactory(this);
+        mediaSourceFactory.setDataSourceFactory(dataSourceFactory);
+        builder.setMediaSourceFactory(mediaSourceFactory);
         return builder.build();
     }
 
@@ -472,14 +475,7 @@ public class MainActivity extends AppCompatActivity {
                 channelInfoLayout.setBitrateInfo(0);
                 channelInfoLayout.setCodecInfo(getString(R.string.codec_info_default));
                 channelInfoLayout.setMediaInfo(getString(R.string.media_info_default));
-                bandwidth.setBandwidth(0);
             });
-        }
-
-        @Override
-        public void onBandwidthEstimate(@NonNull EventTime eventTime, int totalLoadTimeMs, long totalBytesLoaded, long bitrateEstimate) {
-            Log.d(TAG, String.format(Locale.ENGLISH, "bitrate: %d", bitrateEstimate));
-            mHandler.post(() -> bandwidth.setBandwidth(bitrateEstimate));
         }
 
         private Optional<Format> getSelectedVideoTrackFormat(Tracks tracks) {
@@ -555,6 +551,8 @@ public class MainActivity extends AppCompatActivity {
 
         public void stop() {
             mHandler.removeCallbacks(this);
+            epgs = new EpgProgram[0];
+            current = -1;
         }
-    };
+    }
 }
