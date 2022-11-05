@@ -69,12 +69,10 @@ public class ChannelSourceDialog {
 
     public void show() {
         AlertDialog dialog = builder.create();
-        server.setOnPostUrlListener((url) -> {
-            mHandler.post(() -> {
-                EditText view = dialog.findViewById(R.id.channel_source_url);
-                view.setText(url);
-            });
-        });
+        server.setOnPostUrlListener((url) -> mHandler.post(() -> {
+            EditText view = dialog.findViewById(R.id.channel_source_url);
+            view.setText(url);
+        }));
         Optional<String> address = HostIP.getHostIP().stream().findFirst();
         try {
             server.start(NanoHTTPD.SOCKET_READ_TIMEOUT);
@@ -83,7 +81,7 @@ public class ChannelSourceDialog {
             Log.i(TAG, String.format(Locale.ENGLISH, "start http server failed, %s", eio));
         }
         dialog.show();
-        if (address.isPresent()) {
+        if (address.isPresent() && server.getListeningPort() > 0) {
             TextView v = dialog.findViewById(R.id.ip_address);
             v.setText(String.format(Locale.ENGLISH, "通过访问 http://%s:%d 设置", address.get(), server.getListeningPort()));
         }
