@@ -495,19 +495,29 @@ public class MainActivity extends AppCompatActivity {
         public void onTracksChanged(@NonNull EventTime eventTime, @NonNull Tracks tracks) {
             getSelectedVideoTrackFormat(tracks).map((track) -> {
                 Log.i(TAG, String.format(Locale.ENGLISH, "selected track change to codec:%s, bitrate:%d, size: %dx%d", track.codecs, track.bitrate, track.width, track.height));
+                String sizeInfo = getString(R.string.media_info_default);
+                if (track.width > 0 && track.height > 0) {
+                    sizeInfo = String.format(Locale.ENGLISH, "%dx%d", track.width, track.height);
+                }
+                final String finalSizeInfo = sizeInfo;
                 mHandler.post(() -> {
                     channelInfoLayout.setBitrateInfo(track.bitrate);
                     channelInfoLayout.setCodecInfo(track.codecs);
-                    channelInfoLayout.setMediaInfo(String.format(Locale.ENGLISH, "%dx%d", track.width, track.height));
+                    channelInfoLayout.setMediaInfo(finalSizeInfo);
                 });
                 return null;
             });
         }
 
         @Override
-        public void onVideoSizeChanged(@NonNull EventTime eventTime, @NonNull VideoSize videoSize) {
+        public void onVideoSizeChanged(@NonNull EventTime eventTime, @NonNull final VideoSize videoSize) {
             Log.i(TAG, String.format(Locale.ENGLISH, "video size change to %dx%d", videoSize.width, videoSize.height));
-            mHandler.post(() -> channelInfoLayout.setMediaInfo(String.format(Locale.ENGLISH, "%dx%d", videoSize.width, videoSize.height)));
+            String sizeInfo = getString(R.string.media_info_default);
+            if (videoSize.width > 0 && videoSize.height > 0) {
+                sizeInfo = String.format(Locale.ENGLISH, "%dx%d", videoSize.width, videoSize.height);
+            }
+            final String finalSizeInfo = sizeInfo;
+            mHandler.post(() -> channelInfoLayout.setMediaInfo(finalSizeInfo));
         }
     }
 
