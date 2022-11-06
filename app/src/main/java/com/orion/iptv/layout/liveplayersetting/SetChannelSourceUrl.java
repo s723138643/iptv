@@ -16,12 +16,12 @@ public class SetChannelSourceUrl implements SettingMenu {
     }
 
     @Override
-    public String index() {
+    public String number() {
         return "";
     }
 
     @Override
-    public String name() {
+    public String describe() {
         return "设置源";
     }
 
@@ -38,12 +38,12 @@ public class SetChannelSourceUrl implements SettingMenu {
         }
 
         @Override
-        public String index() {
+        public String number() {
             return "";
         }
 
         @Override
-        public String name() {
+        public String describe() {
             return "设置频道源";
         }
 
@@ -56,7 +56,7 @@ public class SetChannelSourceUrl implements SettingMenu {
         public void onSelected(OnSettingChangedListener listener) {
             ChannelSourceDialog dialog = new ChannelSourceDialog(context);
             dialog.setOnChannelSourceSubmitListener((url) -> listener.onSettingChanged(settingKey, url));
-            dialog.setTitle(name());
+            dialog.setTitle(describe());
             dialog.setDefaultValue(PreferenceStore.getString("channel_source_url", ""));
             dialog.setInputHint("请输入url地址");
             dialog.show();

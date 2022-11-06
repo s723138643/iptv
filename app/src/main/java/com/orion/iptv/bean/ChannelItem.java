@@ -19,11 +19,11 @@ public class ChannelItem implements ListItem {
         links = new ArrayList<>();
     }
 
-    public String index() {
+    public String number() {
         return String.valueOf(info.channelNumber);
     }
 
-    public String name() {
+    public String describe() {
         return info.channelName;
     }
 

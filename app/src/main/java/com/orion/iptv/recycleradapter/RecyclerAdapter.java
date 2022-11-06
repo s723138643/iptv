@@ -16,7 +16,7 @@ import com.google.android.exoplayer2.util.Log;
 import java.util.List;
 import java.util.Locale;
 
-public class RecyclerAdapter<T extends ViewHolder<U>, U extends ListItem> extends RecyclerView.Adapter<T> {
+public class RecyclerAdapter<T extends ViewHolder<U>, U> extends RecyclerView.Adapter<T> {
     private final ViewHolderFactory<T, U> factory;
 
     private OnSelectedListener<U> listener;

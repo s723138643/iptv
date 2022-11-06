@@ -2,6 +2,7 @@ package com.orion.iptv;
 
 import android.os.Bundle;
 import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.util.DisplayMetrics;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -10,7 +11,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GestureDetectorCompat;
-import androidx.preference.PreferenceManager;
 
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.DefaultRenderersFactory;
@@ -261,12 +261,12 @@ public class MainActivity extends AppCompatActivity {
                         }
                         if (i >= 0) {
                             channelListLayout.setEpgPrograms(programs, i);
-                            channelInfoLayout.setCurrentEpgProgram(programs[i].name());
+                            channelInfoLayout.setCurrentEpgProgram(programs[i].describe());
                         } else {
                             channelListLayout.setEpgPrograms(programs);
                         }
                         if (i + 1 < programs.length) {
-                            channelInfoLayout.setNextEpgProgram(programs[i+1].name());
+                            channelInfoLayout.setNextEpgProgram(programs[i+1].describe());
                         }
                         epgRefresher.start(programs, i);
                     });
@@ -543,13 +543,13 @@ public class MainActivity extends AppCompatActivity {
 
             current = next;
             channelListLayout.selectEpgProgram(current);
-            channelInfoLayout.setCurrentEpgProgram(epg.name());
+            channelInfoLayout.setCurrentEpgProgram(epg.describe());
             next = current + 1;
             if (next >= epgs.length) {
                 return;
             }
             epg = epgs[next];
-            channelInfoLayout.setNextEpgProgram(epg.name());
+            channelInfoLayout.setNextEpgProgram(epg.describe());
             mHandler.postDelayed(this, Math.max(epg.start - now(), 1));
         }
 

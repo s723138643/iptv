@@ -15,7 +15,7 @@ public class MyViewHolder<T extends ListItem> extends ViewHolder<T> {
     public MyViewHolder(View v, boolean hideIndex) {
         super(v);
         container = v.findViewById(R.id.live_channel_list_item);
-        index = v.findViewById(R.id.list_item_index);
+        index = v.findViewById(R.id.list_item_number);
         if (hideIndex) {
             index.setVisibility(View.GONE);
         }
@@ -30,7 +30,7 @@ public class MyViewHolder<T extends ListItem> extends ViewHolder<T> {
 
     @Override
     public void setContent(int position, T content) {
-        index.setText(content.index());
-        desc.setText(content.name());
+        index.setText(content.number());
+        desc.setText(content.describe());
     }
 }

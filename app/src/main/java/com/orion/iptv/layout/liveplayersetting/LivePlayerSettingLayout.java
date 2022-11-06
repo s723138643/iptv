@@ -65,7 +65,7 @@ public class LivePlayerSettingLayout {
     }
 
     private void onMenuSelected(int position, SettingMenu menu) {
-        Log.i("Setting", String.format(Locale.ENGLISH, "menu %s selected", menu.name()));
+        Log.i("Setting", String.format(Locale.ENGLISH, "menu %s selected", menu.describe()));
         this.valueViewAdapter.setData(menu.getValues());
     }
 

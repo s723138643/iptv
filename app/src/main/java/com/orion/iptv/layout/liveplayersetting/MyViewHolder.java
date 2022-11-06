@@ -14,7 +14,7 @@ public class MyViewHolder<T extends ListItem> extends ViewHolder<T> {
     public MyViewHolder(View v) {
         super(v);
         container = v.findViewById(R.id.live_channel_list_item);
-        v.findViewById(R.id.list_item_index).setVisibility(View.GONE);
+        v.findViewById(R.id.list_item_number).setVisibility(View.GONE);
         desc = v.findViewById(R.id.list_item_desc);
     }
 
@@ -25,6 +25,6 @@ public class MyViewHolder<T extends ListItem> extends ViewHolder<T> {
 
     @Override
     public void setContent(int position, T content) {
-        desc.setText(content.name());
+        desc.setText(content.describe());
     }
 }

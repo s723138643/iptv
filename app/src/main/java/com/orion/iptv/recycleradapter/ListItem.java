@@ -1,7 +1,7 @@
 package com.orion.iptv.recycleradapter;
 
 public interface ListItem {
-    String index();
+    String number();
 
-    String name();
+    String describe();
 }
