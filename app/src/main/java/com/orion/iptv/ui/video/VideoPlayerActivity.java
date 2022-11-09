@@ -20,6 +20,7 @@ import com.google.android.exoplayer2.source.DefaultMediaSourceFactory;
 import com.google.android.exoplayer2.ui.StyledPlayerView;
 import com.google.android.exoplayer2.upstream.DefaultDataSource;
 import com.orion.iptv.R;
+import com.orion.iptv.ui.live.networkspeed.NetworkSpeed;
 
 import java.util.Locale;
 
@@ -30,6 +31,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
     private static final String TAG = "VideoPlayerActivity";
 
     private StyledPlayerView playerView;
+    private NetworkSpeed networkSpeed;
     private ExoPlayer player;
 
     @Override
@@ -43,6 +45,8 @@ public class VideoPlayerActivity extends AppCompatActivity {
         playerView.setShowMultiWindowTimeBar(true);
         playerView.setShowPreviousButton(true);
         playerView.setShowNextButton(true);
+
+        networkSpeed = new NetworkSpeed(this);
     }
 
     protected ExoPlayer newPlayer() {
@@ -57,6 +61,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 this,
                 new OkHttpDataSource.Factory((Call.Factory) client)
         );
+        dataSourceFactory.setTransferListener(networkSpeed.new SimpleTransferListener());
         DefaultMediaSourceFactory mediaSourceFactory = new DefaultMediaSourceFactory(this);
         mediaSourceFactory.setDataSourceFactory(dataSourceFactory);
         builder.setMediaSourceFactory(mediaSourceFactory);
