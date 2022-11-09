@@ -105,7 +105,7 @@ public class RecyclerAdapter<T extends ViewHolder<U>, U> extends RecyclerView.Ad
         repeatClickEnabled = isEnable;
     }
 
-    public void deSelect(int position) {
+    public void deselect(int position) {
         if (position < 0 || position >= items.size() || position != currentSelected) {
             return;
         }
