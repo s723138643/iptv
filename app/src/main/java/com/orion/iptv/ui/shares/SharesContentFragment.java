@@ -12,11 +12,13 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.os.Handler;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.orion.iptv.R;
@@ -39,8 +41,24 @@ public class SharesContentFragment extends Fragment {
     private FileNode currentNode;
     private RecyclerAdapter<FileNodeViewHolder, FileNode> adapter;
     private TextView pathHint;
+    private ProgressBar loading;
+    private TextView toast;
+    private Long toastHideAt;
+
+
     private WebDavClient client;
     private Handler mHandler;
+
+    private final Runnable toastHideHandler = new Runnable() {
+        @Override
+        public void run() {
+            if (SystemClock.uptimeMillis() >= toastHideAt) {
+                setViewVisible(toast, false);
+            } else {
+                mHandler.postAtTime(this, toastHideAt);
+            }
+        }
+    };
 
     public SharesContentFragment() {
         super(R.layout.fragment_shares_content);
@@ -62,7 +80,12 @@ public class SharesContentFragment extends Fragment {
             refresh();
         });
 
-        RecyclerView nodes = view.findViewById(R.id.shares_body);
+        loading = view.findViewById(R.id.loading);
+        loading.setVisibility(View.GONE);
+        toast = view.findViewById(R.id.toast);
+        toast.setVisibility(View.GONE);
+
+        RecyclerView nodes = view.findViewById(R.id.collections);
         LinearLayoutManager layoutManager = new LinearLayoutManager(requireContext());
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         nodes.setLayoutManager(layoutManager);
@@ -96,6 +119,8 @@ public class SharesContentFragment extends Fragment {
     }
 
     public void refresh() {
+        setViewVisible(toast,false);
+        setViewVisible(loading, true);
         pathHint.setText(currentNode.getAbsolutePath());
         client.list(
                 currentNode,
@@ -112,11 +137,18 @@ public class SharesContentFragment extends Fragment {
                         children.add(backup);
                     }
                     java.util.List<FileNode> finalChildren = children;
-                    mHandler.post(() -> adapter.setData(finalChildren));
+                    mHandler.post(() -> {
+                        setViewVisible(loading, false);
+                        adapter.setData(finalChildren);
+                    });
                 },
                 err -> {
                     Log.e("ShareContentFragment", err.toString());
-                    mHandler.post(() -> adapter.setData(List.of(backupNode())));
+                    mHandler.post(() -> {
+                        setViewVisible(loading, false);
+                        showToast(err.toString());
+                        adapter.setData(List.of(backupNode()));
+                    });
                 }
         );
     }
@@ -144,6 +176,20 @@ public class SharesContentFragment extends Fragment {
         } catch (JSONException err) {
             Log.e("SharesContentFragment", err.toString());
             return null;
+        }
+    }
+
+    private void showToast(String message) {
+        toast.setText(message);
+        setViewVisible(toast, true);
+        toastHideAt = SystemClock.uptimeMillis() + 5*1000;
+        mHandler.postAtTime(toastHideHandler, toastHideAt);
+    }
+
+    private void setViewVisible(View view, boolean isVisible) {
+        int visibility = isVisible ? View.VISIBLE : View.GONE;
+        if (view.getVisibility() != visibility) {
+            view.setVisibility(visibility);
         }
     }
 
