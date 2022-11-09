@@ -10,7 +10,7 @@
         android:id="@+id/shares_header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="10dp"
+        android:layout_margin="8dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -35,16 +35,23 @@
             android:layout_height="wrap_content"
             android:src="@drawable/icon_home"
             android:contentDescription="@string/goto_root"
+            android:background="@color/transparent"
             app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/current_path"
             app:layout_constraintEnd_toStartOf="@+id/sort" />
 
         <ImageButton
             android:id="@+id/sort"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
             android:src="@drawable/icon_sort"
             android:contentDescription="@string/sort"
+            android:background="@color/transparent"
+            app:layout_constraintStart_toEndOf="@+id/shares_home"
             app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
@@ -53,7 +60,7 @@
         android:id="@+id/shares_body"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_margin="10dp"
+        android:layout_margin="8dp"
         app:layout_constraintTop_toBottomOf="@id/shares_header"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
