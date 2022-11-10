@@ -48,7 +48,6 @@ public class SetChannelSourceUrl implements SettingMenu {
             dialog.setOnChannelSourceSubmitListener((url) -> listener.onSettingChanged(settingKey, url));
             dialog.setTitle(content());
             dialog.setDefaultValue(PreferenceStore.getString("channel_source_url", ""));
-            dialog.setInputHint("请输入url地址");
             dialog.show();
         }
     }

@@ -25,7 +25,6 @@ public class ChannelSourceDialog {
     private final AlertDialog.Builder builder;
     private final WebServer server;
     private OnChannelSourceSubmitListener listener;
-    private String inputHint;
     private String defaultValue;
     public ChannelSourceDialog(Context context) {
         mHandler = new Handler(context.getMainLooper());
@@ -59,10 +58,6 @@ public class ChannelSourceDialog {
         this.builder.setTitle(title);
     }
 
-    public void setInputHint(String hint) {
-        this.inputHint = hint;
-    }
-
     public void setDefaultValue(String defaultValue) {
         this.defaultValue = defaultValue;
     }
@@ -88,8 +83,6 @@ public class ChannelSourceDialog {
         @SuppressLint("CutPasteId") EditText v = dialog.findViewById(R.id.channel_source_url);
         if (!defaultValue.isEmpty()) {
             v.setText(defaultValue);
-        } else if (!inputHint.isEmpty()) {
-            v.setAutofillHints(inputHint);
         }
     }
 

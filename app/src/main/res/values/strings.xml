@@ -30,4 +30,9 @@
     <string name="home_page">主页</string>
     <string name="live_page">直播</string>
     <string name="share_page">共享存储</string>
+    <string name="webdav_input_name_hint">设置WebDAV服务名称</string>
+    <string name="webdav_input_address_hint">WebDAV服务器地址，如（http://example.com）</string>
+    <string name="webdav_input_root_path_hint">设置根目录（可选）</string>
+    <string name="webdav_input_username_hint">用户名（可选）</string>
+    <string name="webdav_input_password_hint">用户密码（可选）</string>
 </resources>

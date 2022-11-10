@@ -217,7 +217,6 @@ public class LivePlayerActivity extends AppCompatActivity {
         ChannelSourceDialog dialog = new ChannelSourceDialog(this);
         dialog.setTitle("设置频道源");
         dialog.setDefaultValue(PreferenceStore.getString("channel_source_url", ""));
-        dialog.setInputHint("请输入url地址");
         dialog.setOnChannelSourceSubmitListener(url -> {
             Log.i(TAG, String.format(Locale.ENGLISH, "got channel resource url: %s", url));
             mHandler.post(() -> {

@@ -25,6 +25,7 @@ import com.orion.iptv.layout.dialog.WebDavSettingDialog;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class SharesHomeFragment extends Fragment {
     private SharesViewModel mViewModel;
@@ -44,12 +45,12 @@ public class SharesHomeFragment extends Fragment {
 
         ImageButton addShareButton = view.findViewById(R.id.add_share);
         addShareButton.setOnClickListener((addRootButton) -> {
-            WebDavSettingDialog dialog =  new WebDavSettingDialog();
+            WebDavSettingDialog dialog =  new WebDavSettingDialog(requireContext());
             dialog.setOnSubmitListener(share -> {
                 mViewModel.addShare(share);
                 Log.i("SharesHomeFragment", "add share: " + share.getRoot().getName());
             });
-            dialog.show(getChildFragmentManager(), "webdav");
+            dialog.show();
         });
 
         sharesView = view.findViewById(R.id.shares_body);
@@ -64,29 +65,35 @@ public class SharesHomeFragment extends Fragment {
             adapter.setShares(shares);
             mHandler.post(adapter::notifyDataSetChanged);
         });
-        adapter.setItemClickListener((itemView) -> {
-            Log.i("ShareHomeFragment",  "clicking...");
-            RecyclerView.ViewHolder viewHolder = sharesView.findContainingViewHolder(itemView);
-            if (viewHolder == null) {
-                return;
-            }
-            int position = viewHolder.getBindingAdapterPosition();
-            if (position < 0) {
-                return;
-            }
-            mViewModel.setSelectedShare(position);
-            Share share = mViewModel.getSelectedShare().getValue();
-            if (share == null) {
-                return;
-            }
-            Log.i("SharesHomeFragment", "share " + share.getRoot().getName() + " selected");
-            requireActivity()
-                    .getSupportFragmentManager()
-                    .beginTransaction()
-                    .setReorderingAllowed(true)
-                    .replace(R.id.shares_container_view, SharesContentFragment.class, null)
-                    .addToBackStack("SharesHomeFragment")
-                    .commit();
+        adapter.setItemClickListener(itemView -> {
+            getBindingAdapterPosition(itemView).map(position -> {
+                mViewModel.setSelectedShare(position);
+                Share share = mViewModel.getSelectedShare().getValue();
+                if (share == null) {
+                    return null;
+                }
+                Log.i("SharesHomeFragment", "share " + share.getRoot().getName() + " selected");
+                requireActivity()
+                        .getSupportFragmentManager()
+                        .beginTransaction()
+                        .setReorderingAllowed(true)
+                        .replace(R.id.shares_container_view, SharesContentFragment.class, null)
+                        .addToBackStack("SharesHomeFragment")
+                        .commit();
+                return null;
+            });
+        });
+        adapter.setButtonClickListener(buttonView -> {
+            getBindingAdapterPosition(buttonView).map(position ->{
+                mViewModel.getShare(position).map(share -> {
+                    new WebDavSettingDialog(requireContext())
+                            .setDefaultValue(share)
+                            .setOnSubmitListener(modified -> mViewModel.setShare(position, modified))
+                            .show();
+                    return null;
+                });
+                return null;
+            });
         });
         sharesView.setAdapter(adapter);
         SelectionTracker<Long> tracker = new SelectionTracker.Builder<>(
@@ -123,5 +130,14 @@ public class SharesHomeFragment extends Fragment {
                 selectionAction.setVisibility(visibility);
             }
         });
+    }
+
+    private Optional<Integer> getBindingAdapterPosition(View view) {
+        RecyclerView.ViewHolder viewHolder = sharesView.findContainingViewHolder(view);
+        if (viewHolder == null) {
+            return Optional.empty();
+        }
+        int position = viewHolder.getBindingAdapterPosition();
+        return position >= 0 ? Optional.of(position) : Optional.empty();
     }
 }

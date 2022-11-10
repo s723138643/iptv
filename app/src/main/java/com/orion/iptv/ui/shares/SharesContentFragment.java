@@ -43,22 +43,11 @@ public class SharesContentFragment extends Fragment {
     private TextView pathHint;
     private ProgressBar loading;
     private TextView toast;
-    private Long toastHideAt;
-
 
     private WebDavClient client;
     private Handler mHandler;
 
-    private final Runnable toastHideHandler = new Runnable() {
-        @Override
-        public void run() {
-            if (SystemClock.uptimeMillis() >= toastHideAt) {
-                setViewVisible(toast, false);
-            } else {
-                mHandler.postAtTime(this, toastHideAt);
-            }
-        }
-    };
+    private final HideToastTasker hideToastTasker = new HideToastTasker();
 
     public SharesContentFragment() {
         super(R.layout.fragment_shares_content);
@@ -181,9 +170,10 @@ public class SharesContentFragment extends Fragment {
 
     private void showToast(String message) {
         toast.setText(message);
+        // 先开启延时任务然后再显示toast，
+        // 避免被已经开启的延时任务提前隐藏
+        hideToastTasker.engage();
         setViewVisible(toast, true);
-        toastHideAt = SystemClock.uptimeMillis() + 5*1000;
-        mHandler.postAtTime(toastHideHandler, toastHideAt);
     }
 
     private void setViewVisible(View view, boolean isVisible) {
@@ -204,5 +194,31 @@ public class SharesContentFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_shares_content, container, false);
+    }
+
+    private class HideToastTasker implements Runnable {
+        private boolean engaged;
+        private Long toastHideAt;
+
+        @Override
+        public void run() {
+            if (!engaged) {
+                return;
+            }
+            if (SystemClock.uptimeMillis() >= toastHideAt) {
+                setViewVisible(toast, false);
+                engaged = false;
+            } else {
+                mHandler.postAtTime(this, toastHideAt);
+            }
+        }
+
+        public void engage() {
+            toastHideAt = SystemClock.uptimeMillis() + 5*1000;
+            if (!engaged) {
+                engaged = true;
+                mHandler.postAtTime(this, toastHideAt);
+            }
+        }
     }
 }
