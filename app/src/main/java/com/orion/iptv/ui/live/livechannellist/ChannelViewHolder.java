@@ -1,5 +1,6 @@
 package com.orion.iptv.ui.live.livechannellist;
 
+import android.view.Gravity;
 import android.view.View;
 import android.widget.TextView;
 

@@ -53,6 +53,6 @@ public class EpgProgram implements ListItem {
 
     @Override
     public String content() {
-        return String.format("%s-%s %s", startTime, endTime, program);
+        return String.format("%s-%s    %s", startTime, endTime, program);
     }
 }

@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.CompoundButton;
 import android.widget.ToggleButton;
 
@@ -142,13 +143,16 @@ public class LiveChannelListLayout {
     }
 
     public void setEpgPrograms(EpgProgram[] programs, int current) {
+        ViewGroup.LayoutParams params = epgList.getLayoutParams();
+        int dimenId = programs.length > 0 ? R.dimen.default_epglist_width : R.dimen.empty_epglist_width ;
+        params.width = mLayout.getResources().getDimensionPixelSize(dimenId);
+        epgList.setLayoutParams(params);
         epgListViewAdapter.resume(List.of(programs), current);
         epgList.smoothScrollToPosition(current);
     }
 
     public void setEpgPrograms(EpgProgram[] programs) {
-        epgListViewAdapter.setData(List.of(programs));
-        epgList.smoothScrollToPosition(0);
+        setEpgPrograms(programs, 0);
     }
 
     public void selectEpgProgram(int position) {
