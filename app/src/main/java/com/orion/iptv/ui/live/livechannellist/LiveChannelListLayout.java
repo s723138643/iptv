@@ -78,8 +78,8 @@ public class LiveChannelListLayout {
         channelList.setAdapter(channelListViewAdapter);
         channelListViewAdapter.setOnSelectedListener((position, item) -> {
             Log.i(TAG, String.format(Locale.ENGLISH, "channel item: %d selected", position));
-            selectedChannel = position;
             selectedGroup = provisionalSelectedGroup;
+            selectedChannel = position;
             if (channelSelectedListener != null) {
                 channelSelectedListener.onChannelSelected(item);
             }
@@ -163,6 +163,7 @@ public class LiveChannelListLayout {
     @SuppressLint("NotifyDataSetChanged")
     public void resume(ChannelManager m, ChannelInfo info) {
         selectedGroup = m.indexOf(info.groupInfo.groupNumber).orElse(0);
+        provisionalSelectedGroup = selectedGroup;
         selectedChannel = m.indexOfChannel(info.groupInfo.groupNumber, info.channelNumber).orElse(0);
 
         channelManager = m;
