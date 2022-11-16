@@ -99,6 +99,7 @@ public final class AspectRatioFrameLayout extends FrameLayout {
         displayWidth = metrics.widthPixels;
         displayHeight = metrics.heightPixels;
         displayAspectRatio = (float) displayWidth / displayHeight;
+        Log.i(TAG, String.format(Locale.getDefault(), "display size: %dx%d %.2f", displayWidth, displayHeight, displayAspectRatio));
     }
 
     /**
@@ -151,7 +152,7 @@ public final class AspectRatioFrameLayout extends FrameLayout {
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         Log.i(TAG, String.format(Locale.ENGLISH, "measureSpec: %dx%d", widthMeasureSpec, heightMeasureSpec));
-        if (videoAspectRatio <= 0) {
+        if (videoWidth == 0 || videoHeight == 0 || videoAspectRatio <= 0) {
             int width = videoWidth > 0 ? videoWidth : displayWidth;
             int height = videoHeight > 0 ? videoHeight : displayHeight;
             // Aspect ratio not set. use original video size;
@@ -160,7 +161,7 @@ public final class AspectRatioFrameLayout extends FrameLayout {
             return;
         }
 
-        Log.i(TAG, String.format(Locale.ENGLISH, "videoSize: %dx%d", videoWidth, videoHeight));
+        Log.i(TAG, String.format(Locale.ENGLISH, "videoSize: %dx%d %.2f", videoWidth, videoHeight, videoAspectRatio));
         float width = displayWidth;
         float height = displayHeight;
         switch (resizeMode) {

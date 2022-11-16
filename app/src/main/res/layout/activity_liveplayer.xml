@@ -230,7 +230,7 @@
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/channelGroup"
-            android:layout_width="104dp"
+            android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:visibility="gone"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
@@ -253,7 +253,7 @@
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/channelList"
-            android:layout_width="152dp"
+            android:layout_width="wrap_content"
             android:layout_height="match_parent"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
             app:layout_constraintEnd_toStartOf="@+id/channelSpacer2"
@@ -296,7 +296,7 @@
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/channelEpgList"
-            android:layout_width="@dimen/default_epglist_width"
+            android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:visibility="gone"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
@@ -325,7 +325,7 @@
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/livePlayerValue"
-            android:layout_width="104dp"
+            android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:gravity="center"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
@@ -347,7 +347,7 @@
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/livePlayerMenu"
-            android:layout_width="104dp"
+            android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:gravity="center"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"

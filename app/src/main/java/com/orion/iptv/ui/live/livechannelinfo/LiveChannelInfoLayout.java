@@ -49,7 +49,7 @@ public class LiveChannelInfoLayout {
         this.channelNumber.setText(String.format(Locale.ENGLISH, "%d", number));
     }
 
-    private String formatBitrate(int bitrate) {
+    private String formatBitrate(long bitrate) {
         float base = 1000.0f;
         float rate = (float) bitrate;
         int i = 0;
@@ -62,7 +62,7 @@ public class LiveChannelInfoLayout {
         return String.format(Locale.ENGLISH, "%.2f%s", rate, units[i]);
     }
 
-    public void setBitrateInfo(int bitrate) {
+    public void setBitrateInfo(long bitrate) {
         if (bitrate <= 0) {
             this.bitrateInfo.setVisibility(View.GONE);
             return;

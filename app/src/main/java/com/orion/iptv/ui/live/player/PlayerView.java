@@ -15,7 +15,6 @@
  */
 package com.orion.iptv.ui.live.player;
 
-import static com.google.android.exoplayer2.Player.COMMAND_SET_VIDEO_SURFACE;
 import static java.lang.annotation.ElementType.TYPE_USE;
 
 import android.content.Context;
@@ -39,12 +38,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.google.android.exoplayer2.PlaybackException;
-import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.util.Assertions;
 import com.google.android.exoplayer2.util.ErrorMessageProvider;
-import com.google.android.exoplayer2.video.VideoSize;
 import com.orion.iptv.R;
 import com.orion.iptv.ui.live.player.AspectRatioFrameLayout.ResizeMode;
+import com.orion.player.IExtPlayer;
+import com.orion.player.ExtVideoSize;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
@@ -57,13 +56,9 @@ public class PlayerView extends FrameLayout {
      * The buffering view is never shown.
      */
     public static final int SHOW_BUFFERING_NEVER = 0;
-    /**
-     * The buffering view is shown when the player is in the {@link Player#STATE_BUFFERING buffering}
-     * state and {@link Player#getPlayWhenReady() playWhenReady} is {@code true}.
-     */
     public static final int SHOW_BUFFERING_WHEN_PLAYING = 1;
     /**
-     * The buffering view is always shown when the player is in the {@link Player#STATE_BUFFERING
+     * The buffering view is always shown when the IExtPlayer is in the {@link IExtPlayer#STATE_BUFFERING
      * buffering} state.
      */
     public static final int SHOW_BUFFERING_ALWAYS = 2;
@@ -82,11 +77,11 @@ public class PlayerView extends FrameLayout {
     @Nullable
     private final TextView errorMessageView;
     @Nullable
-    private Player player;
+    private IExtPlayer iExtPlayer;
     private @ShowBuffering int showBuffering;
     private boolean keepContentOnPlayerReset;
     @Nullable
-    private ErrorMessageProvider<? super PlaybackException> errorMessageProvider;
+    private ErrorMessageProvider<? super Exception> errorMessageProvider;
     @Nullable
     private CharSequence customErrorMessage;
     private int textureViewRotation;
@@ -194,22 +189,22 @@ public class PlayerView extends FrameLayout {
     }
 
     /**
-     * Switches the view targeted by a given {@link Player}.
+     * Switches the view targeted by a given {@link IExtPlayer}.
      *
-     * @param player        The player whose target view is being switched.
-     * @param oldPlayerView The old view to detach from the player.
-     * @param newPlayerView The new view to attach to the player.
+     * @param IExtPlayer        The IExtPlayer whose target view is being switched.
+     * @param oldPlayerView The old view to detach from the IExtPlayer.
+     * @param newPlayerView The new view to attach to the IExtPlayer.
      */
-    public static void switchTargetView(Player player, @Nullable PlayerView oldPlayerView, @Nullable PlayerView newPlayerView) {
+    public static void switchTargetView(IExtPlayer IExtPlayer, @Nullable PlayerView oldPlayerView, @Nullable PlayerView newPlayerView) {
         if (oldPlayerView == newPlayerView) {
             return;
         }
-        // We attach the new view before detaching the old one because this ordering allows the player
+        // We attach the new view before detaching the old one because this ordering allows the IExtPlayer
         // to swap directly from one surface to another, without transitioning through a state where no
         // surface is attached. This is significantly more efficient and achieves a more seamless
         // transition when using platform provided video decoders.
         if (newPlayerView != null) {
-            newPlayerView.setPlayer(player);
+            newPlayerView.setPlayer(IExtPlayer);
         }
         if (oldPlayerView != null) {
             oldPlayerView.setPlayer(null);
@@ -247,44 +242,43 @@ public class PlayerView extends FrameLayout {
     }
 
     /**
-     * Returns the player currently set on this view, or null if no player is set.
+     * Returns the IExtPlayer currently set on this view, or null if no IExtPlayer is set.
      */
     @Nullable
-    public Player getPlayer() {
-        return player;
+    public IExtPlayer getPlayer() {
+        return iExtPlayer;
     }
 
     /**
-     * Sets the {@link Player} to use.
+     * Sets the {@link IExtPlayer} to use.
      */
-    public void setPlayer(@Nullable Player player) {
-        Assertions.checkState(Looper.myLooper() == Looper.getMainLooper());
-        Assertions.checkArgument(player == null || player.getApplicationLooper() == Looper.getMainLooper());
-        if (this.player == player) {
+    public void setPlayer(@Nullable IExtPlayer iExtPlayer) {
+        if (this.iExtPlayer == iExtPlayer) {
             return;
         }
-        @Nullable Player oldPlayer = this.player;
-        if (oldPlayer != null) {
-            oldPlayer.removeListener(componentListener);
+        @Nullable IExtPlayer oldIExtPlayer = this.iExtPlayer;
+        if (oldIExtPlayer != null) {
+            oldIExtPlayer.removeListener(componentListener);
             if (surfaceView instanceof TextureView) {
-                oldPlayer.clearVideoTextureView((TextureView) surfaceView);
+                oldIExtPlayer.clearVideoTextureView((TextureView) surfaceView);
             } else if (surfaceView instanceof SurfaceView) {
-                oldPlayer.clearVideoSurfaceView((SurfaceView) surfaceView);
+                oldIExtPlayer.clearVideoSurfaceView((SurfaceView) surfaceView);
             }
+            assert surfaceView != null;
+            surfaceView.setVisibility(View.GONE);
+            surfaceView.setVisibility(View.VISIBLE);
         }
-        this.player = player;
+        this.iExtPlayer = iExtPlayer;
         updateBuffering();
         updateErrorMessage();
-        if (player != null) {
-            if (player.isCommandAvailable(COMMAND_SET_VIDEO_SURFACE)) {
-                if (surfaceView instanceof TextureView) {
-                    player.setVideoTextureView((TextureView) surfaceView);
-                } else if (surfaceView instanceof SurfaceView) {
-                    player.setVideoSurfaceView((SurfaceView) surfaceView);
-                }
-                updateAspectRatio();
+        if (iExtPlayer != null) {
+            if (surfaceView instanceof TextureView) {
+                iExtPlayer.setVideoTextureView((TextureView) surfaceView);
+            } else if (surfaceView instanceof SurfaceView) {
+                iExtPlayer.setVideoSurfaceView((SurfaceView) surfaceView);
             }
-            player.addListener(componentListener);
+            updateAspectRatio();
+            iExtPlayer.addListener(componentListener);
         }
     }
 
@@ -317,22 +311,22 @@ public class PlayerView extends FrameLayout {
 
     /**
      * Sets whether the currently displayed video frame or media artwork is kept visible when the
-     * player is reset. A player reset is defined to mean the player being re-prepared with different
-     * media, the player transitioning to unprepared media or an empty list of media items, or the
-     * player being replaced or cleared by calling {@link #setPlayer(Player)}.
+     * IExtPlayer is reset. A IExtPlayer reset is defined to mean the IExtPlayer being re-prepared with different
+     * media, the IExtPlayer transitioning to unprepared media or an empty list of media items, or the
+     * IExtPlayer being replaced or cleared by calling {@link #setPlayer(IExtPlayer)}.
      *
      * <p>If enabled, the currently displayed video frame or media artwork will be kept visible until
-     * the player set on the view has been successfully prepared with new media and loaded enough of
+     * the IExtPlayer set on the view has been successfully prepared with new media and loaded enough of
      * it to have determined the available tracks. Hence enabling this option allows transitioning
-     * from playing one piece of media to another, or from using one player instance to another,
+     * from playing one piece of media to another, or from using one IExtPlayer instance to another,
      * without clearing the view's content.
      *
      * <p>If disabled, the currently displayed video frame or media artwork will be hidden as soon as
-     * the player is reset. Note that the video frame is hidden by making {@code exo_shutter} visible.
+     * the IExtPlayer is reset. Note that the video frame is hidden by making {@code exo_shutter} visible.
      * Hence the video frame will not be hidden if using a custom layout that omits this view.
      *
      * @param keepContentOnPlayerReset Whether the currently displayed video frame or media artwork is
-     *                                 kept visible when the player is reset.
+     *                                 kept visible when the IExtPlayer is reset.
      */
     public void setKeepContentOnPlayerReset(boolean keepContentOnPlayerReset) {
         if (this.keepContentOnPlayerReset != keepContentOnPlayerReset) {
@@ -341,7 +335,7 @@ public class PlayerView extends FrameLayout {
     }
 
     /**
-     * Sets whether a buffering spinner is displayed when the player is in the buffering state. The
+     * Sets whether a buffering spinner is displayed when the IExtPlayer is in the buffering state. The
      * buffering spinner is not displayed by default.
      *
      * @param showBuffering The mode that defines when the buffering spinner is displayed. One of
@@ -360,7 +354,7 @@ public class PlayerView extends FrameLayout {
      *
      * @param errorMessageProvider The error message provider.
      */
-    public void setErrorMessageProvider(@Nullable ErrorMessageProvider<? super PlaybackException> errorMessageProvider) {
+    public void setErrorMessageProvider(@Nullable ErrorMessageProvider<? super Exception> errorMessageProvider) {
         if (this.errorMessageProvider != errorMessageProvider) {
             this.errorMessageProvider = errorMessageProvider;
             updateErrorMessage();
@@ -413,7 +407,7 @@ public class PlayerView extends FrameLayout {
     }
 
     /**
-     * Should be called when the player is visible to the user, if the {@code surface_type} extends
+     * Should be called when the IExtPlayer is visible to the user, if the {@code surface_type} extends
      * {@link GLSurfaceView}. It is the counterpart to {@link #onPause()}.
      *
      * <p>This method should typically be called in {@code Activity.onStart()}, or {@code
@@ -426,7 +420,7 @@ public class PlayerView extends FrameLayout {
     }
 
     /**
-     * Should be called when the player is no longer visible to the user, if the {@code surface_type}
+     * Should be called when the IExtPlayer is no longer visible to the user, if the {@code surface_type}
      * extends {@link GLSurfaceView}. It is the counterpart to {@link #onResume()}.
      *
      * <p>This method should typically be called in {@code Activity.onStop()}, or {@code
@@ -453,9 +447,9 @@ public class PlayerView extends FrameLayout {
 
     private void updateBuffering() {
         if (bufferingView != null) {
-            boolean showBufferingSpinner = player != null;
-            showBufferingSpinner = showBufferingSpinner && player.getPlaybackState() == Player.STATE_BUFFERING;
-            showBufferingSpinner = showBufferingSpinner && (showBuffering == SHOW_BUFFERING_ALWAYS || (showBuffering == SHOW_BUFFERING_WHEN_PLAYING && player.getPlayWhenReady()));
+            boolean showBufferingSpinner = iExtPlayer != null;
+            showBufferingSpinner = showBufferingSpinner && iExtPlayer.getPlaybackState() == IExtPlayer.STATE_BUFFERING;
+            showBufferingSpinner = showBufferingSpinner && (showBuffering == SHOW_BUFFERING_ALWAYS || showBuffering == SHOW_BUFFERING_WHEN_PLAYING);
             bufferingView.setVisibility(showBufferingSpinner ? View.VISIBLE : View.GONE);
         }
     }
@@ -467,7 +461,7 @@ public class PlayerView extends FrameLayout {
                 errorMessageView.setVisibility(View.VISIBLE);
                 return;
             }
-            @Nullable PlaybackException error = player != null ? player.getPlayerError() : null;
+            @Nullable Exception error = iExtPlayer != null ? iExtPlayer.getPlayerError() : null;
             if (error != null && errorMessageProvider != null) {
                 CharSequence errorMessage = errorMessageProvider.getErrorMessage(error).second;
                 errorMessageView.setText(errorMessage);
@@ -479,16 +473,19 @@ public class PlayerView extends FrameLayout {
     }
 
     private void updateAspectRatio() {
-        VideoSize videoSize = player != null ? player.getVideoSize() : VideoSize.UNKNOWN;
+        ExtVideoSize videoSize = iExtPlayer != null ? iExtPlayer.getVideoSize() : ExtVideoSize.UNKNOWN;
         updateAspectRatio(videoSize);
     }
 
-    private void updateAspectRatio(VideoSize videoSize) {
+    private void updateAspectRatio(ExtVideoSize videoSize) {
         assert surfaceView != null;
         int width = videoSize.width;
         int height = videoSize.height;
-        int unAppliedRotationDegrees = videoSize.unappliedRotationDegrees;
-        float videoAspectRatio = (height == 0 || width == 0) ? 0 : (width * videoSize.pixelWidthHeightRatio) / height;
+        if (width == 0 || height == 0) {
+            return;
+        }
+        int unAppliedRotationDegrees = videoSize.unAppliedRotationDegrees;
+        float videoAspectRatio = videoSize.widthHeightRatio;
 
         if (surfaceView instanceof TextureView) {
             // Try to apply rotation transformation when our surface is a TextureView.
@@ -523,33 +520,31 @@ public class PlayerView extends FrameLayout {
     public @interface ShowBuffering {
     }
 
-    public static class DefaultErrorMessageProvider implements ErrorMessageProvider<PlaybackException> {
+    public static class DefaultErrorMessageProvider implements ErrorMessageProvider<Exception> {
         @NonNull
         @Override
-        public Pair<Integer, String> getErrorMessage(PlaybackException e) {
-            return new Pair<>(e.errorCode, e.getMessage());
+        public Pair<Integer, String> getErrorMessage(@NonNull Exception e) {
+            if (e instanceof PlaybackException) {
+                return new Pair<>(((PlaybackException) e).errorCode, e.getMessage());
+            }
+            return new Pair<>(0, e.getMessage());
         }
     }
 
     // Implementing the deprecated StyledPlayerControlView.VisibilityListener and
     // StyledPlayerControlView.OnFullScreenModeChangedListener for now.
-    private final class ComponentListener implements Player.Listener, OnLayoutChangeListener {
+    private final class ComponentListener implements IExtPlayer.Listener, OnLayoutChangeListener {
 
-        // Player.Listener implementation
+        // IExtPlayer.Listener implementation
         @Override
-        public void onVideoSizeChanged(@NonNull VideoSize videoSize) {
+        public void onVideoSizeChanged(@NonNull ExtVideoSize videoSize) {
             updateAspectRatio(videoSize);
         }
 
         @Override
-        public void onPlaybackStateChanged(@Player.State int playbackState) {
+        public void onPlaybackStateChanged(@IExtPlayer.State int playbackState) {
             updateBuffering();
             updateErrorMessage();
-        }
-
-        @Override
-        public void onPlayWhenReadyChanged(boolean playWhenReady, @Player.PlayWhenReadyChangeReason int reason) {
-            updateBuffering();
         }
 
         // OnLayoutChangeListener implementation

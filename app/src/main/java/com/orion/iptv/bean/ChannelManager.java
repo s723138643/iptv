@@ -2,7 +2,7 @@ package com.orion.iptv.bean;
 
 import android.util.Log;
 
-import com.google.android.exoplayer2.MediaItem;
+import com.orion.player.ExtDataSource;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -123,12 +123,8 @@ public class ChannelManager {
         g.appendChannel(channel, link);
     }
 
-    public Optional<List<MediaItem>> toMediaItems(int groupIndex, int channelIndex) {
+    public Optional<List<ExtDataSource>> toMediaItems(int groupIndex, int channelIndex) {
         return getByIndex(groupIndex).flatMap((g) -> g.toMediaItems(channelIndex));
-    }
-
-    public Optional<ChannelItem.PreferredMediaItems> toMediaItems(int groupIndex, int channelIndex, String preferredLink) {
-        return getByIndex(groupIndex).flatMap((g) -> g.toMediaItems(channelIndex, preferredLink));
     }
 
     public Optional<List<ChannelItem>> getChannels(int groupIndex) {

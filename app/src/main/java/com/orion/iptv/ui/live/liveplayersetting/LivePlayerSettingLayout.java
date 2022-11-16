@@ -9,9 +9,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.exoplayer2.util.Log;
 import com.orion.iptv.R;
 import com.orion.iptv.misc.CancelableRunnable;
+import com.orion.iptv.misc.PreferenceStore;
 import com.orion.iptv.recycleradapter.RecyclerAdapter;
 import com.orion.iptv.recycleradapter.ViewHolder;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -27,7 +29,9 @@ public class LivePlayerSettingLayout {
     private OnSettingChangedListener listener;
 
     public LivePlayerSettingLayout(AppCompatActivity activity) {
-        menus = List.of(new SetChannelSourceUrl(activity));
+        menus = new ArrayList<>();
+        menus.add(new SetChannelSourceUrl(activity));
+        menus.add(new SetPlayerFactory());
         mHandler = new Handler(activity.getMainLooper());
         mLayout = activity.findViewById(R.id.livePlayerSetting);
         settingMenuView = mLayout.findViewById(R.id.livePlayerMenu);
@@ -66,7 +70,12 @@ public class LivePlayerSettingLayout {
 
     private void onMenuSelected(int position, SettingMenu menu) {
         Log.i("Setting", String.format(Locale.ENGLISH, "menu %s selected", menu.content()));
-        this.valueViewAdapter.setData(menu.getValues());
+        int selectedPosition = menu.getSelectedPosition();
+        if (selectedPosition >= 0) {
+            this.valueViewAdapter.resume(menu.getValues(), selectedPosition);
+        } else {
+            this.valueViewAdapter.setData(menu.getValues());
+        }
     }
 
     public void setOnSettingChangedListener(OnSettingChangedListener listener) {

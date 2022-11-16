@@ -8,24 +8,10 @@ import android.view.GestureDetector;
 import android.view.MotionEvent;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GestureDetectorCompat;
 
-import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.DefaultRenderersFactory;
-import com.google.android.exoplayer2.ExoPlayer;
-import com.google.android.exoplayer2.Format;
-import com.google.android.exoplayer2.MediaItem;
-import com.google.android.exoplayer2.PlaybackException;
-import com.google.android.exoplayer2.Player;
-import com.google.android.exoplayer2.Tracks;
-import com.google.android.exoplayer2.analytics.AnalyticsListener;
-import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource;
-import com.google.android.exoplayer2.source.DefaultMediaSourceFactory;
-import com.google.android.exoplayer2.upstream.DefaultDataSource;
 import com.google.android.exoplayer2.util.Log;
-import com.google.android.exoplayer2.video.VideoSize;
 import com.orion.iptv.R;
 import com.orion.iptv.bean.ChannelInfo;
 import com.orion.iptv.bean.ChannelItem;
@@ -36,22 +22,29 @@ import com.orion.iptv.layout.dialog.ChannelSourceDialog;
 import com.orion.iptv.ui.live.livechannelinfo.LiveChannelInfoLayout;
 import com.orion.iptv.ui.live.livechannellist.LiveChannelListLayout;
 import com.orion.iptv.ui.live.liveplayersetting.LivePlayerSettingLayout;
+import com.orion.iptv.ui.live.liveplayersetting.SetChannelSourceUrl;
+import com.orion.iptv.ui.live.liveplayersetting.SetPlayerFactory;
 import com.orion.iptv.ui.live.networkspeed.NetworkSpeed;
 import com.orion.iptv.ui.live.player.PlayerView;
 import com.orion.iptv.misc.CancelableRunnable;
 import com.orion.iptv.misc.PreferenceStore;
 import com.orion.iptv.misc.SourceTypeDetector;
 import com.orion.iptv.network.DownloadHelper;
+import com.orion.player.ExtDataSource;
+import com.orion.player.IExtPlayer;
+import com.orion.player.IExtPlayerFactory;
+import com.orion.player.ExtTrackInfo;
+import com.orion.player.ExtVideoSize;
+import com.orion.player.exo.ExtExoPlayerFactory;
+import com.orion.player.ijk.ExtIjkPlayerFactory;
+import com.orion.player.ijk.ExtSoftIjkPlayerFactory;
 
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.CacheControl;
-import okhttp3.Call;
-import okhttp3.OkHttpClient;
 
 public class LivePlayerActivity extends AppCompatActivity {
 
@@ -61,14 +54,15 @@ public class LivePlayerActivity extends AppCompatActivity {
     protected LiveChannelListLayout channelListLayout;
     protected LivePlayerSettingLayout livePlayerSettingLayout;
     protected NetworkSpeed networkSpeed;
-    protected @Nullable ExoPlayer player;
-    private Handler mPlayerHandler;
+    protected IExtPlayerFactory<? extends IExtPlayer> playerFactory;
+    protected IExtPlayer iExtPlayer;
     private Handler mHandler;
     private CancelableRunnable playerDelayedTask;
     private GestureDetectorCompat gestureDetector;
     private float xFlyingThreshold;
     private float yFlyingThreshold;
     private final EpgRefresher epgRefresher = new EpgRefresher();
+    private DataSourceManager dataSourceManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,67 +87,66 @@ public class LivePlayerActivity extends AppCompatActivity {
         mHandler = new Handler(this.getMainLooper());
     }
 
+    private IExtPlayer createPlayer() {
+        IExtPlayer extPlayer = playerFactory.create(this);
+        extPlayer.addListener(new PlayerEventListener());
+        videoView.setPlayer(extPlayer);
+        networkSpeed.setPlayer(extPlayer);
+        return extPlayer;
+    }
+
+    private void destroyPlayer(IExtPlayer iExtPlayer) {
+        if (iExtPlayer != null) {
+            iExtPlayer.release();
+        }
+    }
+
     private void postDelayedPlayerTask(int delayMillis, CancelableRunnable task) {
         if (playerDelayedTask != null) {
             playerDelayedTask.cancel();
         }
         playerDelayedTask = task;
         delayMillis = Math.max(delayMillis, 1);
-        mPlayerHandler.postDelayed(task, delayMillis);
-    }
-
-    private void _seekToNextMediaItem() {
-        if (player == null) {
-            return;
-        }
-        player.seekToNextMediaItem();
-        if (player.getPlaybackState() == Player.STATE_IDLE) {
-            player.prepare();
-        }
-        player.setPlayWhenReady(true);
+        mHandler.postDelayed(task, delayMillis);
     }
 
     public void seekToNextMediaItem(int delayMillis) {
+        if (dataSourceManager == null) {
+            return;
+        }
         postDelayedPlayerTask(delayMillis, new CancelableRunnable() {
             @Override
             public void callback() {
-                _seekToNextMediaItem();
+                _setMediaItem(dataSourceManager.nextDataSource());
             }
         });
-    }
-
-    private void _seekToPrevMediaItem() {
-        if (player == null) {
-            return;
-        }
-        player.seekToPreviousMediaItem();
-        if (player.getPlaybackState() == Player.STATE_IDLE) {
-            player.prepare();
-        }
-        player.setPlayWhenReady(true);
     }
 
     public void seekToPrevMediaItem(int delayMillis) {
+        if (dataSourceManager == null) {
+            return;
+        }
         postDelayedPlayerTask(delayMillis, new CancelableRunnable() {
             @Override
             public void callback() {
-                _seekToPrevMediaItem();
+                _setMediaItem(dataSourceManager.prevDataSource());
             }
         });
     }
 
-    public void setMediaItems(List<MediaItem> items, int delayMillis) {
+    private void _setMediaItem(ExtDataSource dataSource) {
+        destroyPlayer(iExtPlayer);
+        iExtPlayer = createPlayer();
+        iExtPlayer.setDataSource(dataSource);
+        iExtPlayer.prepare();
+        iExtPlayer.play();
+    }
+
+    public void setMediaItem(ExtDataSource dataSource, int delayMillis) {
         postDelayedPlayerTask(delayMillis, new CancelableRunnable() {
             @Override
             public void callback() {
-                if (player == null) {
-                    return;
-                }
-                player.setMediaItems(items);
-                if (player.getPlaybackState() == Player.STATE_IDLE) {
-                    player.prepare();
-                }
-                player.setPlayWhenReady(true);
+                _setMediaItem(dataSource);
             }
         });
     }
@@ -176,9 +169,10 @@ public class LivePlayerActivity extends AppCompatActivity {
             return;
         }
         mHandler.post(() -> channelListLayout.resume(manager, channel.info));
-        List<MediaItem> items = channel.toMediaItems();
+        List<ExtDataSource> items = channel.toMediaItems();
         if (items.size() > 0) {
-            setMediaItems(items, 0);
+            dataSourceManager = new DataSourceManager(items);
+            setMediaItem(items.get(0), 0);
             updateEpgInfo(channel.info);
         }
     }
@@ -216,11 +210,11 @@ public class LivePlayerActivity extends AppCompatActivity {
     private void getChannelSourceUrl() {
         ChannelSourceDialog dialog = new ChannelSourceDialog(this);
         dialog.setTitle("设置频道源");
-        dialog.setDefaultValue(PreferenceStore.getString("channel_source_url", ""));
+        dialog.setDefaultValue(PreferenceStore.getString(SetChannelSourceUrl.settingKey, ""));
         dialog.setOnChannelSourceSubmitListener(url -> {
             Log.i(TAG, String.format(Locale.ENGLISH, "got channel resource url: %s", url));
             mHandler.post(() -> {
-                PreferenceStore.setString("channel_source_url", url);
+                PreferenceStore.setString(SetChannelSourceUrl.settingKey, url);
                 fetchChannelList(url);
             });
         });
@@ -243,13 +237,10 @@ public class LivePlayerActivity extends AppCompatActivity {
                     }
                     int i = EpgProgram.indexOfCurrentProgram(programs, today);
                     mHandler.post(() -> {
-                        assert player != null;
-                        MediaItem media = player.getCurrentMediaItem();
-                        if (media == null) {
-                            return;
-                        }
-                        assert media.localConfiguration != null && media.localConfiguration.tag != null;
-                        ChannelInfo tag = (ChannelInfo) media.localConfiguration.tag;
+                        assert dataSourceManager != null;
+                        ExtDataSource dataSource = dataSourceManager.getCurrentDataSource();
+                        ChannelInfo tag = (ChannelInfo) dataSource.getTag();
+                        assert tag != null;
                         if (!tag.channelName.equals(channel.channelName)) {
                             return;
                         }
@@ -269,13 +260,22 @@ public class LivePlayerActivity extends AppCompatActivity {
         );
     }
 
+    private IExtPlayerFactory<? extends IExtPlayer> getPlayerFactory(int category) {
+        if (category == 1) {
+            return new ExtSoftIjkPlayerFactory();
+        } else if (category == 2) {
+            return new ExtExoPlayerFactory();
+        } else {
+            return new ExtIjkPlayerFactory();
+        }
+    }
+
     @Override
     public void onStart() {
         super.onStart();
-        initializePlayer();
-        assert player != null;
-
-        String url = PreferenceStore.getString("channel_source_url", "");
+        int playerFactoryNum = PreferenceStore.getInt(SetPlayerFactory.settingKey, 0);
+        this.playerFactory = getPlayerFactory(playerFactoryNum);
+        String url = PreferenceStore.getString(SetChannelSourceUrl.settingKey, "");
         if (url.equals("")) {
             getChannelSourceUrl();
         } else {
@@ -284,9 +284,10 @@ public class LivePlayerActivity extends AppCompatActivity {
         }
 
         channelListLayout.setOnChannelSelectedListener((channel) -> {
-            List<MediaItem> items = channel.toMediaItems();
+            List<ExtDataSource> items = channel.toMediaItems();
             if (items.size() > 0) {
-                setMediaItems(items, 0);
+                dataSourceManager = new DataSourceManager(items);
+                setMediaItem(items.get(0), 0);
                 PreferenceStore.setString("selected_group_name", channel.info.groupInfo.groupName);
                 PreferenceStore.setInt("selected_group_number", channel.info.groupInfo.groupNumber);
                 PreferenceStore.setString("selected_channel_name", channel.info.channelName);
@@ -296,7 +297,7 @@ public class LivePlayerActivity extends AppCompatActivity {
         });
 
         livePlayerSettingLayout.setOnSettingChangedListener((key, originValue) -> {
-            if (key.equals("channel_source_url")) {
+            if (key.equals(SetChannelSourceUrl.settingKey)) {
                 String value = (String) originValue;
                 if (value.equals("")) {
                     return;
@@ -304,6 +305,15 @@ public class LivePlayerActivity extends AppCompatActivity {
                 mHandler.post(() -> {
                     PreferenceStore.setString(key, value);
                     fetchChannelList(value);
+                });
+            } else if (key.equals(SetPlayerFactory.settingKey)) {
+                this.playerFactory = getPlayerFactory((int) originValue);
+                mHandler.post(()->{
+                    PreferenceStore.setInt(key, (int) originValue);
+                    if (iExtPlayer != null && iExtPlayer.isPlaying()) {
+                        ExtDataSource dataSource = iExtPlayer.getDataSource();
+                        setMediaItem(dataSource, 0);
+                    }
                 });
             }
         });
@@ -326,46 +336,27 @@ public class LivePlayerActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        if (iExtPlayer != null) {
+            iExtPlayer.play();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (iExtPlayer != null) {
+            iExtPlayer.pause();
+        }
+    }
+
+    @Override
     public void onStop() {
         super.onStop();
-        releasePlayer();
+        mHandler.removeCallbacks(playerDelayedTask);
+        destroyPlayer(iExtPlayer);
         PreferenceStore.commit();
-    }
-
-    private ExoPlayer newPlayer() {
-        ExoPlayer.Builder builder = new ExoPlayer.Builder(this);
-        // use extension render if possible
-        DefaultRenderersFactory renderFactory = new DefaultRenderersFactory(this.getApplicationContext());
-        renderFactory = renderFactory.setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON);
-        builder.setRenderersFactory(renderFactory);
-
-        OkHttpClient client = new OkHttpClient.Builder().build();
-        DefaultDataSource.Factory dataSourceFactory = new DefaultDataSource.Factory(
-                this,
-                new OkHttpDataSource.Factory((Call.Factory) client)
-        );
-        dataSourceFactory.setTransferListener(networkSpeed.new SimpleTransferListener());
-        DefaultMediaSourceFactory mediaSourceFactory = new DefaultMediaSourceFactory(this);
-        mediaSourceFactory.setDataSourceFactory(dataSourceFactory);
-        builder.setMediaSourceFactory(mediaSourceFactory);
-        return builder.build();
-    }
-
-    protected void initializePlayer() {
-        releasePlayer();
-        player = newPlayer();
-        mPlayerHandler = new Handler(player.getApplicationLooper());
-        player.addListener(new PlayerEventListener());
-        player.addAnalyticsListener(new PlayerAnalyticsListener());
-        player.setRepeatMode(Player.REPEAT_MODE_ALL);
-        videoView.setPlayer(player);
-    }
-
-    protected void releasePlayer() {
-        if (player != null) {
-            player.release();
-            player = null;
-        }
     }
 
     private class GestureListener extends GestureDetector.SimpleOnGestureListener {
@@ -376,8 +367,11 @@ public class LivePlayerActivity extends AppCompatActivity {
 
         @Override
         public boolean onSingleTapConfirmed(MotionEvent e) {
-            livePlayerSettingLayout.setVisible(false);
-            channelListLayout.setVisibleDelayed(!channelListLayout.getIsVisible(), 0);
+            if (livePlayerSettingLayout.getIsVisible()) {
+                livePlayerSettingLayout.setVisible(false);
+            } else {
+                channelListLayout.setVisibleDelayed(!channelListLayout.getIsVisible(), 0);
+            }
             return true;
         }
 
@@ -393,14 +387,12 @@ public class LivePlayerActivity extends AppCompatActivity {
             // distance is too short ignore this event
             if (Math.abs(distX) > xFlyingThreshold) {
                 Log.i(TAG, String.format(Locale.ENGLISH, "scrollX event detect, dist: %.2f, direction: %.2f", distX, velocityX));
-                if (player != null && player.getMediaItemCount() > 0) {
-                    if (distX < 0) {
-                        // from right to left
-                        seekToNextMediaItem(0);
-                    } else {
-                        // from left to right
-                        seekToPrevMediaItem(0);
-                    }
+                if (distX < 0) {
+                    // from right to left
+                    seekToNextMediaItem(0);
+                } else {
+                    // from left to right
+                    seekToPrevMediaItem(0);
                 }
                 return true;
             }
@@ -418,54 +410,45 @@ public class LivePlayerActivity extends AppCompatActivity {
         }
     }
 
-    private class PlayerEventListener implements Player.Listener {
-        public PlayerEventListener() {
-        }
-
+    private class PlayerEventListener implements IExtPlayer.Listener {
         @Override
-        public void onPlayerError(PlaybackException error) {
+        public void onPlayerError(Exception error) {
             Log.e(TAG, error.toString());
             seekToNextMediaItem(1000);
         }
 
         @Override
-        public void onPlaybackStateChanged(@Player.State int state) {
+        public void onPlaybackStateChanged(@IExtPlayer.State int state) {
             switch (state) {
-                case Player.STATE_READY:
-                    Log.w(TAG, "player change state to STATE_READY");
+                case IExtPlayer.STATE_READY:
+                    Log.w(TAG, "IExtPlayer change state to STATE_READY");
                     if (playerDelayedTask != null) {
                         playerDelayedTask.cancel();
                     }
                     channelInfoLayout.setVisibleDelayed(false, 3000);
                     break;
-                case Player.STATE_BUFFERING:
-                    Log.w(TAG, "player change state to STATE_BUFFERING");
+                case IExtPlayer.STATE_BUFFERING:
+                    Log.w(TAG, "IExtPlayer change state to STATE_BUFFERING");
                     /* TODO set timeout value via setting layout */
                     seekToNextMediaItem(15 * 1000);
                     break;
-                case Player.STATE_ENDED:
-                    Log.w(TAG, "player change state to STATE_ENDED");
+                case IExtPlayer.STATE_ENDED:
+                    Log.w(TAG, "IExtPlayer change state to STATE_ENDED");
                     break;
-                case Player.STATE_IDLE:
-                    Log.w(TAG, "player change state to STATE_IDLE");
+                case IExtPlayer.STATE_IDLE:
+                    Log.w(TAG, "IExtPlayer change state to STATE_IDLE");
                     break;
             }
         }
-    }
 
-    private class PlayerAnalyticsListener implements AnalyticsListener {
         @Override
-        public void onMediaItemTransition(@NonNull EventTime eventTime, @Nullable MediaItem mediaItem, int reason) {
-            assert player != null;
+        public void onDataSourceUsed(ExtDataSource dataSource) {
             channelInfoLayout.setVisibleDelayed(true, 0);
             mHandler.post(() -> {
-                channelInfoLayout.setLinkInfo(player.getCurrentMediaItemIndex() + 1, player.getMediaItemCount());
-                if (mediaItem == null || mediaItem.localConfiguration == null) {
-                    return;
-                }
-                assert mediaItem.localConfiguration.tag != null;
-                Log.i(TAG, "start playing " + mediaItem.localConfiguration.uri);
-                ChannelInfo tag = (ChannelInfo) mediaItem.localConfiguration.tag;
+                channelInfoLayout.setLinkInfo(dataSourceManager.getCursor(dataSource) + 1, dataSourceManager.getDataSourceCount());
+                Log.i(TAG, "start playing " + dataSource.getUri());
+                ChannelInfo tag = (ChannelInfo) dataSource.getTag();
+                assert tag != null;
                 channelInfoLayout.setChannelName(tag.channelName);
                 channelInfoLayout.setChannelNumber(tag.channelNumber);
                 channelInfoLayout.setBitrateInfo(0);
@@ -474,22 +457,12 @@ public class LivePlayerActivity extends AppCompatActivity {
             });
         }
 
-        private Optional<Format> getSelectedVideoTrackFormat(Tracks tracks) {
-            for (Tracks.Group group : tracks.getGroups()) {
-                if (group.isSelected() && group.getType() == C.TRACK_TYPE_VIDEO) {
-                    for (int i = 0; i < group.length; i++) {
-                        if (group.isTrackSelected(i)) {
-                            return Optional.of(group.getTrackFormat(i));
-                        }
-                    }
-                }
-            }
-            return Optional.empty();
-        }
-
         @Override
-        public void onTracksChanged(@NonNull EventTime eventTime, @NonNull Tracks tracks) {
-            getSelectedVideoTrackFormat(tracks).map((track) -> {
+        public void onTracksSelected(List<ExtTrackInfo> tracks) {
+            for (ExtTrackInfo track : tracks) {
+                if (track.type != ExtTrackInfo.TRACK_TYPE_VIDEO) {
+                    continue;
+                }
                 Log.i(TAG, String.format(Locale.ENGLISH, "selected track change to codec:%s, bitrate:%d, size: %dx%d", track.codecs, track.bitrate, track.width, track.height));
                 String sizeInfo = getString(R.string.media_info_default);
                 if (track.width > 0 && track.height > 0) {
@@ -501,12 +474,11 @@ public class LivePlayerActivity extends AppCompatActivity {
                     channelInfoLayout.setCodecInfo(track.codecs);
                     channelInfoLayout.setMediaInfo(finalSizeInfo);
                 });
-                return null;
-            });
+            }
         }
 
         @Override
-        public void onVideoSizeChanged(@NonNull EventTime eventTime, @NonNull final VideoSize videoSize) {
+        public void onVideoSizeChanged(@NonNull ExtVideoSize videoSize) {
             Log.i(TAG, String.format(Locale.ENGLISH, "video size change to %dx%d", videoSize.width, videoSize.height));
             String sizeInfo = getString(R.string.media_info_default);
             if (videoSize.width > 0 && videoSize.height > 0) {

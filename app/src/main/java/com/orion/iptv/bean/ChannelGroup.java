@@ -1,7 +1,7 @@
 package com.orion.iptv.bean;
 
-import com.google.android.exoplayer2.MediaItem;
 import com.orion.iptv.recycleradapter.ListItem;
+import com.orion.player.ExtDataSource;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -79,11 +79,7 @@ public class ChannelGroup implements ListItem {
         return getByNumber(channelNumber);
     }
 
-    public Optional<List<MediaItem>> toMediaItems(int channelIndex) {
+    public Optional<List<ExtDataSource>> toMediaItems(int channelIndex) {
         return getByIndex(channelIndex).map(ChannelItem::toMediaItems);
-    }
-
-    public Optional<ChannelItem.PreferredMediaItems> toMediaItems(int channelIndex, String preferredLink) {
-        return getByIndex(channelIndex).map((ch) -> ch.toMediaItems(preferredLink));
     }
 }

@@ -8,6 +8,8 @@ import com.orion.iptv.misc.PreferenceStore;
 import java.util.List;
 
 public class SetChannelSourceUrl implements SettingMenu {
+    public static final String settingKey = "channel_source_url";
+
     private static final String TAG = "SetChannelSourceUrl";
     private final Context context;
 
@@ -22,16 +24,10 @@ public class SetChannelSourceUrl implements SettingMenu {
 
     @Override
     public List<SettingValue> getValues() {
-        return List.of(new SourceUrlValue("channel_source_url"));
+        return List.of(new SourceUrlValue());
     }
 
     private class SourceUrlValue implements SettingValue {
-        private final String settingKey;
-
-        public SourceUrlValue(String key) {
-            this.settingKey = key;
-        }
-
         @Override
         public String content() {
             return "设置频道源";
@@ -47,7 +43,7 @@ public class SetChannelSourceUrl implements SettingMenu {
             ChannelSourceDialog dialog = new ChannelSourceDialog(context);
             dialog.setOnChannelSourceSubmitListener((url) -> listener.onSettingChanged(settingKey, url));
             dialog.setTitle(content());
-            dialog.setDefaultValue(PreferenceStore.getString("channel_source_url", ""));
+            dialog.setDefaultValue(PreferenceStore.getString(settingKey, ""));
             dialog.show();
         }
     }

@@ -6,4 +6,7 @@ import java.util.List;
 
 public interface SettingMenu extends ListItem {
     List<SettingValue> getValues();
+    default int getSelectedPosition() {
+        return -1;
+    }
 }

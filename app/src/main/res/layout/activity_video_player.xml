@@ -9,7 +9,7 @@
     android:keepScreenOn="true"
     tools:context=".ui.video.VideoPlayerActivity">
 
-    <com.google.android.exoplayer2.ui.StyledPlayerView
+    <com.orion.iptv.ui.live.player.PlayerView
         android:id="@+id/video_player"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
