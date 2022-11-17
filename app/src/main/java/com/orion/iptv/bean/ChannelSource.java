@@ -2,8 +2,6 @@ package com.orion.iptv.bean;
 
 import android.util.Log;
 
-import com.orion.player.ExtDataSource;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
@@ -12,20 +10,20 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class ChannelManager {
-    public static final String TAG = "ChannelManager";
+public class ChannelSource {
+    public static final String TAG = "ChannelSource";
     private final String defaultGroupName;
     private final NumberGenerator groupNumGenerator = new NumberGenerator(0);
     private final NumberGenerator channelNumGenerator = new NumberGenerator(0);
     public List<ChannelGroup> groups;
 
-    public ChannelManager(String defaultGroupName) {
+    public ChannelSource(String defaultGroupName) {
         this.defaultGroupName = defaultGroupName;
         groups = new ArrayList<>();
     }
 
-    public static ChannelManager from(String defaultGroupName, String channels) {
-        ChannelManager m = new ChannelManager(defaultGroupName);
+    public static ChannelSource from(String defaultGroupName, String channels) {
+        ChannelSource m = new ChannelSource(defaultGroupName);
         BufferedReader reader = new BufferedReader(new StringReader(channels));
         String group = defaultGroupName;
         try {
@@ -79,7 +77,7 @@ public class ChannelManager {
     }
 
     private Optional<ChannelGroup> getByIndex(int index) {
-        return index >= groups.size() || index < 0 ? Optional.empty() : Optional.of(groups.get(index));
+        return (index < groups.size() && index >= 0) ? Optional.of(groups.get(index)) : Optional.empty();
     }
 
     public Optional<Integer> indexOf(int group) {
@@ -106,16 +104,16 @@ public class ChannelManager {
         return getByNumber(groupNumber).flatMap((g) -> g.indexOf(channelNumber));
     }
 
-    public Optional<ChannelGroup> getChannelGroup(int groupNumber) {
-        return getByNumber(groupNumber);
+    public Optional<ChannelGroup> getChannelGroup(int position) {
+        return getByIndex(position);
     }
 
     public Optional<ChannelItem> getFirst() {
-        return getByIndex(0).flatMap((group) -> group.getByIndex(0));
+        return getChannel(0, 0);
     }
 
-    public Optional<ChannelItem> getChannel(int groupNumber, int channelNumber) {
-        return getChannelGroup(groupNumber).flatMap((group) -> group.getChannel(channelNumber));
+    public Optional<ChannelItem> getChannel(int groupPos, int channelPos) {
+        return getByIndex(groupPos).flatMap(group -> group.getChannel(channelPos));
     }
 
     public void appendChannel(String group, String channel, String link) {
@@ -123,11 +121,11 @@ public class ChannelManager {
         g.appendChannel(channel, link);
     }
 
-    public Optional<List<ExtDataSource>> toMediaItems(int groupIndex, int channelIndex) {
-        return getByIndex(groupIndex).flatMap((g) -> g.toMediaItems(channelIndex));
+    public Optional<List<String>> getSources(int groupPos, int channelPos) {
+        return getChannel(groupPos, channelPos).map(ChannelItem::getSources);
     }
 
-    public Optional<List<ChannelItem>> getChannels(int groupIndex) {
-        return getByIndex(groupIndex).map((item) -> item.channels);
+    public Optional<List<ChannelItem>> getChannels(int groupPos) {
+        return getByIndex(groupPos).map((item) -> item.channels);
     }
 }

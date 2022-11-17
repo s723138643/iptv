@@ -81,7 +81,7 @@ public class ChannelSourceDialog {
             v.setText(String.format(Locale.ENGLISH, "通过访问 http://%s:%d 设置", address.get(), server.getListeningPort()));
         }
         @SuppressLint("CutPasteId") EditText v = dialog.findViewById(R.id.channel_source_url);
-        if (!defaultValue.isEmpty()) {
+        if (defaultValue != null && !defaultValue.isEmpty()) {
             v.setText(defaultValue);
         }
     }

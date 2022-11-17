@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/layout_background"
+    android:orientation="horizontal"
+    android:padding="8dp" >
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/channelInfoLeft"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/channelNumber"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ems="2"
+            android:gravity="center"
+            android:text="@string/channel_number_default"
+            android:textColor="@color/white"
+            android:textSize="@dimen/large_font"
+            app:layout_constraintBottom_toTopOf="@+id/channelName"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/channelName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:ellipsize="marquee"
+            android:gravity="center"
+            android:marqueeRepeatLimit="marquee_forever"
+            android:scrollHorizontally="true"
+            android:singleLine="true"
+            android:text="@string/channel_name_default"
+            android:textAllCaps="true"
+            android:textColor="@color/white"
+            android:textSize="@dimen/normal_font"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/channelNumber" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/channelInfoTopRight"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        app:layout_constraintBottom_toTopOf="@+id/currentEpgProgram"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/channelInfoLeft"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/linkInfo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ems="7"
+            android:gravity="center"
+            android:singleLine="true"
+            android:text="@string/link_info"
+            android:textColor="@color/white"
+            android:textSize="@dimen/tiny_font"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/bitrateInfo"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/bitrateInfo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="2dp"
+            android:ems="5"
+            android:gravity="center"
+            android:singleLine="true"
+            android:text="@string/bitrate_info_default"
+            android:textColor="@color/white"
+            android:textSize="@dimen/tiny_font"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/linkInfo"
+            app:layout_constraintStart_toEndOf="@+id/mediaInfo"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/mediaInfo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="2dp"
+            android:ems="5"
+            android:gravity="center"
+            android:singleLine="true"
+            android:text="@string/media_info_default"
+            android:textColor="@color/white"
+            android:textSize="@dimen/tiny_font"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/bitrateInfo"
+            app:layout_constraintStart_toEndOf="@+id/codecInfo"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/codecInfo"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="2dp"
+            android:gravity="center|center_vertical"
+            android:singleLine="true"
+            android:text="@string/codec_info_default"
+            android:textColor="@color/white"
+            android:textSize="@dimen/tiny_font"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/mediaInfo"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <TextView
+        android:id="@+id/currentEpgProgram"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:ellipsize="marquee"
+        android:gravity="start|center_vertical"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:scrollHorizontally="true"
+        android:singleLine="true"
+        android:text="@string/current_epg_program_default"
+        android:textColor="@color/white"
+        android:textSize="@dimen/small_font"
+        app:layout_constraintBottom_toTopOf="@+id/epgProgramSpacer"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/channelInfoLeft"
+        app:layout_constraintTop_toBottomOf="@+id/channelInfoTopRight" />
+
+    <View
+        android:id="@+id/epgProgramSpacer"
+        android:layout_width="0dp"
+        android:layout_height="1px"
+        android:background="@color/gray_600"
+        app:layout_constraintBottom_toTopOf="@+id/nextEpgProgram"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/channelInfoLeft"
+        app:layout_constraintTop_toBottomOf="@+id/currentEpgProgram" />
+
+    <TextView
+        android:id="@+id/nextEpgProgram"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:ellipsize="marquee"
+        android:gravity="start|center_vertical"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:scrollHorizontally="true"
+        android:singleLine="true"
+        android:text="@string/next_epg_program_default"
+        android:textColor="@color/white"
+        android:textSize="@dimen/small_font"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/channelInfoLeft"
+        app:layout_constraintTop_toBottomOf="@+id/epgProgramSpacer" />
+</androidx.constraintlayout.widget.ConstraintLayout>

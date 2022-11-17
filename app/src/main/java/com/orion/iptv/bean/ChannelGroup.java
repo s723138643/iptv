@@ -44,7 +44,7 @@ public class ChannelGroup implements ListItem {
     }
 
     protected Optional<ChannelItem> getByIndex(int index) {
-        return index >= channels.size() || index < 0 ? Optional.empty() : Optional.of(channels.get(index));
+        return (index < channels.size() && index >= 0) ? Optional.of(channels.get(index)) : Optional.empty();
     }
 
     public boolean contains(String channel) {
@@ -65,21 +65,21 @@ public class ChannelGroup implements ListItem {
         return Optional.empty();
     }
 
-    public Optional<Integer> indexOf(int channel) {
+    public Optional<Integer> indexOf(int channelNumber) {
         for (int i = 0; i < channels.size(); i++) {
             ChannelItem ch = channels.get(i);
-            if (channel == ch.info.channelNumber) {
+            if (channelNumber == ch.info.channelNumber) {
                 return Optional.of(i);
             }
         }
         return Optional.empty();
     }
 
-    public Optional<ChannelItem> getChannel(int channelNumber) {
-        return getByNumber(channelNumber);
+    public Optional<ChannelItem> getChannel(int channelPos) {
+        return getByIndex(channelPos);
     }
 
-    public Optional<List<ExtDataSource>> toMediaItems(int channelIndex) {
-        return getByIndex(channelIndex).map(ChannelItem::toMediaItems);
+    public Optional<List<String>> getSources(int channelPos) {
+        return getByIndex(channelPos).map(ChannelItem::getSources);
     }
 }

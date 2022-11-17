@@ -9,7 +9,7 @@ import android.os.Bundle;
 import android.util.Log;
 
 import com.orion.iptv.R;
-import com.orion.iptv.ui.live.networkspeed.NetworkSpeed;
+import com.orion.iptv.layout.NetworkSpeed;
 import com.orion.iptv.ui.live.player.PlayerView;
 import com.orion.player.ExtDataSource;
 import com.orion.player.IExtPlayer;
@@ -31,8 +31,11 @@ public class VideoPlayerActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_video_player);
         playerView = findViewById(R.id.video_player);
-        networkSpeed = new NetworkSpeed(this);
         iExtPlayerFactory = new ExtIjkPlayerFactory();
+        networkSpeed = new NetworkSpeed();
+        getSupportFragmentManager().beginTransaction()
+                .add(R.id.network_speed, networkSpeed, "network_speed")
+                .commit();
     }
 
     @Override

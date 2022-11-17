@@ -1,20 +1,19 @@
-package com.orion.iptv.ui.live.liveplayersetting;
+package com.orion.iptv.layout.live;
 
 import android.content.Context;
 
 import com.orion.iptv.layout.dialog.ChannelSourceDialog;
-import com.orion.iptv.misc.PreferenceStore;
 
 import java.util.List;
 
 public class SetChannelSourceUrl implements SettingMenu {
-    public static final String settingKey = "channel_source_url";
-
     private static final String TAG = "SetChannelSourceUrl";
     private final Context context;
+    private final LivePlayerViewModel viewModel;
 
-    public SetChannelSourceUrl(Context context) {
+    public SetChannelSourceUrl(Context context, LivePlayerViewModel viewModel) {
         this.context = context;
+        this.viewModel = viewModel;
     }
 
     @Override
@@ -39,11 +38,11 @@ public class SetChannelSourceUrl implements SettingMenu {
         }
 
         @Override
-        public void onSelected(OnSettingChangedListener listener) {
+        public void onSelected() {
             ChannelSourceDialog dialog = new ChannelSourceDialog(context);
-            dialog.setOnChannelSourceSubmitListener((url) -> listener.onSettingChanged(settingKey, url));
+            dialog.setOnChannelSourceSubmitListener(viewModel::updateSettingUrl);
             dialog.setTitle(content());
-            dialog.setDefaultValue(PreferenceStore.getString(settingKey, ""));
+            dialog.setDefaultValue(viewModel.getSettingUrl());
             dialog.show();
         }
     }

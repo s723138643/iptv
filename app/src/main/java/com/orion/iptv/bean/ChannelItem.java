@@ -3,7 +3,6 @@ package com.orion.iptv.bean;
 import androidx.annotation.NonNull;
 
 import com.orion.iptv.recycleradapter.ListItemWithNumber;
-import com.orion.player.ExtDataSource;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,15 +39,7 @@ public class ChannelItem implements ListItemWithNumber {
     }
 
     @NonNull
-    public List<ExtDataSource> toMediaItems() {
-        ArrayList<ExtDataSource> items = new ArrayList<>();
-        for (int i = 0; i < links.size(); i++) {
-            String link = links.get(i);
-            if (link.isEmpty()) {
-                continue;
-            }
-            items.add(new ExtDataSource(link, info));
-        }
-        return items;
+    public List<String> getSources() {
+        return links;
     }
 }

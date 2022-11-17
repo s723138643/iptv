@@ -1,4 +1,4 @@
-package com.orion.iptv.ui.live.livechannellist;
+package com.orion.iptv.layout.live;
 
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -23,12 +23,12 @@ public class EpgListViewHolderFactory implements ViewHolderFactory<ViewHolder<Ep
     @Override
     public ViewHolder<EpgProgram> create(ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(context).inflate(layoutId, parent, false);
-        return new ViewHolder<EpgProgram>(v) {
+        return new ViewHolder<>(v) {
             private final TextView content;
 
             {
                 content = v.findViewById(R.id.list_item_content);
-                content.setEms(18);
+                content.setEms(12);
                 content.setSelected(true);
             }
 

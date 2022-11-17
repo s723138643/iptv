@@ -1,10 +1,6 @@
 package com.orion.iptv.network;
 
-import androidx.annotation.NonNull;
-
 import java.io.IOException;
-import java.text.ParseException;
-import java.util.Objects;
 
 import okhttp3.CacheControl;
 import okhttp3.Call;
@@ -23,47 +19,29 @@ public class DownloadHelper {
         helper.client = client;
     }
 
-    public static void get(String url, OnResponseListener listener, OnErrorListener errorListener) {
+    public static Call get(String url, Callback callback) {
         Request request = new Request.Builder()
                 .url(url)
                 .build();
-        get(request, listener, errorListener);
+        return get(request, callback);
     }
 
-    public static void get(String url, CacheControl cacheControl, OnResponseListener listener, OnErrorListener errorListener) {
+    public static Call get(String url, CacheControl cacheControl, Callback callback) {
         Request request = new Request.Builder()
                 .url(url)
                 .cacheControl(cacheControl)
                 .build();
-        get(request, listener, errorListener);
+        return get(request, callback);
     }
 
-    public static void get(Request request, OnResponseListener listener, OnErrorListener errorListener) {
+    public static Call get(Request request, Callback callback) {
         Call call = helper.client.newCall(request);
-        call.enqueue(new Callback() {
-            @Override
-            public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                errorListener.onError(e);
-            }
-
-            @Override
-            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                String body = Objects.requireNonNull(response.body()).string();
-                listener.onResponse(body);
-            }
-        });
+        call.enqueue(callback);
+        return call;
     }
 
     public static Response getBlocked(Request request) throws IOException {
         Call call = helper.client.newCall(request);
         return call.execute();
-    }
-
-    public interface OnResponseListener {
-        void onResponse(String response);
-    }
-
-    public interface OnErrorListener {
-        void onError(Exception err);
     }
 }

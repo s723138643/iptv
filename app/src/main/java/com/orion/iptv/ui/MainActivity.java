@@ -4,9 +4,11 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.widget.Button;
 
 import com.orion.iptv.R;
+import com.orion.iptv.misc.PreferenceStore;
 import com.orion.iptv.network.DownloadHelper;
 import com.orion.iptv.ui.live.LivePlayerActivity;
 import com.orion.iptv.ui.shares.SharesActivity;
@@ -20,6 +22,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        PreferenceStore.setPreferences(PreferenceManager.getDefaultSharedPreferences(this));
         OkHttpClient client = new OkHttpClient.Builder()
                 .cache(new Cache(this.getCacheDir(), 50 * 1024 * 1024))
                 .followSslRedirects(true)

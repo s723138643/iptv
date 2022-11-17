@@ -1,6 +1,7 @@
-package com.orion.iptv.ui.live;
+package com.orion.iptv.layout.live;
 
 import android.util.Log;
+import android.util.Pair;
 
 import com.orion.player.ExtDataSource;
 
@@ -32,25 +33,25 @@ public class DataSourceManager {
         return -1;
     }
 
-    public ExtDataSource nextDataSource() {
+    public Pair<Integer, ExtDataSource> nextDataSource() {
         cursor += 1;
         cursor = cursor < sources.size() ? cursor : 0;
         Log.i(TAG,String.format(Locale.getDefault(), "use source %d/%d", cursor+1, sources.size()));
-        return sources.get(cursor);
+        return Pair.create(cursor, sources.get(cursor));
     }
 
-    public ExtDataSource prevDataSource() {
+    public Pair<Integer, ExtDataSource> prevDataSource() {
         cursor -= 1;
         cursor = cursor >= 0 ? cursor : sources.size() - 1;
         Log.i(TAG,String.format(Locale.getDefault(), "use source %d/%d", cursor+1, sources.size()));
-        return sources.get(cursor);
+        return Pair.create(cursor, sources.get(cursor));
     }
 
     public int getDataSourceCount() {
         return sources.size();
     }
 
-    public ExtDataSource getCurrentDataSource() {
-        return sources.get(cursor);
+    public Pair<Integer, ExtDataSource> getCurrentDataSource() {
+        return Pair.create(cursor, sources.get(cursor));
     }
 }

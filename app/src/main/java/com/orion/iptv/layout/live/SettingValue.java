@@ -1,9 +1,9 @@
-package com.orion.iptv.ui.live.liveplayersetting;
+package com.orion.iptv.layout.live;
 
 import com.orion.iptv.recycleradapter.ListItem;
 
 public interface SettingValue extends ListItem {
-    void onSelected(OnSettingChangedListener listener);
+    void onSelected();
 
     boolean isButton();
 }

@@ -2,19 +2,27 @@ package com.orion.iptv.network;
 
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.orion.iptv.ui.shares.FileNode;
 import com.orion.iptv.ui.shares.Share;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
+import okhttp3.Call;
 import okhttp3.Credentials;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.RequestBody;
+import okhttp3.Response;
 
 public class WebDavClient {
     private final Share share;
@@ -27,9 +35,11 @@ public class WebDavClient {
             "</D:prop>" +
             "</D:propfind>";
     private static final MediaType xml = MediaType.get("application/xml; charset=utf-8");
+    private final List<Call> calls;
 
     public WebDavClient(Share share) {
         this.share = share;
+        this.calls = new ArrayList<>();
     }
 
     private Request.Builder maybeAddAuth(Request.Builder builder) {
@@ -63,15 +73,26 @@ public class WebDavClient {
         return builder.build();
     }
 
-    public void list(FileNode path, OnResponseListener listener, DownloadHelper.OnErrorListener errorListener) {
+    public void list(FileNode path, Callback callback) {
         try {
-            Request request = makeRequest(path);
-            DownloadHelper.get(request, response -> {
-                List<FileNode> children = parseResponse(path, response);
-                listener.onResponse(children);
-            }, errorListener);
-        } catch (JSONException err) {
-            errorListener.onError(err);
+            Call mCall = DownloadHelper.get(makeRequest(path), new okhttp3.Callback() {
+                @Override
+                public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                    calls.remove(call);
+                    callback.onFailure(e);
+                }
+
+                @Override
+                public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                    calls.remove(call);
+                    String text = Objects.requireNonNull(response.body()).string();
+                    List<FileNode> children = parseResponse(path, text);
+                    callback.onResponse(children);
+                }
+            });
+            calls.add(mCall);
+        } catch (JSONException e) {
+            callback.onFailure(e);
         }
     }
 
@@ -80,7 +101,13 @@ public class WebDavClient {
         return parser.parse(responseBody);
     }
 
-    public interface OnResponseListener {
-        void onResponse(List<FileNode> children);
+    public void cancel() {
+        calls.forEach(Call::cancel);
+        calls.clear();
+    }
+
+    public interface Callback {
+        void onFailure(@NonNull Exception e);
+        void onResponse(@Nullable List<FileNode> children);
     }
 }

@@ -5,6 +5,7 @@ import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.DividerItemDecoration;
@@ -36,7 +37,7 @@ import java.util.Locale;
 import okhttp3.HttpUrl;
 
 public class SharesContentFragment extends Fragment {
-
+    private static final String TAG = "SharesContentFragment";
     private Share share;
     private FileNode currentNode;
     private RecyclerAdapter<FileNodeViewHolder, FileNode> adapter;
@@ -113,31 +114,36 @@ public class SharesContentFragment extends Fragment {
         pathHint.setText(currentNode.getAbsolutePath());
         client.list(
                 currentNode,
-                children -> {
-                    Log.i("SharesContentFragment", String.format(Locale.ENGLISH, "current path: %s, is root: %b", currentNode.getPath(), currentNode.isRoot()));
-                    if (children == null) {
-                        children = new ArrayList<>();
+                new WebDavClient.Callback() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.e("ShareContentFragment", e.toString());
+                        mHandler.post(() -> {
+                            setViewVisible(loading, false);
+                            showToast(e.toString());
+                            adapter.setData(List.of(backupNode()));
+                        });
                     }
-                    FileNode backup = backupNode();
-                    Log.i("SharesContentFragment", String.format(Locale.ENGLISH, "backup path: %s, is root: %b", backup.getPath(), backup.isRoot()));
-                    if (children.size() > 0) {
-                        children.set(0, backup);
-                    } else {
-                        children.add(backup);
+
+                    @Override
+                    public void onResponse(@Nullable List<FileNode> children) {
+                        Log.i(TAG, String.format(Locale.ENGLISH, "current path: %s, is root: %b", currentNode.getPath(), currentNode.isRoot()));
+                        if (children == null) {
+                            children = new ArrayList<>();
+                        }
+                        FileNode backup = backupNode();
+                        Log.i(TAG, String.format(Locale.ENGLISH, "backup path: %s, is root: %b", backup.getPath(), backup.isRoot()));
+                        if (children.size() > 0) {
+                            children.set(0, backup);
+                        } else {
+                            children.add(backup);
+                        }
+                        java.util.List<FileNode> finalChildren = children;
+                        mHandler.post(() -> {
+                            setViewVisible(loading, false);
+                            adapter.setData(finalChildren);
+                        });
                     }
-                    java.util.List<FileNode> finalChildren = children;
-                    mHandler.post(() -> {
-                        setViewVisible(loading, false);
-                        adapter.setData(finalChildren);
-                    });
-                },
-                err -> {
-                    Log.e("ShareContentFragment", err.toString());
-                    mHandler.post(() -> {
-                        setViewVisible(loading, false);
-                        showToast(err.toString());
-                        adapter.setData(List.of(backupNode()));
-                    });
                 }
         );
     }
@@ -194,6 +200,12 @@ public class SharesContentFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_shares_content, container, false);
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        client.cancel();
     }
 
     private class HideToastTasker implements Runnable {
