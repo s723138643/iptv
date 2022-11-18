@@ -27,12 +27,13 @@ public class MenuListViewHolderFactory implements ViewHolderFactory<ViewHolder<S
 
             {
                 desc = v.findViewById(R.id.list_item_content);
-                desc.setSelected(true);
+                desc.setEms(6);
             }
 
             @Override
             public void setActivated(boolean isActivated) {
                 itemView.setActivated(isActivated);
+                desc.setSelected(true);
             }
 
             @Override

@@ -30,15 +30,15 @@ public class ChannelListViewHolderFactory implements ViewHolderFactory<ViewHolde
             {
                 number = v.findViewById(R.id.list_item_number);
                 number.setEms(2);
-                number.setSelected(true);
                 content = v.findViewById(R.id.list_item_content);
                 content.setEms(6);
-                content.setSelected(true);
             }
 
             @Override
             public void setActivated(boolean isActivated) {
                 itemView.setActivated(isActivated);
+                number.setSelected(isActivated);
+                content.setSelected(isActivated);
             }
 
             @Override

@@ -29,12 +29,12 @@ public class EpgListViewHolderFactory implements ViewHolderFactory<ViewHolder<Ep
             {
                 content = v.findViewById(R.id.list_item_content);
                 content.setEms(12);
-                content.setSelected(true);
             }
 
             @Override
             public void setActivated(boolean isActivated) {
                 itemView.setActivated(isActivated);
+                content.setSelected(isActivated);
             }
 
             @Override
