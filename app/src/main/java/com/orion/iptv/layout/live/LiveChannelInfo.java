@@ -122,17 +122,17 @@ public class LiveChannelInfo extends Fragment {
         this.linkInfo.setText(String.format(Locale.ENGLISH, "[%d/%d]", currentIndex+1, totalLinks));
     }
 
-    public void setCurrentEpgProgram(Pair<Integer, EpgProgram> program) {
+    public void setCurrentEpgProgram(Pair<Integer, Pair<ChannelInfo, EpgProgram>> program) {
         if (program != null) {
-            currentEpgProgram.setText(program.second.content());
+            currentEpgProgram.setText(program.second.second.content());
         } else {
             currentEpgProgram.setText(res.getString(R.string.current_epg_program_default));
         }
     }
 
-    public void setNextEpgProgram(Pair<Integer, EpgProgram> program) {
+    public void setNextEpgProgram(Pair<Integer, Pair<ChannelInfo, EpgProgram>> program) {
         if (program != null) {
-            nextEpgProgram.setText(program.second.content());
+            nextEpgProgram.setText(program.second.second.content());
         } else {
             nextEpgProgram.setText(res.getString(R.string.next_epg_program_default));
         }

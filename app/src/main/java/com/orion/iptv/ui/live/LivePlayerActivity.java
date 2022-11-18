@@ -155,11 +155,11 @@ public class LivePlayerActivity extends AppCompatActivity {
         mViewModel.observePlayerFactory(this, this::switchPlayer);
         mViewModel.observeLiveSource(this, this::switchDataSource);
         mViewModel.observeNextEpgProgram(this, nextEpgProgram -> {
+            epgRefresher.stop();
             if (nextEpgProgram == null) {
                 return;
             }
-            mHandler.removeCallbacks(epgRefresher);
-            epgRefresher.start(nextEpgProgram.first, nextEpgProgram.second);
+            epgRefresher.start(nextEpgProgram);
         });
         mViewModel.observeSettingUrl(this, this::onSettingUrl);
         mViewModel.observeCurrentChannel(this, this::onCurrentChannel);
@@ -174,7 +174,7 @@ public class LivePlayerActivity extends AppCompatActivity {
     }
 
     private void switchDataSource(Pair<Integer, ExtDataSource> dataSource) {
-        mHandler.removeCallbacksAndMessages(null);
+        mPlayerHandler.removeCallbacksAndMessages(null);
         if (player != null) {
             player.release();
         }
@@ -404,6 +404,7 @@ public class LivePlayerActivity extends AppCompatActivity {
 
     private class EpgRefresher implements Runnable {
         private int nextPos;
+        private ChannelInfo channel;
         private EpgProgram nextProgram;
 
         private long now() {
@@ -417,13 +418,18 @@ public class LivePlayerActivity extends AppCompatActivity {
                 return;
             }
 
-            mViewModel.selectEpg(nextPos);
+            mViewModel.selectEpg(nextPos, channel);
         }
 
-        public void start(int nextPos, EpgProgram nextProgram) {
-            this.nextPos = nextPos;
-            this.nextProgram = nextProgram;
+        public void start(Pair<Integer, Pair<ChannelInfo, EpgProgram>> nextProgram) {
+            this.nextPos = nextProgram.first;
+            this.channel = nextProgram.second.first;
+            this.nextProgram = nextProgram.second.second;
             mHandler.post(this);
+        }
+
+        public void stop() {
+            mHandler.removeCallbacks(this);
         }
     }
 }

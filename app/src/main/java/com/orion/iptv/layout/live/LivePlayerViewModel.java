@@ -62,8 +62,8 @@ public class LivePlayerViewModel extends ViewModel {
     private final MutableLiveData<Pair<Integer, List<ChannelItem>>> channels;
     // currentChannelInfo = Pair<<ChannelPos, GroupPos>, ChannelInfo>
     private final MutableLiveData<Pair<Pair<Integer, Integer>, ChannelInfo>> currentChannel;
-    private final MutableLiveData<Pair<Integer, EpgProgram>> currentEpgProgram;
-    private final MutableLiveData<Pair<Integer, EpgProgram>> nextEpgProgram;
+    private final MutableLiveData<Pair<Integer, Pair<ChannelInfo, EpgProgram>>> currentEpgProgram;
+    private final MutableLiveData<Pair<Integer, Pair<ChannelInfo, EpgProgram>>> nextEpgProgram;
     private final MutableLiveData<Pair<Integer, ExtDataSource>> liveSource;
     private final MutableLiveData<Pair<Integer, IExtPlayerFactory<? extends IExtPlayer>>> playerFactory;
     private final MutableLiveData<String> settingUrl;
@@ -119,11 +119,11 @@ public class LivePlayerViewModel extends ViewModel {
         epgs.observe(owner, observer);
     }
 
-    public void observeCurrentEpgProgram(LifecycleOwner owner, Observer<Pair<Integer, EpgProgram>> observer) {
+    public void observeCurrentEpgProgram(LifecycleOwner owner, Observer<Pair<Integer, Pair<ChannelInfo, EpgProgram>>> observer) {
         currentEpgProgram.observe(owner, observer);
     }
 
-    public void observeNextEpgProgram(LifecycleOwner owner, Observer<Pair<Integer, EpgProgram>> observer) {
+    public void observeNextEpgProgram(LifecycleOwner owner, Observer<Pair<Integer, Pair<ChannelInfo, EpgProgram>>> observer) {
         nextEpgProgram.observe(owner, observer);
     }
 
@@ -200,14 +200,19 @@ public class LivePlayerViewModel extends ViewModel {
         channels.setValue(Pair.create(position, group.channels));
     }
 
-    public void selectEpg(int position) {
+    public void selectEpg(int position, ChannelInfo info) {
         Pair<ChannelInfo, EpgProgram[]> epgItems = epgs.getValue();
-        if (epgItems == null || position >= epgItems.second.length) {
+        if (epgItems == null) {
             return;
         }
-        currentEpgProgram.setValue(Pair.create(position, epgItems.second[position]));
-        if (position + 1 < epgItems.second.length) {
-            nextEpgProgram.setValue(Pair.create(position + 1, epgItems.second[position + 1]));
+        ChannelInfo channel = epgItems.first;
+        EpgProgram[] epgs = epgItems.second;
+        if (!info.channelName.equals(channel.channelName) || position >= epgs.length) {
+            return;
+        }
+        currentEpgProgram.setValue(Pair.create(position, Pair.create(channel, epgs[position])));
+        if (position + 1 < epgs.length) {
+            nextEpgProgram.setValue(Pair.create(position + 1, Pair.create(channel, epgs[position + 1])));
         }
     }
 
@@ -305,18 +310,23 @@ public class LivePlayerViewModel extends ViewModel {
     }
 
     public void updateEpgPrograms(ChannelInfo info, Date date, EpgProgram[] programs) {
-        Pair<Pair<Integer, Integer>, ChannelInfo> channelInfo = currentChannel.getValue();
-        if (channelInfo == null || !info.channelName.equals(channelInfo.second.channelName)) {
+        Pair<Pair<Integer, Integer>, ChannelInfo> channel = currentChannel.getValue();
+        if (channel == null) {
+            return;
+        }
+        ChannelInfo currentChannel = channel.second;
+        if (!info.channelName.equals(currentChannel.channelName)) {
             return;
         }
         Log.i(TAG, String.format(Locale.getDefault(), "update %d epg programs", programs.length));
-        epgs.setValue(Pair.create(channelInfo.second, programs));
+
+        epgs.setValue(Pair.create(currentChannel, programs));
         int i = EpgProgram.indexOfCurrentProgram(programs, date);
         if (i >= 0) {
-            currentEpgProgram.setValue(Pair.create(i, programs[i]));
+            currentEpgProgram.setValue(Pair.create(i, Pair.create(currentChannel, programs[i])));
         }
         if (i + 1 < programs.length) {
-            nextEpgProgram.setValue(Pair.create(i+1, programs[i+1]));
+            nextEpgProgram.setValue(Pair.create(i+1, Pair.create(currentChannel, programs[i+1])));
         }
     }
 }
