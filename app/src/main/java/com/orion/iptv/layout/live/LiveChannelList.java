@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import android.graphics.Paint;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.TypedValue;
@@ -40,6 +41,9 @@ public class LiveChannelList extends Fragment {
     private View channelSpacer3;
     private ToggleButton showEpgButton;
 
+    private Handler mHandler;
+    private final Runnable hideMyself = this::hide;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -61,12 +65,19 @@ public class LiveChannelList extends Fragment {
     }
 
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
+    public void onStart() {
+        super.onStart();
+        mHandler = new Handler(requireContext().getMainLooper());
         mViewModel = new ViewModelProvider(requireActivity()).get(LivePlayerViewModel.class);
         initGroupList();
         initChannelList();
         initEpgList();
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        mHandler.removeCallbacksAndMessages(null);
     }
 
     protected void initEpgList() {
@@ -156,5 +167,48 @@ public class LiveChannelList extends Fragment {
         groupList.setAdapter(groupListViewAdapter);
         groupListViewAdapter.setOnSelectedListener((position, item) -> mViewModel.selectGroup(position, item));
         groupList.addOnItemTouchListener(groupListViewAdapter.new OnItemTouchListener(requireContext(), groupList));
+    }
+
+    public void toggleVisibility() {
+        if (isHidden()) {
+            mHandler.removeCallbacks(hideMyself);
+            _show();
+        } else {
+            _hide();
+        }
+    }
+
+    public void show(long displayMillis) {
+        show();
+        mHandler.postDelayed(hideMyself, displayMillis);
+    }
+
+    public void show() {
+        mHandler.removeCallbacks(hideMyself);
+        if (!isHidden()) {
+            return;
+        }
+        _show();
+    }
+
+    private void _show() {
+        getParentFragmentManager()
+                .beginTransaction()
+                .show(this)
+                .commit();
+    }
+
+    public void hide() {
+        if (isHidden()) {
+            return;
+        }
+        _hide();
+    }
+
+    public void _hide() {
+        getParentFragmentManager()
+                .beginTransaction()
+                .hide(this)
+                .commit();
     }
 }

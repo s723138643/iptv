@@ -192,6 +192,11 @@ public class ExtExoPlayer implements IExtPlayer {
         }
 
         @Override
+        public void onIsPlayingChanged(boolean isPlaying) {
+            listeners.forEach(listener -> listener.onIsPlayingChanged(isPlaying));
+        }
+
+        @Override
         public void onPlayerError(@NonNull PlaybackException error) {
             listeners.forEach(listener -> listener.onPlayerError(error));
         }
@@ -213,19 +218,18 @@ public class ExtExoPlayer implements IExtPlayer {
         private List<ExtTrackInfo> getSelectedTrackInfo(Tracks tracks) {
             List<ExtTrackInfo> tracksInfo = new ArrayList<>();
             for (Tracks.Group group : tracks.getGroups()) {
-                if (group.isSelected()) {
-                    for (int i = 0; i < group.length; i++) {
-                        if (group.isTrackSelected(i)) {
-                            Format format = group.getTrackFormat(i);
-                            tracksInfo.add(new ExtTrackInfo(
-                                    group.getType(),
-                                    format.width,
-                                    format.height,
-                                    format.codecs,
-                                    format.bitrate
-                            ));
-                        }
+                if (!group.isSelected()) {
+                    continue;
+                }
+                for (int i = 0; i < group.length; i++) {
+                    if (!group.isTrackSelected(i)) {
+                        continue;
                     }
+                    Format format = group.getTrackFormat(i);
+                    tracksInfo.add(new ExtTrackInfo(
+                            group.getType(), format.width, format.height,
+                            format.codecs, format.bitrate
+                    ));
                 }
             }
             return tracksInfo;
@@ -234,6 +238,9 @@ public class ExtExoPlayer implements IExtPlayer {
         @Override
         public void onTracksChanged(@NonNull Tracks tracks) {
             List<ExtTrackInfo> tracksInfo = getSelectedTrackInfo(tracks);
+            if (tracksInfo.size() == 0) {
+                return;
+            }
             listeners.forEach(listener -> listener.onTracksSelected(tracksInfo));
         }
 

@@ -10,7 +10,7 @@ import android.view.MotionEvent;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GestureDetectorCompat;
-import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.exoplayer2.util.Log;
@@ -27,11 +27,13 @@ import com.orion.iptv.layout.live.LivePlayerViewModel;
 import com.orion.iptv.misc.SourceTypeDetector;
 import com.orion.iptv.network.DownloadHelper;
 import com.orion.iptv.layout.NetworkSpeed;
-import com.orion.iptv.ui.live.player.PlayerView;
+import com.orion.player.ui.VideoView;
 import com.orion.iptv.misc.PreferenceStore;
 import com.orion.player.ExtDataSource;
 import com.orion.player.IExtPlayer;
 import com.orion.player.IExtPlayerFactory;
+import com.orion.player.ui.Buffering;
+import com.orion.player.ui.Toast;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -50,20 +52,27 @@ public class LivePlayerActivity extends AppCompatActivity {
     private static final String TAG = "LivePlayer";
 
     protected LivePlayerViewModel mViewModel;
-    protected PlayerView videoView;
+
+    protected VideoView videoView;
     protected LiveChannelInfo channelInfo;
     protected LiveChannelList channelList;
     protected LivePlayerSetting playerSetting;
     protected NetworkSpeed networkSpeed;
+    protected Toast toast;
+    protected Buffering buffering;
+
     protected IExtPlayerFactory<? extends IExtPlayer> playerFactory;
     protected IExtPlayer player;
+
     private Handler mHandler;
     private Handler mPlayerHandler;
+
     private GestureDetectorCompat gestureDetector;
     private float xFlyingThreshold;
     private float yFlyingThreshold;
+
     private final EpgRefresher epgRefresher = new EpgRefresher();
-    private final Runnable hideChannelInfo = () -> hideFragment(channelInfo);
+
     private final PlayerEventListener listener = new PlayerEventListener();
     private List<Call> pendingCalls;
 
@@ -72,6 +81,7 @@ public class LivePlayerActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_liveplayer);
         mViewModel = new ViewModelProvider(this).get(LivePlayerViewModel.class);
+
         gestureDetector = new GestureDetectorCompat(this, new GestureListener());
         DisplayMetrics metrics = this.getResources().getDisplayMetrics();
         Log.i(TAG, String.format(Locale.ENGLISH, "display size: %dx%d", metrics.widthPixels, metrics.heightPixels));
@@ -82,56 +92,29 @@ public class LivePlayerActivity extends AppCompatActivity {
         mHandler = new Handler(this.getMainLooper());
         mPlayerHandler = new Handler(this.getMainLooper());
 
-        channelInfo = new LiveChannelInfo();
-        channelList = new LiveChannelList();
-        playerSetting = new LivePlayerSetting();
-        networkSpeed = new NetworkSpeed();
+        FragmentManager fg = getSupportFragmentManager();
+        videoView = (VideoView) fg.findFragmentByTag("video_view");
+        buffering = (Buffering) fg.findFragmentByTag("buffering");
+        toast = (Toast) fg.findFragmentByTag("toast");
+        channelInfo = (LiveChannelInfo) fg.findFragmentByTag("channel_info");
+        channelList = (LiveChannelList) fg.findFragmentByTag("channel_list");
+        playerSetting = (LivePlayerSetting) fg.findFragmentByTag("live_player_setting");
+        networkSpeed = (NetworkSpeed) fg.findFragmentByTag("network_speed");
+
         getSupportFragmentManager().beginTransaction()
-                .setReorderingAllowed(true)
-                .add(R.id.network_speed, networkSpeed, "network_speed")
-                .add(R.id.channel_info, channelInfo, "channel_info")
-                .add(R.id.channel_list, channelList, "channel_list")
-                .add(R.id.live_player_setting, playerSetting, "live_player_setting")
+                .hide(buffering)
+                .hide(toast)
                 .hide(channelList)
                 .hide(channelInfo)
                 .hide(playerSetting)
                 .commit();
-        videoView = findViewById(R.id.videoView);
-        videoView.setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS);
-        videoView.setErrorMessageProvider(new PlayerView.DefaultErrorMessageProvider());
+
         pendingCalls = new ArrayList<>();
-    }
-
-    protected void showFragment(Fragment fragment) {
-        getSupportFragmentManager()
-                .beginTransaction()
-                .show(fragment)
-                .commit();
-    }
-
-    protected void hideFragment(Fragment fragment) {
-        getSupportFragmentManager()
-                .beginTransaction()
-                .hide(fragment)
-                .commit();
-    }
-
-    protected void toggleFragmentVisibility(Fragment fragment) {
-        if (fragment.isVisible()) {
-            hideFragment(fragment);
-        } else {
-            showFragment(fragment);
-        }
     }
 
     protected void postPlayerAction(long delayMillis, Runnable r) {
         mPlayerHandler.removeCallbacksAndMessages(null);
         mPlayerHandler.postDelayed(r, Math.max(delayMillis, 1L));
-    }
-
-    protected void postUIAction(long delayMillis, Runnable r) {
-        mHandler.removeCallbacks(r);
-        mHandler.postDelayed(r, Math.max(delayMillis, 1L));
     }
 
     protected void maybeShowSettingUrlDialog() {
@@ -250,12 +233,15 @@ public class LivePlayerActivity extends AppCompatActivity {
                 new Callback() {
                     @Override
                     public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                        buffering.hide();
                         pendingCalls.remove(call);
                         Log.e(TAG, "got channel list failed, " + e);
+                        toast.setMessage(e.toString(), 5*1000);
                     }
 
                     @Override
                     public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                        buffering.hide();
                         pendingCalls.remove(call);
                         String text = Objects.requireNonNull(response.body()).string();
                         if (SourceTypeDetector.isJson(text)) {
@@ -278,6 +264,7 @@ public class LivePlayerActivity extends AppCompatActivity {
         if (url == null || url.equals("")) {
             return;
         }
+        buffering.show();
         fetchSetting(url, 1);
     }
 
@@ -318,20 +305,20 @@ public class LivePlayerActivity extends AppCompatActivity {
 
         @Override
         public boolean onSingleTapConfirmed(MotionEvent e) {
-            if (playerSetting.isVisible()) {
-                hideFragment(playerSetting);
+            if (!playerSetting.isHidden()) {
+                playerSetting.hide();
             } else {
-                toggleFragmentVisibility(channelList);
+                channelList.toggleVisibility();
             }
             return true;
         }
 
         @Override
         public void onLongPress(@NonNull MotionEvent e) {
-            if (channelList.isVisible()) {
-                hideFragment(channelList);
+            if (!channelList.isHidden()) {
+                channelList.hide();
             } else {
-                toggleFragmentVisibility(playerSetting);
+                playerSetting.toggleVisibility();
             }
         }
 
@@ -354,12 +341,9 @@ public class LivePlayerActivity extends AppCompatActivity {
             if (Math.abs(distY) > yFlyingThreshold) {
                 Log.i(TAG, String.format(Locale.ENGLISH, "scrollY event detect, dist: %.2f, direction: %.2f", distY, velocityY));
                 if (distY < 0) {
-                    if (channelInfo.isHidden()) {
-                        showFragment(channelInfo);
-                        postUIAction(5*1000, hideChannelInfo);
-                    }
+                    channelInfo.show(5*1000);
                 } else {
-                    hideFragment(channelInfo);
+                    channelInfo.hide();
                 }
                 return true;
             }
@@ -371,13 +355,16 @@ public class LivePlayerActivity extends AppCompatActivity {
         @Override
         public void onPlayerError(Exception error) {
             Log.e(TAG, error.toString());
-            postPlayerAction(3000, mViewModel::seekToNextSource);
+            buffering.hide();
+            toast.setMessage(error.toString(), 5*1000);
+            postPlayerAction(5000, mViewModel::seekToNextSource);
         }
 
         @Override
         public void onDataSourceUsed(ExtDataSource dataSource) {
-            mHandler.removeCallbacks(hideChannelInfo);
-            showFragment(channelInfo);
+            toast.hide();
+            channelInfo.show();
+            buffering.show();
         }
 
         @Override
@@ -386,17 +373,22 @@ public class LivePlayerActivity extends AppCompatActivity {
                 case IExtPlayer.STATE_READY:
                     Log.w(TAG, "IExtPlayer change state to STATE_READY");
                     mPlayerHandler.removeCallbacksAndMessages(null);
-                    postUIAction(3*1000, hideChannelInfo);
+                    buffering.hide();
+                    channelInfo.show(5*1000);
                     break;
                 case IExtPlayer.STATE_BUFFERING:
                     Log.w(TAG, "IExtPlayer change state to STATE_BUFFERING");
+                    buffering.show();
                     postPlayerAction(15*1000, mViewModel::seekToNextSource);
                     break;
                 case IExtPlayer.STATE_ENDED:
                     Log.w(TAG, "IExtPlayer change state to STATE_ENDED");
+                    buffering.hide();
+                    postPlayerAction(5*1000, mViewModel::seekToNextSource);
                     break;
                 case IExtPlayer.STATE_IDLE:
                     Log.w(TAG, "IExtPlayer change state to STATE_IDLE");
+                    buffering.hide();
                     break;
             }
         }

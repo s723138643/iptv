@@ -9,15 +9,17 @@
     android:keepScreenOn="true"
     tools:context=".ui.video.VideoPlayerActivity">
 
-    <com.orion.iptv.ui.live.player.PlayerView
+    <androidx.fragment.app.FragmentContainerView
         android:id="@+id/video_player"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:name="com.orion.player.ui.VideoPlayerView"
+        android:tag="video_player"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:surface_type="surface_view"/>
+        tools:layout="@layout/fragment_video_player_view" />
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/network_speed"
@@ -25,7 +27,10 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="16dp"
         android:layout_marginTop="8dp"
+        android:name="com.orion.iptv.layout.NetworkSpeed"
+        android:tag="network_speed"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:layout="@layout/fragment_network_speed" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

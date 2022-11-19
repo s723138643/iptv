@@ -1,32 +1,22 @@
 package com.orion.player.ijk;
 
-import static java.lang.annotation.ElementType.FIELD;
-import static java.lang.annotation.ElementType.LOCAL_VARIABLE;
-import static java.lang.annotation.ElementType.METHOD;
-import static java.lang.annotation.ElementType.PARAMETER;
-import static java.lang.annotation.ElementType.TYPE_USE;
-
 import android.content.Context;
 import android.graphics.SurfaceTexture;
 import android.os.Bundle;
 import android.os.Looper;
+import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.TextureView;
 
-import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 
-import com.google.android.exoplayer2.util.Log;
 import com.orion.player.ExtDataSource;
 import com.orion.player.IExtPlayer;
 import com.orion.player.ExtTrackInfo;
 import com.orion.player.ExtVideoSize;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -43,26 +33,11 @@ public class ExtIjkPlayer implements IExtPlayer,
 
     private static final String TAG = "ExtIjkPlayer";
 
-    @Retention(RetentionPolicy.SOURCE)
-    @Target({FIELD, METHOD, PARAMETER, LOCAL_VARIABLE, TYPE_USE})
-    @IntDef({STATE_IDLE, STATE_PREPARING, STATE_PREPARED, STATE_BUFFERING, STATE_STARTED, STATE_PAUSED, STATE_COMPLETED, STATE_STOPPED, STATE_ENDED})
-    @interface PlayerState {}
-    static final int STATE_ENDED = 0;
-    static final int STATE_IDLE = 1;
-    static final int STATE_PREPARING = 2;
-    static final int STATE_PREPARED = 3;
-    static final int STATE_BUFFERING = 4;
-    static final int STATE_STARTED= 5;
-    static final int STATE_PAUSED = 6;
-    static final int STATE_COMPLETED = 7;
-    static final int STATE_STOPPED = 8;
-
     private final IjkMediaPlayer ijkMediaPlayer;
     private final List<Listener> listeners;
     private final Context context;
     private final ComponentListener componentListener;
 
-    private @PlayerState int playerState = STATE_IDLE;
     private @State int playbackState = IExtPlayer.STATE_IDLE;
     private Exception playerError = null;
     private long seekToPositionMsWhenReady = 0;
@@ -74,6 +49,8 @@ public class ExtIjkPlayer implements IExtPlayer,
     private TextureView textureView;
     private Surface ownedSurface;
     private Surface videoOutput;
+
+    private long bufferedPosition = 0;
 
     public ExtIjkPlayer(Context context, boolean useMediacodec) {
         this.context = context;
@@ -97,7 +74,8 @@ public class ExtIjkPlayer implements IExtPlayer,
     private void notifyError(Exception error) {
         playerError = error;
         listeners.forEach(listener -> listener.onPlayerError(error));
-        maybeChangePlayerStateTo(STATE_ENDED);
+        maybeChangePlayerStateTo(STATE_IDLE);
+        listeners.forEach(listener -> listener.onIsPlayingChanged(false));
     }
 
     @Override
@@ -108,9 +86,7 @@ public class ExtIjkPlayer implements IExtPlayer,
             ijkMediaPlayer.setDataSource(dataSource.getUri());
         } catch (Exception error) {
             notifyError(error);
-            return;
         }
-        maybeChangePlayerStateTo(STATE_PREPARING);
     }
 
     @Override
@@ -129,28 +105,44 @@ public class ExtIjkPlayer implements IExtPlayer,
 
     @Override
     public void play() {
-        if (playerState >= STATE_PREPARED) {
-            ijkMediaPlayer.start();
-            maybeChangePlayerStateTo(STATE_STARTED);
-        } else {
-            playWhenReady = true;
+        try {
+            if (playbackState == STATE_IDLE) {
+                playWhenReady = true;
+            } else {
+                ijkMediaPlayer.start();
+                listeners.forEach(listener -> listener.onIsPlayingChanged(true));
+            }
+        } catch (IllegalStateException ignored) {
         }
     }
 
     @Override
     public void pause() {
-        ijkMediaPlayer.pause();
-        maybeChangePlayerStateTo(STATE_PAUSED);
+        try {
+            if (playbackState == STATE_IDLE) {
+                playWhenReady = false;
+            } else {
+                ijkMediaPlayer.pause();
+                listeners.forEach(listener -> listener.onIsPlayingChanged(false));
+            }
+        } catch (IllegalStateException ignored) {
+        }
     }
 
     @Override
     public void stop() {
-        ijkMediaPlayer.stop();
-        maybeChangePlayerStateTo(STATE_STOPPED);
+        try {
+            ijkMediaPlayer.stop();
+            maybeChangePlayerStateTo(IExtPlayer.STATE_IDLE);
+            listeners.forEach(listener -> listener.onIsPlayingChanged(false));
+        } catch (IllegalStateException ignored) {
+        }
     }
 
     @Override
     public void release() {
+        bufferedPosition = 0;
+        playWhenReady = false;
         listeners.clear();
         ijkMediaPlayer.reset();
         ijkMediaPlayer.release();
@@ -159,48 +151,28 @@ public class ExtIjkPlayer implements IExtPlayer,
             ownedSurface.release();
             ownedSurface = null;
         }
-        maybeChangePlayerStateTo(STATE_ENDED);
+        maybeChangePlayerStateTo(IExtPlayer.STATE_IDLE);
+        listeners.forEach(listener -> listener.onIsPlayingChanged(false));
     }
 
     @Override
     public void seekTo(long positionMs) {
-        if (playerState >= STATE_PREPARED) {
-            ijkMediaPlayer.seekTo(positionMs);
-        } else {
-            seekToPositionMsWhenReady = positionMs;
+        try {
+            if (playbackState == STATE_IDLE) {
+                seekToPositionMsWhenReady = positionMs;
+            } else {
+                ijkMediaPlayer.seekTo(positionMs);
+            }
+        } catch (IllegalStateException ignored) {
         }
     }
 
-    private @State int getPlaybackState(@PlayerState int state) {
-        switch (state) {
-            case STATE_IDLE:
-            case STATE_STOPPED:
-            case STATE_ENDED:
-                return IExtPlayer.STATE_IDLE;
-            case STATE_PREPARING:
-            case STATE_PREPARED:
-            case STATE_BUFFERING:
-                return IExtPlayer.STATE_BUFFERING;
-            case STATE_STARTED:
-            case STATE_PAUSED:
-                return IExtPlayer.STATE_READY;
-            case STATE_COMPLETED:
-                return IExtPlayer.STATE_ENDED;
-        }
-        return IExtPlayer.STATE_ENDED;
-    }
-
-    private void maybeChangePlayerStateTo(@PlayerState int state) {
-        if (playerState == state) {
+    private void maybeChangePlayerStateTo(@State int state) {
+        if (playbackState == state) {
             return;
         }
-        playerState = state;
-        int newPlaybackState = getPlaybackState(state);
-        if (newPlaybackState == playbackState) {
-            return;
-        }
-        playbackState = newPlaybackState;
-        listeners.forEach(listener -> listener.onPlaybackStateChanged(newPlaybackState));
+        playbackState = state;
+        listeners.forEach(listener -> listener.onPlaybackStateChanged(state));
     }
 
     @Override
@@ -240,7 +212,7 @@ public class ExtIjkPlayer implements IExtPlayer,
 
     @Override
     public long getBufferedPosition() {
-        return ijkMediaPlayer.getAsyncStatisticBufForwards();
+        return bufferedPosition;
     }
 
     @Override
@@ -353,26 +325,32 @@ public class ExtIjkPlayer implements IExtPlayer,
 
     @Override
     public void onPrepared(IMediaPlayer mp) {
-        maybeChangePlayerStateTo(STATE_PREPARED);
+        maybeChangePlayerStateTo(STATE_READY);
+        IjkMediaMeta mediaMeta = ijkMediaPlayer.getMediaInfo().mMeta;
+        listeners.forEach(listener -> listener.onDurationChanged(
+                mediaMeta.mStartUS/1000,
+                mediaMeta.mDurationUS/1000));
         if (seekToPositionMsWhenReady > 0) {
             ijkMediaPlayer.seekTo(seekToPositionMsWhenReady);
+            seekToPositionMsWhenReady = 0;
         }
         if (playWhenReady) {
-            ijkMediaPlayer.start();
-            maybeChangePlayerStateTo(STATE_STARTED);
+            play();
         } else {
-            ijkMediaPlayer.pause();
-            maybeChangePlayerStateTo(STATE_PAUSED);
+            pause();
         }
     }
 
     @Override
     public void onCompletion(IMediaPlayer mp) {
         maybeChangePlayerStateTo(STATE_ENDED);
+        listeners.forEach(listener -> listener.onIsPlayingChanged(false));
     }
 
     @Override
     public void onBufferingUpdate(IMediaPlayer mp, int percent) {
+        percent = percent < 95 ? percent : 100;
+        bufferedPosition = percent * mp.getDuration() / 100;
     }
 
     @Override
@@ -394,28 +372,48 @@ public class ExtIjkPlayer implements IExtPlayer,
         return true;
     }
 
+    private @ExtTrackInfo.TrackType int getTrackType(String mType) {
+        if (mType.equalsIgnoreCase("video")) {
+            return ExtTrackInfo.TRACK_TYPE_VIDEO;
+        }
+        if (mType.equalsIgnoreCase("audio")) {
+            return ExtTrackInfo.TRACK_TYPE_AUDIO;
+        }
+
+        return ExtTrackInfo.TRACK_TYPE_UNKNOWN;
+    }
+
     @Override
     public boolean onInfo(IMediaPlayer mp, int what, int extra) {
-        Log.i("IjkMediaIExtPlayer", String.format(Locale.getDefault(), "[info] what: %d, extra: %d", what, extra));
-        int state = playerState;
+        Log.i(TAG, String.format(Locale.getDefault(), "[info] what: %d, extra: %d", what, extra));
+        int state = playbackState;
         switch (what) {
             case IMediaPlayer.MEDIA_INFO_BUFFERING_START:
                 state = STATE_BUFFERING;
                 break;
+            case IMediaPlayer.MEDIA_INFO_AUDIO_DECODED_START:
+            case IMediaPlayer.MEDIA_INFO_AUDIO_RENDERING_START:
+            case IMediaPlayer.MEDIA_INFO_STARTED_AS_NEXT:
+            case IMediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START:
+            case IMediaPlayer.MEDIA_INFO_AUDIO_SEEK_RENDERING_START:
+            case IMediaPlayer.MEDIA_INFO_VIDEO_SEEK_RENDERING_START:
             case IMediaPlayer.MEDIA_INFO_BUFFERING_END:
-                state = STATE_STARTED;
+                state = STATE_READY;
                 break;
             case IMediaPlayer.MEDIA_INFO_VIDEO_DECODED_START:
-                IjkMediaMeta.IjkStreamMeta meta = ijkMediaPlayer.getMediaInfo().mMeta.mVideoStream;
+                state = STATE_READY;
                 List<ExtTrackInfo> tracksInfo = new ArrayList<>();
-                tracksInfo.add(new ExtTrackInfo(
-                        ExtTrackInfo.TRACK_TYPE_VIDEO,
-                        meta.mWidth,
-                        meta.mHeight,
-                        meta.mCodecName,
-                        meta.mBitrate
-                ));
-                listeners.forEach(listener -> listener.onTracksSelected(tracksInfo));
+                ijkMediaPlayer.getMediaInfo().mMeta.mStreams.forEach(meta -> {
+                    @ExtTrackInfo.TrackType int type = getTrackType(meta.mType);
+                    if (type == ExtTrackInfo.TRACK_TYPE_UNKNOWN) {
+                        return;
+                    }
+                    tracksInfo.add(new ExtTrackInfo(
+                            type, meta.mWidth, meta.mHeight, meta.mCodecName, meta.mBitrate));
+                });
+                if (tracksInfo.size() > 0) {
+                    listeners.forEach(listener -> listener.onTracksSelected(tracksInfo));
+                }
                 break;
         }
         maybeChangePlayerStateTo(state);

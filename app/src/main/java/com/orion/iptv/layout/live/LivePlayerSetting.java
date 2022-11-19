@@ -26,8 +26,9 @@ public class LivePlayerSetting extends Fragment {
     private RecyclerView settingMenuView;
     private RecyclerView settingValueView;
     private RecyclerAdapter<ViewHolder<SettingValue>, SettingValue> valueViewAdapter;
-    private Handler mHandler;
     private List<SettingMenu> menus;
+    private Handler mHandler;
+    private final Runnable hideMyself = this::hide;
 
     @Nullable
     @Override
@@ -39,8 +40,8 @@ public class LivePlayerSetting extends Fragment {
     }
 
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
+    public void onStart() {
+        super.onStart();
         LivePlayerViewModel viewModel = new ViewModelProvider(requireActivity()).get(LivePlayerViewModel.class);
         mHandler = new Handler(requireContext().getMainLooper());
 
@@ -50,6 +51,12 @@ public class LivePlayerSetting extends Fragment {
 
         initMenuList();
         initValueList();
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        mHandler.removeCallbacksAndMessages(null);
     }
 
     protected void initValueList() {
@@ -106,5 +113,48 @@ public class LivePlayerSetting extends Fragment {
         if (isVisible() != isVisible) {
             requireView().setVisibility(visibility);
         }
+    }
+
+    public void toggleVisibility() {
+        if (isHidden()) {
+            mHandler.removeCallbacks(hideMyself);
+            _show();
+        } else {
+            _hide();
+        }
+    }
+
+    public void show(long displayMillis) {
+        show();
+        mHandler.postDelayed(hideMyself, displayMillis);
+    }
+
+    public void show() {
+        mHandler.removeCallbacks(hideMyself);
+        if (!isHidden()) {
+            return;
+        }
+        _show();
+    }
+
+    private void _show() {
+        getParentFragmentManager()
+                .beginTransaction()
+                .show(this)
+                .commit();
+    }
+
+    public void hide() {
+        if (isHidden()) {
+            return;
+        }
+        _hide();
+    }
+
+    public void _hide() {
+        getParentFragmentManager()
+                .beginTransaction()
+                .hide(this)
+                .commit();
     }
 }

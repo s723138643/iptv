@@ -9,16 +9,44 @@
     android:keepScreenOn="true"
     tools:context=".ui.live.LivePlayerActivity">
 
-    <com.orion.iptv.ui.live.player.PlayerView
-        android:id="@+id/videoView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/video_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:layout_gravity="center"
+        android:name="com.orion.player.ui.VideoView"
+        android:tag="video_view"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:surface_type="surface_view" />
+        tools:layout="@layout/fragment_video_view"/>
+
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/buffering"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:name="com.orion.player.ui.Buffering"
+        android:tag="buffering"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        tools:layout="@layout/fragment_buffering" />
+
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/toast"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:name="com.orion.player.ui.Toast"
+        android:tag="toast"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        tools:layout="@layout/fragment_toast"/>
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/network_speed"
@@ -26,8 +54,11 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="8dp"
+        android:name="com.orion.iptv.layout.NetworkSpeed"
+        android:tag="network_speed"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        app:layout_constraintBottom_toBottomOf="parent"
+        tools:layout="@layout/fragment_network_speed"/>
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/channel_info"
@@ -36,9 +67,12 @@
         android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="16dp"
+        android:name="com.orion.iptv.layout.live.LiveChannelInfo"
+        android:tag="channel_info"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:layout="@layout/fragment_live_channel_info"/>
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/channel_list"
@@ -47,9 +81,12 @@
         android:layout_marginStart="8dp"
         android:layout_marginTop="32dp"
         android:layout_marginBottom="32dp"
+        android:name="com.orion.iptv.layout.live.LiveChannelList"
+        android:tag="channel_list"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        app:layout_constraintBottom_toBottomOf="parent"
+        tools:layout="@layout/fragment_live_channel_list"/>
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/live_player_setting"
@@ -58,8 +95,11 @@
         android:layout_marginTop="32dp"
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="32dp"
+        android:name="com.orion.iptv.layout.live.LivePlayerSetting"
+        android:tag="live_player_setting"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        app:layout_constraintBottom_toBottomOf="parent"
+        tools:layout="@layout/fragment_live_player_setting"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,7 +1,9 @@
 package com.orion.player;
 
 import androidx.annotation.IntRange;
+import androidx.annotation.NonNull;
 
+import java.util.Locale;
 import java.util.Objects;
 
 public class ExtVideoSize {
@@ -24,10 +26,19 @@ public class ExtVideoSize {
     }
 
     public static ExtVideoSize of(com.google.android.exoplayer2.video.VideoSize videoSize) {
+        if (videoSize.width == 0 || videoSize.height == 0) {
+            return ExtVideoSize.UNKNOWN;
+        }
         int width = videoSize.width;
         int height = videoSize.height;
-        float ratio = (width == 0 || height == 0) ? 1 : (float) width * videoSize.pixelWidthHeightRatio / (float) height;
+        float ratio = (float) width * videoSize.pixelWidthHeightRatio / (float) height;
         return new ExtVideoSize(width, height, ratio, videoSize.unappliedRotationDegrees);
+    }
+
+    @NonNull
+    @Override
+    public String toString() {
+        return String.format(Locale.getDefault(), "%dx%d::%.2f", width, height, widthHeightRatio);
     }
 
     @Override

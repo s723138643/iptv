@@ -35,10 +35,11 @@ public class LiveChannelInfo extends Fragment {
     protected TextView linkInfo;
     protected TextView currentEpgProgram;
     protected TextView nextEpgProgram;
-    protected Handler mHandler;
     protected Resources res;
 
-    protected IExtPlayer.Listener listener = new PlayerEventListener();
+    protected Handler mHandler;
+    protected final Runnable hideMyself = this::hide;
+    protected final IExtPlayer.Listener listener = new PlayerEventListener();
 
     @Nullable
     @Override
@@ -56,8 +57,8 @@ public class LiveChannelInfo extends Fragment {
     }
 
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
+    public void onStart() {
+        super.onStart();
         mHandler = new Handler(requireContext().getMainLooper());
         res = requireContext().getResources();
         channelName.setSelected(true);
@@ -67,6 +68,12 @@ public class LiveChannelInfo extends Fragment {
         viewModel.observeLiveSource(requireActivity(), this::updateChannelInfo);
         viewModel.observeCurrentEpgProgram(requireActivity(), this::setCurrentEpgProgram);
         viewModel.observeNextEpgProgram(requireActivity(), this::setNextEpgProgram);
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        mHandler.removeCallbacksAndMessages(null);
     }
 
     protected void updateChannelInfo(Pair<Integer, ExtDataSource> dataSource) {
@@ -140,6 +147,47 @@ public class LiveChannelInfo extends Fragment {
 
     public void setPlayer(IExtPlayer player) {
         player.addListener(listener);
+    }
+
+    public void show(long displayMillis) {
+        show();
+        mHandler.postDelayed(hideMyself, displayMillis);
+    }
+
+    public void toggleVisibility() {
+        if (isHidden()) {
+            mHandler.removeCallbacks(hideMyself);
+            _show();
+        } else {
+            _hide();
+        }
+    }
+
+    public void show() {
+        mHandler.removeCallbacks(hideMyself);
+        if (!isHidden()) {
+            return;
+        }
+        _show();
+    }
+
+    private void _show() {
+        getParentFragmentManager().beginTransaction()
+                .show(this)
+                .commit();
+    }
+
+    public void hide() {
+        if (isHidden()) {
+            return;
+        }
+        _hide();
+    }
+
+    private void _hide() {
+        getParentFragmentManager().beginTransaction()
+                .hide(this)
+                .commit();
     }
 
     private class PlayerEventListener implements IExtPlayer.Listener {

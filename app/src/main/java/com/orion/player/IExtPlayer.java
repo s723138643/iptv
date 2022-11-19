@@ -28,6 +28,7 @@ public interface IExtPlayer {
         default void onVideoSizeChanged(ExtVideoSize videoSize) {}
         default void onDataSourceUsed(ExtDataSource dataSource) {}
         default void onTracksSelected(List<ExtTrackInfo> tracks) {}
+        default void onIsPlayingChanged(boolean isPlaying) {}
     }
 
     @Documented

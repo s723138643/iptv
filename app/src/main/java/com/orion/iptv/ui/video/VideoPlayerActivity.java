@@ -2,6 +2,7 @@ package com.orion.iptv.ui.video;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.FragmentManager;
 
 import android.content.Intent;
 import android.net.Uri;
@@ -10,19 +11,21 @@ import android.util.Log;
 
 import com.orion.iptv.R;
 import com.orion.iptv.layout.NetworkSpeed;
-import com.orion.iptv.ui.live.player.PlayerView;
 import com.orion.player.ExtDataSource;
 import com.orion.player.IExtPlayer;
 import com.orion.player.IExtPlayerFactory;
+import com.orion.player.exo.ExtExoPlayerFactory;
 import com.orion.player.ijk.ExtIjkPlayerFactory;
+import com.orion.player.ui.VideoPlayerView;
 
 import java.util.Locale;
 
 public class VideoPlayerActivity extends AppCompatActivity {
     private static final String TAG = "VideoPlayerActivity";
 
-    private PlayerView playerView;
+    private VideoPlayerView videoPlayerView;
     private NetworkSpeed networkSpeed;
+
     private IExtPlayerFactory<? extends IExtPlayer> iExtPlayerFactory;
     private IExtPlayer player;
 
@@ -30,19 +33,17 @@ public class VideoPlayerActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_video_player);
-        playerView = findViewById(R.id.video_player);
-        iExtPlayerFactory = new ExtIjkPlayerFactory();
-        networkSpeed = new NetworkSpeed();
-        getSupportFragmentManager().beginTransaction()
-                .add(R.id.network_speed, networkSpeed, "network_speed")
-                .commit();
+        FragmentManager fg = getSupportFragmentManager();
+        videoPlayerView = (VideoPlayerView) fg.findFragmentByTag("video_player");
+        networkSpeed = (NetworkSpeed) fg.findFragmentByTag("network_speed");
+        iExtPlayerFactory = new ExtExoPlayerFactory();
     }
 
     @Override
     protected void onStart() {
         super.onStart();
         player = iExtPlayerFactory.create(this);
-        playerView.setPlayer(player);
+        videoPlayerView.setPlayer(player);
         networkSpeed.setPlayer(player);
         Intent intent = getIntent();
         Uri uri = intent.getData();
@@ -56,8 +57,9 @@ public class VideoPlayerActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        assert player != null;
-        player.play();
+        if (player != null) {
+            player.play();
+        }
     }
 
     @Override
@@ -95,7 +97,8 @@ public class VideoPlayerActivity extends AppCompatActivity {
     @Override
     public void onStop() {
         super.onStop();
-        assert player != null;
-        player.release();
+        if (player != null) {
+            player.release();
+        }
     }
 }

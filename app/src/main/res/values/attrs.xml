@@ -1,15 +1,3 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <declare-styleable name="PlayerView">
-        <attr name="show_buffering" />
-        <attr name="keep_content_on_player_reset" />
-        <attr name="player_layout_id" />
-        <attr name="surface_type" />
-        <!-- AspectRatioFrameLayout attributes -->
-        <attr name="resize_mode" />
-        <attr name="animation_enabled" />
-    </declare-styleable>
-    <declare-styleable name="AspectRatioFrameLayout">
-        <attr name="resize_mode" />
-    </declare-styleable>
 </resources>
