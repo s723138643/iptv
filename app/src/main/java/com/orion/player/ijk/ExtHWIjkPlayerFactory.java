@@ -6,10 +6,10 @@ import com.orion.player.IExtPlayerFactory;
 
 import tv.danmaku.ijk.media.player.IjkMediaPlayer;
 
-public class ExtSoftIjkPlayerFactory implements IExtPlayerFactory<ExtIjkPlayer> {
+public class ExtHWIjkPlayerFactory implements IExtPlayerFactory<ExtHWIjkPlayer> {
     @Override
-    public ExtIjkPlayer create(Context context) {
+    public ExtHWIjkPlayer create(Context context) {
         IjkMediaPlayer.loadLibrariesOnce(null);
-        return new ExtIjkPlayer(context, false);
+        return new ExtHWIjkPlayer(context);
     }
 }

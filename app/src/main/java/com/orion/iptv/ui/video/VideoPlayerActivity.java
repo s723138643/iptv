@@ -15,7 +15,6 @@ import com.orion.player.ExtDataSource;
 import com.orion.player.IExtPlayer;
 import com.orion.player.IExtPlayerFactory;
 import com.orion.player.exo.ExtExoPlayerFactory;
-import com.orion.player.ijk.ExtIjkPlayerFactory;
 import com.orion.player.ui.VideoPlayerView;
 
 import java.util.Locale;

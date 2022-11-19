@@ -2,11 +2,11 @@ package com.orion.player.ui;
 
 import android.os.Bundle;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import android.os.Handler;
+import android.os.SystemClock;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,7 +14,6 @@ import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
-import com.google.android.exoplayer2.util.Log;
 import com.orion.iptv.R;
 import com.orion.player.ExtDataSource;
 import com.orion.player.IExtPlayer;
@@ -48,10 +47,20 @@ public class PlayerController extends Fragment {
             seekBar.setSecondaryProgress((int) (buffered / 1000));
             seekBar.setProgress((int) (current / 1000));
 
-            mHandler.postDelayed(this, 30);
+            mHandler.postDelayed(this, 40);
         }
     };
-    private final Runnable hideMyself = this::hide;
+    private long hideMyselfAt = 0;
+    private final Runnable hideMyself = new Runnable() {
+        @Override
+        public void run() {
+            if (SystemClock.uptimeMillis() >= hideMyselfAt) {
+                hide();
+            } else {
+                mHandler.postAtTime(this, hideMyselfAt);
+            }
+        }
+    };
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -71,8 +80,10 @@ public class PlayerController extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
+
         seekBar.setMin(0);
         playButton.setOnClickListener(button -> {
+            hideMyselfAt = SystemClock.uptimeMillis() + 5 * 1000;
             if (player != null && !player.isPlaying()) {
                 if (player.getPlaybackState() == IExtPlayer.STATE_ENDED) {
                     player.seekTo(0);
@@ -84,9 +95,18 @@ public class PlayerController extends Fragment {
         });
 
         pauseButton.setOnClickListener(button -> {
+            hideMyselfAt = SystemClock.uptimeMillis() + 5 * 1000;
             if (player != null && player.isPlaying()) {
                 player.pause();
             }
+        });
+
+        seekToPrevButton.setOnClickListener(button -> {
+            hideMyselfAt = SystemClock.uptimeMillis() + 5 * 1000;
+        });
+
+        seekToNextButton.setOnClickListener(button -> {
+            hideMyselfAt = SystemClock.uptimeMillis() + 5 * 1000;
         });
 
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -94,13 +114,13 @@ public class PlayerController extends Fragment {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
+                    hideMyselfAt = SystemClock.uptimeMillis() + 5 * 1000;
                     this.progress = progress;
                 }
             }
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-
             }
 
             @Override
@@ -151,7 +171,8 @@ public class PlayerController extends Fragment {
 
     public void show(long displayMillis) {
         show();
-        mHandler.postDelayed(hideMyself, displayMillis);
+        hideMyselfAt = SystemClock.uptimeMillis() + displayMillis;
+        mHandler.postAtTime(hideMyself, hideMyselfAt);
     }
 
     public void hide() {

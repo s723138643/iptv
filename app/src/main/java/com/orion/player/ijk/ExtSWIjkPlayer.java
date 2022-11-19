@@ -25,43 +25,39 @@ import tv.danmaku.ijk.media.player.IMediaPlayer;
 import tv.danmaku.ijk.media.player.IjkMediaMeta;
 import tv.danmaku.ijk.media.player.IjkMediaPlayer;
 
-public class ExtIjkPlayer implements IExtPlayer,
+public class ExtSWIjkPlayer implements IExtPlayer,
         IMediaPlayer.OnErrorListener, IMediaPlayer.OnBufferingUpdateListener,
         IMediaPlayer.OnCompletionListener, IMediaPlayer.OnInfoListener,
         IMediaPlayer.OnPreparedListener, IMediaPlayer.OnVideoSizeChangedListener,
         IjkMediaPlayer.OnNativeInvokeListener {
 
-    private static final String TAG = "ExtIjkPlayer";
+    protected static final String TAG = "ExtIjkPlayer";
 
-    private final IjkMediaPlayer ijkMediaPlayer;
-    private final List<Listener> listeners;
-    private final Context context;
-    private final ComponentListener componentListener;
+    protected final IjkMediaPlayer ijkMediaPlayer;
+    protected final List<Listener> listeners;
+    protected final Context context;
+    protected final ComponentListener componentListener;
 
-    private @State int playbackState = IExtPlayer.STATE_IDLE;
-    private Exception playerError = null;
-    private long seekToPositionMsWhenReady = 0;
-    private boolean playWhenReady = false;
-    private ExtVideoSize videoSize;
-    private ExtDataSource dataSource;
+    protected @State int playbackState = IExtPlayer.STATE_IDLE;
+    protected Exception playerError = null;
+    protected long seekToPositionMsWhenReady = 0;
+    protected boolean playWhenReady = false;
+    protected ExtVideoSize videoSize;
+    protected ExtDataSource dataSource;
 
-    private SurfaceHolder surfaceHolder;
-    private TextureView textureView;
-    private Surface ownedSurface;
-    private Surface videoOutput;
+    protected SurfaceHolder surfaceHolder;
+    protected TextureView textureView;
+    protected Surface ownedSurface;
+    protected Surface videoOutput;
 
-    private long bufferedPosition = 0;
+    protected long bufferedPosition = 0;
 
-    public ExtIjkPlayer(Context context, boolean useMediacodec) {
+    public ExtSWIjkPlayer(Context context) {
         this.context = context;
         componentListener = new ComponentListener();
         listeners = new ArrayList<>();
         ijkMediaPlayer = new IjkMediaPlayer();
-        if (useMediacodec) {
-            ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec-all-videos", 1);
-            ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec-auto-rotate", 1);
-            ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec-handle-resolution-change", 1);
-        }
+        setOptions(ijkMediaPlayer);
         ijkMediaPlayer.setOnVideoSizeChangedListener(this);
         ijkMediaPlayer.setOnErrorListener(this);
         ijkMediaPlayer.setOnBufferingUpdateListener(this);
@@ -69,6 +65,10 @@ public class ExtIjkPlayer implements IExtPlayer,
         ijkMediaPlayer.setOnPreparedListener(this);
         ijkMediaPlayer.setOnNativeInvokeListener(this);
         ijkMediaPlayer.setOnCompletionListener(this);
+    }
+
+    protected void setOptions(IjkMediaPlayer player) {
+        // do nothing
     }
 
     private void notifyError(Exception error) {

@@ -34,6 +34,7 @@ import androidx.fragment.app.Fragment;
 import com.orion.iptv.R;
 import com.orion.player.IExtPlayer;
 import com.orion.player.ExtVideoSize;
+import com.orion.player.exo.ExtExoPlayer;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
@@ -170,8 +171,10 @@ public class VideoView extends Fragment {
                 oldIExtPlayer.clearVideoSurfaceView((SurfaceView) surfaceView);
             }
             assert surfaceView != null;
-            surfaceView.setVisibility(View.GONE);
-            surfaceView.setVisibility(View.VISIBLE);
+            if (!(oldIExtPlayer instanceof ExtExoPlayer && iExtPlayer instanceof ExtExoPlayer)) {
+                surfaceView.setVisibility(View.GONE);
+                surfaceView.setVisibility(View.VISIBLE);
+            }
         }
         this.iExtPlayer = iExtPlayer;
         if (iExtPlayer != null) {

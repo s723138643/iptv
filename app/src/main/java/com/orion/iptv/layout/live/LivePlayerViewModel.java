@@ -26,8 +26,8 @@ import com.orion.player.ExtDataSource;
 import com.orion.player.IExtPlayer;
 import com.orion.player.IExtPlayerFactory;
 import com.orion.player.exo.ExtExoPlayerFactory;
-import com.orion.player.ijk.ExtIjkPlayerFactory;
-import com.orion.player.ijk.ExtSoftIjkPlayerFactory;
+import com.orion.player.ijk.ExtHWIjkPlayerFactory;
+import com.orion.player.ijk.ExtSWIjkPlayerFactory;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
@@ -235,13 +235,13 @@ public class LivePlayerViewModel extends ViewModel {
     public IExtPlayerFactory<? extends IExtPlayer> newPlayerFactory(@PlayerType int playerType) {
         switch (playerType) {
             case IJKPLAYER:
-                return new ExtIjkPlayerFactory();
+                return new ExtHWIjkPlayerFactory();
             case IJKPLAYER_SW:
-                return new ExtSoftIjkPlayerFactory();
+                return new ExtSWIjkPlayerFactory();
             case EXOPLAYER:
                 return new ExtExoPlayerFactory();
         }
-        return new ExtIjkPlayerFactory();
+        return new ExtHWIjkPlayerFactory();
     }
 
     public void setPlayerFactoryType(@PlayerType int playerFactoryType) {
