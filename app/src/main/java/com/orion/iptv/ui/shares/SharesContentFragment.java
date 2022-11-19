@@ -39,7 +39,9 @@ import okhttp3.HttpUrl;
 public class SharesContentFragment extends Fragment {
     private static final String TAG = "SharesContentFragment";
     private Share share;
-    private FileNode currentNode;
+    private FileNode path;
+    ImageButton homeButton;
+    private RecyclerView nodes;
     private RecyclerAdapter<FileNodeViewHolder, FileNode> adapter;
     private TextView pathHint;
     private ProgressBar loading;
@@ -50,32 +52,54 @@ public class SharesContentFragment extends Fragment {
 
     private final HideToastTasker hideToastTasker = new HideToastTasker();
 
-    public SharesContentFragment() {
-        super(R.layout.fragment_shares_content);
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        return inflater.inflate(R.layout.fragment_shares_content, container, false);
     }
 
     @Override
-    public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        SharesViewModel viewModel = new ViewModelProvider(requireActivity()).get(SharesViewModel.class);
-        mHandler = new Handler(requireContext().getMainLooper());
-        share = viewModel.getSelectedShare().getValue();
-        assert share != null;
-        client = new WebDavClient(share);
-        currentNode = share.getRoot();
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
         pathHint = view.findViewById(R.id.current_path);
-        ImageButton homeButton = view.findViewById(R.id.shares_home);
-        homeButton.setOnClickListener(buttonView -> {
-            currentNode = share.getRoot();
-            refresh();
-        });
-
         loading = view.findViewById(R.id.loading);
         loading.setVisibility(View.GONE);
         toast = view.findViewById(R.id.toast);
         toast.setVisibility(View.GONE);
 
-        RecyclerView nodes = view.findViewById(R.id.collections);
+        nodes = view.findViewById(R.id.collections);
+        homeButton = view.findViewById(R.id.shares_home);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        SharesViewModel viewModel = new ViewModelProvider(requireActivity()).get(SharesViewModel.class);
+        path = (FileNode) requireArguments().getSerializable("path");
+        mHandler = new Handler(requireContext().getMainLooper());
+
+        share = viewModel.getSelectedShare();
+        assert share != null;
+        client = new WebDavClient(share);
+
+        homeButton.setOnClickListener(buttonView -> {
+            requireActivity()
+                    .getSupportFragmentManager()
+                    .popBackStack(SharesHomeFragment.TAG, 0);
+        });
+        initView();
+        refresh();
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        client.cancel();
+        mHandler.removeCallbacksAndMessages(null);
+    }
+
+    private void initView() {
         LinearLayoutManager layoutManager = new LinearLayoutManager(requireContext());
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         nodes.setLayoutManager(layoutManager);
@@ -89,31 +113,36 @@ public class SharesContentFragment extends Fragment {
         );
         adapter.setRepeatClickEnabled(true);
         adapter.setOnSelectedListener((position, node) -> {
-            if (node.isRoot()) {
+            if (node == FileNode.PARENT) {
                 requireActivity()
                         .getSupportFragmentManager()
                         .popBackStack();
+            } else if (node == FileNode.CURRENT) {
+                refresh();
             } else if (node.isFile()) {
                 play(node);
-            } else if (node.getName().equals("..")) {
-                currentNode = node.backup();
-                refresh();
             } else {
-                currentNode = node;
-                refresh();
+                Bundle args = new Bundle();
+                args.putSerializable("path", node);
+                requireActivity()
+                        .getSupportFragmentManager()
+                        .beginTransaction()
+                        .setReorderingAllowed(true)
+                        .replace(R.id.shares_container_view, SharesContentFragment.class, args)
+                        .addToBackStack(null)
+                        .commit();
             }
         });
         nodes.setAdapter(adapter);
         nodes.addOnItemTouchListener(adapter.new OnItemTouchListener(requireContext(), nodes));
-        refresh();
     }
 
     public void refresh() {
         setViewVisible(toast,false);
         setViewVisible(loading, true);
-        pathHint.setText(currentNode.getAbsolutePath());
+        pathHint.setText(path.getAbsolutePath());
         client.list(
-                currentNode,
+                path,
                 new WebDavClient.Callback() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
@@ -121,23 +150,18 @@ public class SharesContentFragment extends Fragment {
                         mHandler.post(() -> {
                             setViewVisible(loading, false);
                             showToast(e.toString());
-                            adapter.setData(List.of(backupNode()));
+                            adapter.setData(List.of(FileNode.PARENT, FileNode.CURRENT));
                         });
                     }
 
                     @Override
                     public void onResponse(@Nullable List<FileNode> children) {
-                        Log.i(TAG, String.format(Locale.ENGLISH, "current path: %s, is root: %b", currentNode.getPath(), currentNode.isRoot()));
+                        Log.i(TAG, String.format(Locale.ENGLISH, "current path: %s", path.getPath()));
                         if (children == null) {
                             children = new ArrayList<>();
                         }
-                        FileNode backup = backupNode();
-                        Log.i(TAG, String.format(Locale.ENGLISH, "backup path: %s, is root: %b", backup.getPath(), backup.isRoot()));
-                        if (children.size() > 0) {
-                            children.set(0, backup);
-                        } else {
-                            children.add(backup);
-                        }
+                        children.add(0, FileNode.CURRENT);
+                        children.add(0, FileNode.PARENT);
                         java.util.List<FileNode> finalChildren = children;
                         mHandler.post(() -> {
                             setViewVisible(loading, false);
@@ -146,15 +170,6 @@ public class SharesContentFragment extends Fragment {
                     }
                 }
         );
-    }
-
-    @NonNull
-    private FileNode backupNode() {
-        if (currentNode.isRoot()) {
-            return new FileNode("..", currentNode.getPath(), false, currentNode.backup());
-        }
-        FileNode parent = currentNode.backup();
-        return new FileNode("..", parent.getPath(), false, parent);
     }
 
     private Uri makeUri(FileNode node) {
@@ -193,19 +208,6 @@ public class SharesContentFragment extends Fragment {
         Intent intent = new Intent(requireContext(), VideoPlayerActivity.class);
         intent.setData(makeUri(node));
         startActivity(intent);
-    }
-
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_shares_content, container, false);
-    }
-
-    @Override
-    public void onStop() {
-        super.onStop();
-        client.cancel();
     }
 
     private class HideToastTasker implements Runnable {

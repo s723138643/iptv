@@ -16,7 +16,9 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.os.Handler;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.util.Log;
 
@@ -28,22 +30,38 @@ import java.util.List;
 import java.util.Optional;
 
 public class SharesHomeFragment extends Fragment {
+    public static final String TAG = "SharesHome";
+
     private SharesViewModel mViewModel;
     private RecyclerView sharesView;
     private SharesViewAdapter adapter;
+
+    protected ImageButton addShareButton;
+    protected View selectionAction;
+
     private Handler mHandler;
 
-    public SharesHomeFragment() {
-        super(R.layout.fragment_shares_home);
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_shares_home, container, false);
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        addShareButton = view.findViewById(R.id.add_share);
+        sharesView = view.findViewById(R.id.shares_body);
+        selectionAction = view.findViewById(R.id.selection_actions);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
         mViewModel = new ViewModelProvider(requireActivity()).get(SharesViewModel.class);
         mHandler = new Handler(requireContext().getMainLooper());
 
-        ImageButton addShareButton = view.findViewById(R.id.add_share);
         addShareButton.setOnClickListener((addRootButton) -> {
             WebDavSettingDialog dialog =  new WebDavSettingDialog(requireContext());
             dialog.setOnSubmitListener(share -> {
@@ -53,7 +71,6 @@ public class SharesHomeFragment extends Fragment {
             dialog.show();
         });
 
-        sharesView = view.findViewById(R.id.shares_body);
         LinearLayoutManager layoutManager = new LinearLayoutManager(requireContext());
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         sharesView.setLayoutManager(layoutManager);
@@ -68,17 +85,20 @@ public class SharesHomeFragment extends Fragment {
         adapter.setItemClickListener(itemView -> {
             getBindingAdapterPosition(itemView).map(position -> {
                 mViewModel.setSelectedShare(position);
-                Share share = mViewModel.getSelectedShare().getValue();
+                Share share = mViewModel.getSelectedShare();
                 if (share == null) {
                     return null;
                 }
-                Log.i("SharesHomeFragment", "share " + share.getRoot().getName() + " selected");
+                FileNode root = share.getRoot();
+                Log.i("SharesHomeFragment", "share " + root.getName() + " selected");
+                Bundle bundle = new Bundle();
+                bundle.putSerializable("path", root);
                 requireActivity()
                         .getSupportFragmentManager()
                         .beginTransaction()
                         .setReorderingAllowed(true)
-                        .replace(R.id.shares_container_view, SharesContentFragment.class, null)
-                        .addToBackStack("SharesHomeFragment")
+                        .replace(R.id.shares_container_view, SharesContentFragment.class, bundle)
+                        .addToBackStack(TAG)
                         .commit();
                 return null;
             });
@@ -105,7 +125,6 @@ public class SharesHomeFragment extends Fragment {
         ).withSelectionPredicate(SelectionPredicates.createSelectAnything()).build();
         adapter.setTracker(tracker);
 
-        View selectionAction = view.findViewById(R.id.selection_actions);
         selectionAction.setVisibility(View.GONE);
         ImageButton cancelButton = selectionAction.findViewById(R.id.delete_cancel);
         cancelButton.setOnClickListener(cancelView -> tracker.clearSelection());

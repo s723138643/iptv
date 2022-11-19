@@ -69,7 +69,9 @@ public class PropfindParser extends DefaultHandler {
         }
         switch (qName) {
             case "D:response":
-                children.add(new FileNode(node.name, node.path, node.isFile, parent));
+                if (!node.path.equals(parent.getAbsolutePath())) {
+                    children.add(new FileNode(node.name, node.path, node.isFile));
+                }
                 node = null;
                 break;
             case "D:href":

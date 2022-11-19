@@ -1,16 +1,21 @@
 package com.orion.iptv.ui.shares;
 
-public class FileNode {
+import java.io.Serializable;
+
+public class FileNode implements Serializable {
+    static final long serialVersionUID = 27835L;
+
+    public static final FileNode PARENT = new FileNode("..", "", false);
+    public static final FileNode CURRENT = new FileNode(".", "", false);
+
     private final String name;
     private final boolean isFile;
-    private final FileNode parent;
     private final String path;
 
-    public FileNode(String name, String absolutePath, boolean isFile, FileNode parent) {
+    public FileNode(String name, String absolutePath, boolean isFile) {
         this.name = (name != null && !name.equals("")) ? name : "";
         // change absolute path to relative path
         this.path = absolutePath.startsWith("/") ? absolutePath.substring(1) : absolutePath;
-        this.parent = parent;
         this.isFile = isFile;
     }
 
@@ -28,13 +33,5 @@ public class FileNode {
 
     public boolean isFile() {
         return isFile;
-    }
-
-    public boolean isRoot() {
-        return parent == null;
-    }
-
-    public FileNode backup() {
-        return parent;
     }
 }

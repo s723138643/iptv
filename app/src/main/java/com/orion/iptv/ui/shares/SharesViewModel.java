@@ -1,5 +1,6 @@
 package com.orion.iptv.ui.shares;
 
+import androidx.annotation.Nullable;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
@@ -22,8 +23,9 @@ public class SharesViewModel extends ViewModel {
         return shares;
     }
 
-    public MutableLiveData<Share> getSelectedShare() {
-        return selectedShare;
+    @Nullable
+    public Share getSelectedShare() {
+        return selectedShare.getValue();
     }
 
     public void setSelectedShare(int position) {

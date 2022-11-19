@@ -15,6 +15,7 @@ import com.orion.player.ExtDataSource;
 import com.orion.player.IExtPlayer;
 import com.orion.player.IExtPlayerFactory;
 import com.orion.player.exo.ExtExoPlayerFactory;
+import com.orion.player.ijk.ExtHWIjkPlayerFactory;
 import com.orion.player.ui.VideoPlayerView;
 
 import java.util.Locale;
@@ -35,7 +36,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
         FragmentManager fg = getSupportFragmentManager();
         videoPlayerView = (VideoPlayerView) fg.findFragmentByTag("video_player");
         networkSpeed = (NetworkSpeed) fg.findFragmentByTag("network_speed");
-        iExtPlayerFactory = new ExtExoPlayerFactory();
+        iExtPlayerFactory = new ExtHWIjkPlayerFactory();
     }
 
     @Override
