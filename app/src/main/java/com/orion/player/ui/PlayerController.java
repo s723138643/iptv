@@ -91,7 +91,6 @@ public class PlayerController extends Fragment {
             }
         });
 
-        // Inflate the layout for this fragment
         position = view.findViewById(R.id.position);
         duration = view.findViewById(R.id.media_duration);
         seekBar = view.findViewById(R.id.seek_bar);
@@ -116,6 +115,9 @@ public class PlayerController extends Fragment {
                     player.seekTo(0);
                     mHandler.removeCallbacks(updatePosition);
                     mHandler.post(updatePosition);
+                    if (!player.isPlaying()) {
+                        player.play();
+                    }
                 }
                 player.play();
             }
@@ -142,6 +144,9 @@ public class PlayerController extends Fragment {
             public void onStopTrackingTouch(SeekBar seekBar) {
                 if (progress >= 0 && player != null) {
                     player.seekTo(progress * 1000L);
+                    if (!player.isPlaying()) {
+                        player.play();
+                    }
                 }
             }
         });
@@ -174,40 +179,25 @@ public class PlayerController extends Fragment {
             this.player.removeListener(componentListener);
             mHandler.removeCallbacks(updatePosition);
         }
-        playButton.setVisibility(View.VISIBLE);
         this.player = player;
         this.player.addListener(componentListener);
     }
 
     public void toggleVisibility() {
         if (isHidden()) {
-            _show();
+            show();
         } else {
-            _hide();
+            hide();
         }
     }
 
     public void show() {
-        if (!isHidden()) {
-            return;
-        }
-        _show();
-    }
-
-    private void _show() {
         getParentFragmentManager().beginTransaction()
                 .show(this)
                 .commit();
     }
 
     public void hide() {
-        if (isHidden()) {
-            return;
-        }
-        _hide();
-    }
-
-    private void _hide() {
         getParentFragmentManager().beginTransaction()
                 .hide(this)
                 .commit();

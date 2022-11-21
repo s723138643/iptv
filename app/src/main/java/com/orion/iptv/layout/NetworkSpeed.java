@@ -17,6 +17,7 @@ import com.orion.player.IExtPlayer;
 import java.util.Locale;
 
 public class NetworkSpeed extends Fragment {
+    @SuppressWarnings("unused")
     private static final String TAG = "NetworkSpeed";
     public static final String[] units = {"B/s", "KiB/s", "MiB/s", "GiB/s"};
     private TextView view;
@@ -81,6 +82,7 @@ public class NetworkSpeed extends Fragment {
         mHandler.removeCallbacks(updater);
     }
 
+    @SuppressWarnings("unused")
     public void setUpdateInterval(long milliSec) {
         // ensure there is no data race
         mHandler.post(() -> updateInterval = milliSec);
@@ -89,8 +91,6 @@ public class NetworkSpeed extends Fragment {
     public void setPlayer(IExtPlayer iExtPlayer) {
         mHandler.removeCallbacks(updater);
         this.iExtPlayer = iExtPlayer;
-        if (!isHidden()) {
-            mHandler.post(updater);
-        }
+        mHandler.post(updater);
     }
 }

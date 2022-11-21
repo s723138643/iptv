@@ -184,6 +184,9 @@ public class VideoPlayerView extends Fragment {
             scrolling = false;
             if (iExtPlayer != null) {
                 iExtPlayer.seekTo(position);
+                if (!iExtPlayer.isPlaying()) {
+                    iExtPlayer.play();
+                }
             }
             position = 0;
             gesture.hide();

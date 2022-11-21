@@ -195,20 +195,13 @@ public class LiveChannelList extends Fragment {
 
     public void toggleVisibility() {
         if (isHidden()) {
-            _show();
+            show();
         } else {
-            _hide();
+            hide();
         }
     }
 
     public void show() {
-        if (!isHidden()) {
-            return;
-        }
-        _show();
-    }
-
-    private void _show() {
         getParentFragmentManager()
                 .beginTransaction()
                 .show(this)
@@ -216,13 +209,6 @@ public class LiveChannelList extends Fragment {
     }
 
     public void hide() {
-        if (isHidden()) {
-            return;
-        }
-        _hide();
-    }
-
-    public void _hide() {
         getParentFragmentManager()
                 .beginTransaction()
                 .hide(this)

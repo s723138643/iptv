@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 
 import okhttp3.HttpUrl;
 import tv.danmaku.ijk.media.player.IMediaPlayer;
@@ -86,15 +85,20 @@ public class ExtSWIjkPlayer implements IExtPlayer,
     public void setDataSource(ExtDataSource dataSource) {
         this.dataSource = dataSource;
         listeners.forEach(listener -> listener.onDataSourceUsed(dataSource));
-        HttpUrl.Builder builder = Objects.requireNonNull(
-                HttpUrl.parse(dataSource.getUri())
-        ).newBuilder();
+        String url = dataSource.getUri();
         ExtDataSource.Auth auth = dataSource.getAuth();
-        if (auth != null) {
+        if (auth != null && url.startsWith("http")) {
+            HttpUrl origUrl = HttpUrl.parse(dataSource.getUri());
+            if (origUrl == null) {
+                String msg = String.format(Locale.getDefault(), "unsupported url: %s", dataSource.getUri());
+                notifyError(new Exception(msg));
+                return;
+            }
+            HttpUrl.Builder builder = origUrl.newBuilder();
             builder.username(auth.username);
             builder.password(auth.password);
+            url = builder.build().toString();
         }
-        String url = builder.build().toString();
         try {
             Map<String, String> headers = dataSource.getHeaders();
             if (headers != null) {
@@ -116,8 +120,7 @@ public class ExtSWIjkPlayer implements IExtPlayer,
     public void prepare() {
         try {
             ijkMediaPlayer.prepareAsync();
-        } catch (Exception error) {
-            notifyError(error);
+        } catch (IllegalStateException ignored) {
         }
     }
 

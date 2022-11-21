@@ -38,18 +38,12 @@ public class Toast extends Fragment {
 
     public void show() {
         mHandler.removeCallbacks(hideMyself);
-        if (!isHidden()) {
-            return;
-        }
         getParentFragmentManager().beginTransaction()
                 .show(this)
                 .commit();
     }
 
     public void hide() {
-        if (isHidden()) {
-            return;
-        }
         getParentFragmentManager().beginTransaction()
                 .hide(this)
                 .commit();

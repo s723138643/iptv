@@ -3,6 +3,7 @@ package com.orion.iptv.layout.live;
 import android.content.res.Resources;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.SystemClock;
 import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -38,28 +39,46 @@ public class LiveChannelInfo extends Fragment {
     protected Resources res;
 
     protected Handler mHandler;
-    protected final Runnable hideMyself = this::hide;
+    protected long hideMyselfAt = 0;
+    protected final Runnable hideMyself = new Runnable() {
+        @Override
+        public void run() {
+            if (hideMyselfAt <= 0) {
+                return;
+            }
+            if (SystemClock.uptimeMillis() >= hideMyselfAt) {
+                hideMyselfAt = 0;
+                hide();
+            } else {
+                mHandler.postAtTime(this, hideMyselfAt);
+            }
+        }
+    };
     protected final IExtPlayer.Listener listener = new PlayerEventListener();
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View v = inflater.inflate(R.layout.fragment_live_channel_info, container, false);
-        channelNumber = v.findViewById(R.id.channelNumber);
-        channelName = v.findViewById(R.id.channelName);
-        codecInfo = v.findViewById(R.id.codecInfo);
-        mediaInfo = v.findViewById(R.id.mediaInfo);
-        bitrateInfo = v.findViewById(R.id.bitrateInfo);
-        linkInfo = v.findViewById(R.id.linkInfo);
-        currentEpgProgram = v.findViewById(R.id.currentEpgProgram);
-        nextEpgProgram = v.findViewById(R.id.nextEpgProgram);
-        return v;
+        return inflater.inflate(R.layout.fragment_live_channel_info, container, false);
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        mHandler = new Handler(requireContext().getMainLooper());
+        channelNumber = view.findViewById(R.id.channelNumber);
+        channelName = view.findViewById(R.id.channelName);
+        codecInfo = view.findViewById(R.id.codecInfo);
+        mediaInfo = view.findViewById(R.id.mediaInfo);
+        bitrateInfo = view.findViewById(R.id.bitrateInfo);
+        linkInfo = view.findViewById(R.id.linkInfo);
+        currentEpgProgram = view.findViewById(R.id.currentEpgProgram);
+        nextEpgProgram = view.findViewById(R.id.nextEpgProgram);
     }
 
     @Override
     public void onStart() {
         super.onStart();
-        mHandler = new Handler(requireContext().getMainLooper());
         res = requireContext().getResources();
         channelName.setSelected(true);
         currentEpgProgram.setSelected(true);
@@ -83,6 +102,7 @@ public class LiveChannelInfo extends Fragment {
         setChannelName(info.channelName);
         setCodecInfo(res.getString(R.string.codec_info_default));
         setMediaInfo(res.getString(R.string.media_info_default));
+        setBitrateInfo(0);
         setLinkInfo(dataSource.first, viewModel.getSourceCount());
     }
 
@@ -149,45 +169,50 @@ public class LiveChannelInfo extends Fragment {
         player.addListener(listener);
     }
 
-    public void show(long displayMillis) {
-        show();
-        mHandler.postDelayed(hideMyself, displayMillis);
-    }
-
+    @SuppressWarnings("unused")
     public void toggleVisibility() {
         if (isHidden()) {
-            mHandler.removeCallbacks(hideMyself);
-            _show();
+            show();
         } else {
-            _hide();
+            hide();
         }
+    }
+
+    public void show(long displayMillis) {
+        if (!isHidden() && hideMyselfAt <= 0) {
+            // we have showed it without auth hide, so ignore this operation
+            return;
+        }
+        show();
+        hideMyselfAt = SystemClock.uptimeMillis() + displayMillis;
     }
 
     public void show() {
-        mHandler.removeCallbacks(hideMyself);
-        if (!isHidden()) {
-            return;
-        }
-        _show();
-    }
-
-    private void _show() {
+        hideMyselfAt = 0;
         getParentFragmentManager().beginTransaction()
                 .show(this)
                 .commit();
     }
 
-    public void hide() {
-        if (isHidden()) {
-            return;
-        }
-        _hide();
+    public void hide(long delayMillis) {
+        mHandler.removeCallbacks(hideMyself);
+        hideMyselfAt = SystemClock.uptimeMillis() + delayMillis;
+        mHandler.postAtTime(hideMyself, hideMyselfAt);
     }
 
-    private void _hide() {
+    public void hide() {
         getParentFragmentManager().beginTransaction()
                 .hide(this)
                 .commit();
+    }
+
+    @Override
+    public void onHiddenChanged(boolean hidden) {
+        super.onHiddenChanged(hidden);
+        mHandler.removeCallbacks(hideMyself);
+        if (!hidden && hideMyselfAt > 0) {
+            mHandler.postAtTime(hideMyself, hideMyselfAt);
+        }
     }
 
     private class PlayerEventListener implements IExtPlayer.Listener {

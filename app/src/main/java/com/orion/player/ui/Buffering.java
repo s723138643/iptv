@@ -19,18 +19,12 @@ public class Buffering extends Fragment {
     }
 
     public void show() {
-        if (!isHidden()) {
-            return;
-        }
         getParentFragmentManager().beginTransaction()
                 .show(this)
                 .commit();
     }
 
     public void hide() {
-        if (isHidden()) {
-            return;
-        }
         getParentFragmentManager().beginTransaction()
                 .hide(this)
                 .commit();

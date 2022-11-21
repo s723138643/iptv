@@ -374,7 +374,7 @@ public class LivePlayerActivity extends AppCompatActivity {
                     Log.w(TAG, "IExtPlayer change state to STATE_READY");
                     mPlayerHandler.removeCallbacksAndMessages(null);
                     buffering.hide();
-                    channelInfo.show(5*1000);
+                    channelInfo.hide(5*1000);
                     break;
                 case IExtPlayer.STATE_BUFFERING:
                     Log.w(TAG, "IExtPlayer change state to STATE_BUFFERING");
