@@ -2,7 +2,10 @@ package com.orion.iptv.layout.live;
 
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.SystemClock;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -17,6 +20,7 @@ import com.google.android.exoplayer2.util.Log;
 import com.orion.iptv.R;
 import com.orion.iptv.recycleradapter.RecyclerAdapter;
 import com.orion.iptv.recycleradapter.ViewHolder;
+import com.orion.player.ui.AutoHide;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,22 +32,51 @@ public class LivePlayerSetting extends Fragment {
     private RecyclerAdapter<ViewHolder<SettingValue>, SettingValue> valueViewAdapter;
     private List<SettingMenu> menus;
     private Handler mHandler;
-    private final Runnable hideMyself = this::hide;
+    private static final long AutoHideAfterMillis = 5*1000;
+    private long hideMyselfAt = 0;
+    private final Runnable hideMyself = new Runnable() {
+        @Override
+        public void run() {
+            if (SystemClock.uptimeMillis() >= hideMyselfAt) {
+                hide();
+            } else {
+                mHandler.postAtTime(this, hideMyselfAt);
+            }
+        }
+    };
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View v = inflater.inflate(R.layout.fragment_live_player_setting, container, false);
-        settingMenuView = v.findViewById(R.id.livePlayerMenu);
-        settingValueView = v.findViewById(R.id.livePlayerValue);
-        return v;
+        return inflater.inflate(R.layout.fragment_live_player_setting, container, false);
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        mHandler = new Handler(requireContext().getMainLooper());
+        AutoHide autoHide = (AutoHide) view;
+        autoHide.addEventListener(new AutoHide.EventListener() {
+            @Override
+            public void onMotionEvent(MotionEvent ev) {
+                hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
+            }
+
+            @Override
+            public void onKeyEvent(KeyEvent ev) {
+                hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
+            }
+        });
+
+        settingMenuView = view.findViewById(R.id.livePlayerMenu);
+        settingValueView = view.findViewById(R.id.livePlayerValue);
     }
 
     @Override
     public void onStart() {
         super.onStart();
         LivePlayerViewModel viewModel = new ViewModelProvider(requireActivity()).get(LivePlayerViewModel.class);
-        mHandler = new Handler(requireContext().getMainLooper());
 
         menus = new ArrayList<>();
         menus.add(new SetChannelSourceUrl(requireContext(), viewModel));
@@ -108,29 +141,15 @@ public class LivePlayerSetting extends Fragment {
         }
     }
 
-    public void setVisible(boolean isVisible) {
-        int visibility = isVisible ? View.VISIBLE : View.GONE;
-        if (isVisible() != isVisible) {
-            requireView().setVisibility(visibility);
-        }
-    }
-
     public void toggleVisibility() {
         if (isHidden()) {
-            mHandler.removeCallbacks(hideMyself);
             _show();
         } else {
             _hide();
         }
     }
 
-    public void show(long displayMillis) {
-        show();
-        mHandler.postDelayed(hideMyself, displayMillis);
-    }
-
     public void show() {
-        mHandler.removeCallbacks(hideMyself);
         if (!isHidden()) {
             return;
         }
@@ -156,5 +175,15 @@ public class LivePlayerSetting extends Fragment {
                 .beginTransaction()
                 .hide(this)
                 .commit();
+    }
+
+    @Override
+    public void onHiddenChanged(boolean hidden) {
+        super.onHiddenChanged(hidden);
+        mHandler.removeCallbacks(hideMyself);
+        if (!hidden) {
+            hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
+            mHandler.postAtTime(hideMyself, hideMyselfAt);
+        }
     }
 }

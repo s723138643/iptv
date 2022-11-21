@@ -20,6 +20,7 @@ import com.orion.player.IExtPlayer;
 import com.orion.player.ExtVideoSize;
 
 public class VideoPlayerView extends Fragment {
+    @SuppressWarnings("unused")
     private static final String TAG = "VideoPlayerView";
 
     private ComponentListener componentListener;
@@ -88,10 +89,12 @@ public class VideoPlayerView extends Fragment {
     /**
      * Returns the {@link AspectRatioFrameLayout.ResizeMode}.
      */
+    @SuppressWarnings("unused")
     public @AspectRatioFrameLayout.ResizeMode int getResizeMode() {
         return videoView.getResizeMode();
     }
 
+    @SuppressWarnings("unused")
     @Nullable
     public View getVideoSurfaceView() {
         return videoView.getVideoSurfaceView();
@@ -141,11 +144,7 @@ public class VideoPlayerView extends Fragment {
 
         @Override
         public boolean onSingleTapConfirmed(MotionEvent e) {
-            if (controller.isHidden()) {
-                controller.show(5*1000);
-            } else {
-                controller.hide();
-            }
+            controller.toggleVisibility();
             return true;
         }
 
@@ -202,7 +201,7 @@ public class VideoPlayerView extends Fragment {
         public void onDataSourceUsed(ExtDataSource dataSource) {
             toast.hide();
             buffering.show();
-            controller.show(5*1000);
+            controller.show();
         }
 
         @Override

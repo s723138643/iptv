@@ -7,13 +7,13 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.graphics.Paint;
 import android.os.Bundle;
 import android.os.Handler;
-import android.util.DisplayMetrics;
+import android.os.SystemClock;
 import android.util.Log;
-import android.util.TypedValue;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ToggleButton;
@@ -24,6 +24,7 @@ import com.orion.iptv.bean.ChannelItem;
 import com.orion.iptv.bean.EpgProgram;
 import com.orion.iptv.recycleradapter.RecyclerAdapter;
 import com.orion.iptv.recycleradapter.ViewHolder;
+import com.orion.player.ui.AutoHide;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,12 +43,43 @@ public class LiveChannelList extends Fragment {
     private ToggleButton showEpgButton;
 
     private Handler mHandler;
-    private final Runnable hideMyself = this::hide;
+    private static final long AutoHideAfterMillis = 5*1000;
+    private long hideMyselfAt = 0;
+    private final Runnable hideMyself = new Runnable() {
+        @Override
+        public void run() {
+            if (SystemClock.uptimeMillis() >= hideMyselfAt) {
+                hide();
+            } else {
+                mHandler.postAtTime(this, hideMyselfAt);
+            }
+        }
+    };
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_live_channel_list, container, false);
+        return inflater.inflate(R.layout.fragment_live_channel_list, container, false);
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        mHandler = new Handler(requireContext().getMainLooper());
+        AutoHide autoHide = (AutoHide) view;
+        autoHide.addEventListener(new AutoHide.EventListener() {
+            @Override
+            public void onMotionEvent(MotionEvent ev) {
+                hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
+            }
+
+            @Override
+            public void onKeyEvent(KeyEvent ev) {
+                hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
+            }
+        });
+
         groupList = view.findViewById(R.id.channelGroup);
         channelList = view.findViewById(R.id.channelList);
         epgList = view.findViewById(R.id.channelEpgList);
@@ -55,19 +87,11 @@ public class LiveChannelList extends Fragment {
         channelSpacer1 = view.findViewById(R.id.channelSpacer1);
         channelSpacer3 = view.findViewById(R.id.channelSpacer3);
         showEpgButton = view.findViewById(R.id.showEpgButton);
-        return view;
-    }
-
-    private int getTextPixelSize(DisplayMetrics metrics) {
-        float sp = new Paint().getTextSize();
-        float px = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp, metrics);
-        return (int) px;
     }
 
     @Override
     public void onStart() {
         super.onStart();
-        mHandler = new Handler(requireContext().getMainLooper());
         mViewModel = new ViewModelProvider(requireActivity()).get(LivePlayerViewModel.class);
         initGroupList();
         initChannelList();
@@ -171,20 +195,13 @@ public class LiveChannelList extends Fragment {
 
     public void toggleVisibility() {
         if (isHidden()) {
-            mHandler.removeCallbacks(hideMyself);
             _show();
         } else {
             _hide();
         }
     }
 
-    public void show(long displayMillis) {
-        show();
-        mHandler.postDelayed(hideMyself, displayMillis);
-    }
-
     public void show() {
-        mHandler.removeCallbacks(hideMyself);
         if (!isHidden()) {
             return;
         }
@@ -210,5 +227,15 @@ public class LiveChannelList extends Fragment {
                 .beginTransaction()
                 .hide(this)
                 .commit();
+    }
+
+    @Override
+    public void onHiddenChanged(boolean hidden) {
+        super.onHiddenChanged(hidden);
+        mHandler.removeCallbacks(hideMyself);
+        if (!hidden) {
+            hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
+            mHandler.postAtTime(hideMyself, hideMyselfAt);
+        }
     }
 }

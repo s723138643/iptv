@@ -2,12 +2,15 @@ package com.orion.player.ui;
 
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import android.os.Handler;
 import android.os.SystemClock;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
@@ -21,6 +24,7 @@ import com.orion.player.IExtPlayer;
 import java.util.Locale;
 
 public class PlayerController extends Fragment {
+    @SuppressWarnings("unused")
     private static final String TAG = "PlayerController";
     private static final int playIconRes = com.google.android.exoplayer2.ui.R.drawable.exo_icon_play;
     private static final int pauseIconRes = com.google.android.exoplayer2.ui.R.drawable.exo_icon_pause;
@@ -51,6 +55,7 @@ public class PlayerController extends Fragment {
             mHandler.postDelayed(this, 40);
         }
     };
+    private static final long AutoHideAfterMillis = 5*1000;
     private long hideMyselfAt = 0;
     private final Runnable hideMyself = new Runnable() {
         @Override
@@ -65,16 +70,34 @@ public class PlayerController extends Fragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_player_controller, container, false);
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
         mHandler = new Handler(requireContext().getMainLooper());
+        AutoHide autoHide = (AutoHide) view;
+        autoHide.addEventListener(new AutoHide.EventListener() {
+            @Override
+            public void onMotionEvent(MotionEvent ev) {
+                hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
+            }
+
+            @Override
+            public void onKeyEvent(KeyEvent ev) {
+                hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
+            }
+        });
+
         // Inflate the layout for this fragment
-        View view = inflater.inflate(R.layout.fragment_player_controller, container, false);
         position = view.findViewById(R.id.position);
         duration = view.findViewById(R.id.media_duration);
         seekBar = view.findViewById(R.id.seek_bar);
         seekToPrevButton = view.findViewById(R.id.prev);
         seekToNextButton = view.findViewById(R.id.next);
         playButton = view.findViewById(R.id.play_or_pause);
-        return view;
     }
 
     @Override
@@ -83,7 +106,6 @@ public class PlayerController extends Fragment {
 
         seekBar.setMin(0);
         playButton.setOnClickListener(button -> {
-            hideMyselfAt = SystemClock.uptimeMillis() + 5 * 1000;
             if (player == null) {
                 return;
             }
@@ -99,20 +121,15 @@ public class PlayerController extends Fragment {
             }
         });
 
-        seekToPrevButton.setOnClickListener(button -> {
-            hideMyselfAt = SystemClock.uptimeMillis() + 5 * 1000;
-        });
+        seekToPrevButton.setOnClickListener(button -> {});
 
-        seekToNextButton.setOnClickListener(button -> {
-            hideMyselfAt = SystemClock.uptimeMillis() + 5 * 1000;
-        });
+        seekToNextButton.setOnClickListener(button -> {});
 
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             private int progress = -1;
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
-                    hideMyselfAt = SystemClock.uptimeMillis() + 5 * 1000;
                     this.progress = progress;
                 }
             }
@@ -139,10 +156,16 @@ public class PlayerController extends Fragment {
     @Override
     public void onHiddenChanged(boolean hidden) {
         super.onHiddenChanged(hidden);
+        mHandler.removeCallbacks(hideMyself);
         if (hidden) {
             mHandler.removeCallbacks(updatePosition);
-        } else if (player != null && player.getPlaybackState() > IExtPlayer.STATE_IDLE) {
-            mHandler.post(updatePosition);
+        } else{
+            hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
+            mHandler.postAtTime(hideMyself, hideMyselfAt);
+            if (player != null && player.getPlaybackState() > IExtPlayer.STATE_IDLE)
+            {
+                mHandler.post(updatePosition);
+            }
         }
     }
 
@@ -156,26 +179,35 @@ public class PlayerController extends Fragment {
         this.player.addListener(componentListener);
     }
 
+    public void toggleVisibility() {
+        if (isHidden()) {
+            _show();
+        } else {
+            _hide();
+        }
+    }
+
     public void show() {
-        mHandler.removeCallbacks(hideMyself);
         if (!isHidden()) {
             return;
         }
+        _show();
+    }
+
+    private void _show() {
         getParentFragmentManager().beginTransaction()
                 .show(this)
                 .commit();
-    }
-
-    public void show(long displayMillis) {
-        show();
-        hideMyselfAt = SystemClock.uptimeMillis() + displayMillis;
-        mHandler.postAtTime(hideMyself, hideMyselfAt);
     }
 
     public void hide() {
         if (isHidden()) {
             return;
         }
+        _hide();
+    }
+
+    private void _hide() {
         getParentFragmentManager().beginTransaction()
                 .hide(this)
                 .commit();
