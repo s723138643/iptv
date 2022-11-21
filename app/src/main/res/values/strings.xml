@@ -43,4 +43,6 @@
     <string name="default_media_duration">0:00:00</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="gesture_direction_indicator">indicator of gestuer direction</string>
+    <string name="default_gesture_position">0:00:00/0:00:00</string>
 </resources>
