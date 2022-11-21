@@ -22,13 +22,14 @@ import java.util.Locale;
 
 public class PlayerController extends Fragment {
     private static final String TAG = "PlayerController";
+    private static final int playIconRes = com.google.android.exoplayer2.ui.R.drawable.exo_icon_play;
+    private static final int pauseIconRes = com.google.android.exoplayer2.ui.R.drawable.exo_icon_pause;
 
     private TextView position;
     private TextView duration;
     private SeekBar seekBar;
     private ImageButton seekToPrevButton;
     private ImageButton playButton;
-    private ImageButton pauseButton;
     private ImageButton seekToNextButton;
     private @Nullable IExtPlayer player;
 
@@ -72,8 +73,7 @@ public class PlayerController extends Fragment {
         seekBar = view.findViewById(R.id.seek_bar);
         seekToPrevButton = view.findViewById(R.id.prev);
         seekToNextButton = view.findViewById(R.id.next);
-        playButton = view.findViewById(R.id.play);
-        pauseButton = view.findViewById(R.id.pause);
+        playButton = view.findViewById(R.id.play_or_pause);
         return view;
     }
 
@@ -84,20 +84,18 @@ public class PlayerController extends Fragment {
         seekBar.setMin(0);
         playButton.setOnClickListener(button -> {
             hideMyselfAt = SystemClock.uptimeMillis() + 5 * 1000;
-            if (player != null && !player.isPlaying()) {
+            if (player == null) {
+                return;
+            }
+            if (player.isPlaying() || player.getPlaybackState() == IExtPlayer.STATE_BUFFERING) {
+                player.pause();
+            } else {
                 if (player.getPlaybackState() == IExtPlayer.STATE_ENDED) {
                     player.seekTo(0);
                     mHandler.removeCallbacks(updatePosition);
                     mHandler.post(updatePosition);
                 }
                 player.play();
-            }
-        });
-
-        pauseButton.setOnClickListener(button -> {
-            hideMyselfAt = SystemClock.uptimeMillis() + 5 * 1000;
-            if (player != null && player.isPlaying()) {
-                player.pause();
             }
         });
 
@@ -153,7 +151,6 @@ public class PlayerController extends Fragment {
             this.player.removeListener(componentListener);
             mHandler.removeCallbacks(updatePosition);
         }
-        pauseButton.setVisibility(View.GONE);
         playButton.setVisibility(View.VISIBLE);
         this.player = player;
         this.player.addListener(componentListener);
@@ -188,12 +185,10 @@ public class PlayerController extends Fragment {
         int[] d = new int[]{0, 0, 0};
 
         duration = duration / 1000;
-
         d[2] = (int) (duration % 60);
         duration = duration / 60;
         d[1] = (int) (duration % 60);
-        duration = duration / 60;
-        d[0] = (int) duration;
+        d[0] = (int) (duration / 60);
         return String.format(Locale.getDefault(), "%d:%02d:%02d", d[0], d[1], d[2]);
     }
 
@@ -206,13 +201,12 @@ public class PlayerController extends Fragment {
 
         @Override
         public void onIsPlayingChanged(boolean isPlaying) {
-            if (isPlaying) {
-                playButton.setVisibility(View.GONE);
-                pauseButton.setVisibility(View.VISIBLE);
-            } else {
-                pauseButton.setVisibility(View.GONE);
-                playButton.setVisibility(View.VISIBLE);
+            assert player != null;
+            int res = playIconRes;
+            if (isPlaying || player.getPlaybackState() == IExtPlayer.STATE_BUFFERING) {
+                res = pauseIconRes;
             }
+            playButton.setImageResource(res);
         }
 
         @Override
@@ -226,12 +220,6 @@ public class PlayerController extends Fragment {
                 case IExtPlayer.STATE_READY:
                     break;
             }
-        }
-
-        @Override
-        public void onPlayerError(Exception error) {
-            pauseButton.setVisibility(View.GONE);
-            playButton.setVisibility(View.VISIBLE);
         }
 
         @Override
