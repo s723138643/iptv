@@ -4,10 +4,10 @@ import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.os.Handler;
+import android.util.Log;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import com.google.android.exoplayer2.util.Log;
 import com.orion.iptv.R;
 import com.orion.iptv.network.HostIP;
 import com.orion.iptv.webserver.WebServer;

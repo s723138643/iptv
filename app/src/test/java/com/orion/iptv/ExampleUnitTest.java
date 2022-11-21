@@ -1,9 +1,7 @@
 package com.orion.iptv;
 
-import static org.junit.Assert.assertEquals;
+import android.util.Log;
 
-import com.google.android.exoplayer2.util.Log;
-import com.google.gson.JsonObject;
 import com.orion.iptv.network.DownloadHelper;
 import com.orion.iptv.network.PropfindParser;
 import com.orion.iptv.network.WebDavClient;

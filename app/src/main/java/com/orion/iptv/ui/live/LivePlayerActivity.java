@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.DisplayMetrics;
 import android.util.Pair;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 
@@ -13,7 +14,6 @@ import androidx.core.view.GestureDetectorCompat;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.google.android.exoplayer2.util.Log;
 import com.orion.iptv.R;
 import com.orion.iptv.bean.ChannelInfo;
 import com.orion.iptv.bean.ChannelSource;
