@@ -7,21 +7,19 @@ import java.util.Map;
 
 public class ExtDataSource {
     private final String uri;
-    private final Map<String, String> headers;
     private final Object tag;
+    private Map<String, String> headers;
+    private Auth auth;
 
     public ExtDataSource(String uri) {
-        this(uri, null, null);
+        this(uri, null);
     }
 
     public ExtDataSource(String uri, Object tag) {
-        this(uri, tag, null);
-    }
-
-    public ExtDataSource(String uri, Object tag, Map<String, String> headers) {
-        this.uri =uri;
+        this.uri = uri;
         this.tag = tag;
-        this.headers = headers;
+        this.headers = null;
+        this.auth = null;
     }
 
     @NonNull
@@ -37,5 +35,28 @@ public class ExtDataSource {
     @Nullable
     public Map<String, String> getHeaders() {
         return headers;
+    }
+
+    @Nullable
+    public Auth getAuth() {
+        return auth;
+    }
+
+    public void setHeaders(Map<String, String> headers) {
+        this.headers = headers;
+    }
+
+    public void setAuth(Auth auth) {
+        this.auth = auth;
+    }
+
+    public static class Auth {
+        public final String username;
+        public final String password;
+
+        public Auth(String username, String password) {
+            this.username = username;
+            this.password = password;
+        }
     }
 }

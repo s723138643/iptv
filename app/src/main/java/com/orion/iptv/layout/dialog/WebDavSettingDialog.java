@@ -2,7 +2,7 @@ package com.orion.iptv.layout.dialog;
 
 import android.content.Context;
 import android.content.DialogInterface;
-import android.net.Uri;
+import android.util.Pair;
 import android.widget.EditText;
 import android.util.Log;
 
@@ -15,7 +15,15 @@ import com.orion.iptv.ui.shares.Share;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import okhttp3.HttpUrl;
 
 public class WebDavSettingDialog {
     private static final String TAG = "WebDavSettingDialog";
@@ -84,26 +92,45 @@ public class WebDavSettingDialog {
         public void onClick(DialogInterface dialog, int which) {
             AlertDialog alertDialog = (AlertDialog) dialog;
             String webdavName = getValue(alertDialog, R.id.webdav_name).orElse("");
-            String webdavServer = getValue(alertDialog, R.id.webdav_server).map(address -> {
-                Uri uri = Uri.parse(address);
-                if (uri.getScheme().equals("webdav")) {
-                    return uri.buildUpon().scheme("http").build().toString();
+            // parse server address
+            Pair<String, List<String>> webdavServer = getValue(alertDialog, R.id.webdav_server).map(address -> {
+                HttpUrl uri = HttpUrl.parse(address);
+                if (uri == null) {
+                    return null;
                 }
-                return uri.toString();
-            }).orElse("");
-            String webdavPath = getValue(alertDialog, R.id.webdav_path).map(path -> {
-                path = path.trim();
-                path = path.replaceFirst("^/+", "/");
-                path = path.replaceFirst("/+$", "");
-                return path;
-            }).orElse("");
+                List<String> path = uri.pathSegments();
+                HttpUrl.Builder builder = new HttpUrl.Builder();
+                builder.scheme(uri.scheme());
+                if (uri.scheme().equalsIgnoreCase("webdav")) {
+                    builder.scheme("http");
+                }
+                builder.host(uri.host());
+                builder.port(uri.port());
+                return Pair.create(builder.build().toString(), path);
+            }).orElse(Pair.create("", new ArrayList<>()));
+
+            // parse initial path
+            List<String> initPath = getValue(alertDialog, R.id.webdav_path)
+                    .map(path -> Arrays.asList(path.split("/")))
+                    .orElse(new ArrayList<>());
+
+            // join all path, remove empty segment
+            List<String> path = Stream.of(webdavServer.second, initPath)
+                    .flatMap(Collection::stream)
+                    .filter(p -> !p.isEmpty())
+                    .collect(Collectors.toList());
+
+            // make relative path
+            String webdavPath = String.join("/", path);
+            // translate to absolute path
+            webdavPath = webdavPath.isEmpty() ? "/" : "/" + webdavPath + "/";
 
             String webdavUsername = getValue(alertDialog, R.id.webdav_username).orElse("");
             String webdavPassword = getValue(alertDialog, R.id.webdav_password).orElse("");
 
             JSONObject config = new JSONObject();
             try {
-                config.put("server", webdavServer);
+                config.put("server", webdavServer.first);
                 if (!webdavUsername.equals("")) {
                     config.put("username", webdavUsername);
                     config.put("password", webdavPassword);

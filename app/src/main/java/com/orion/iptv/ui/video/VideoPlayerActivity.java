@@ -7,6 +7,7 @@ import androidx.fragment.app.FragmentManager;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.ArrayMap;
 import android.util.Log;
 
 import com.orion.iptv.R;
@@ -19,6 +20,7 @@ import com.orion.player.ijk.ExtHWIjkPlayerFactory;
 import com.orion.player.ui.VideoPlayerView;
 
 import java.util.Locale;
+import java.util.Map;
 
 public class VideoPlayerActivity extends AppCompatActivity {
     private static final String TAG = "VideoPlayerActivity";
@@ -49,7 +51,22 @@ public class VideoPlayerActivity extends AppCompatActivity {
         Uri uri = intent.getData();
         if (uri != null) {
             Log.i("VideoPlayer", uri.toString());
-            player.setDataSource(new ExtDataSource(uri.toString()));
+            ExtDataSource dataSource = new ExtDataSource(uri.toString());
+            if (intent.hasExtra("headers")) {
+                Bundle bundle = intent.getBundleExtra("headers");
+                Map<String, String> headers = new ArrayMap<>();
+                headers.keySet().forEach(key -> headers.put(key, bundle.getString(key)));
+                dataSource.setHeaders(headers);
+            }
+            if (intent.hasExtra("auth")) {
+                Bundle bundle = intent.getBundleExtra("auth");
+                ExtDataSource.Auth auth = new ExtDataSource.Auth(
+                        bundle.getString("username"),
+                        bundle.getString("password")
+                );
+                dataSource.setAuth(auth);
+            }
+            player.setDataSource(dataSource);
         }
         player.prepare();
     }
@@ -59,6 +76,14 @@ public class VideoPlayerActivity extends AppCompatActivity {
         super.onResume();
         if (player != null) {
             player.play();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (player != null) {
+            player.pause();
         }
     }
 

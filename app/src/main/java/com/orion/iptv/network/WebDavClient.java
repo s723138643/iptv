@@ -28,12 +28,13 @@ public class WebDavClient {
     private final Share share;
     private static final String requestBody =
             "<?xml version=\"1.0\" encoding=\"utf-8\" ?>" +
-            "<D:propfind xmlns:D=\"DAV:\">" +
-            "<D:prop>" +
-            "<D:displayname />" +
-            "<D:getlastmodified />" +
-            "</D:prop>" +
-            "</D:propfind>";
+                    "<D:propfind xmlns:D=\"DAV:\">" +
+                    "<D:prop>" +
+                    "<D:resourcetype />" +
+                    "<D:displayname />" +
+                    "<D:getlastmodified />" +
+                    "</D:prop>" +
+                    "</D:propfind>";
     private static final MediaType xml = MediaType.get("application/xml; charset=utf-8");
     private final List<Call> calls;
 
@@ -42,33 +43,27 @@ public class WebDavClient {
         this.calls = new ArrayList<>();
     }
 
-    private Request.Builder maybeAddAuth(Request.Builder builder) {
-        JSONObject config = share.getConfig();
-        try {
-            String username = config.getString("username");
-            String password = config.getString("password");
-            return builder.addHeader("Authorization", Credentials.basic(username, password));
-        } catch (JSONException ignored) {
-            return builder;
-        }
-    }
-
     private Request.Builder setUrl(Request.Builder builder, String path) throws JSONException {
         JSONObject config = share.getConfig();
         HttpUrl url = HttpUrl.parse(config.getString("server"));
         assert url != null;
-        url = url.newBuilder()
-                .addPathSegments(path)
-                .build();
-        Log.i("WebDavClient", url.toString());
-        return builder.url(url);
+        HttpUrl.Builder urlBuilder = url.newBuilder().addPathSegments(path);
+        builder.url(urlBuilder.build());
+        if (config.has("username")) {
+            try {
+                String username = config.getString("username");
+                String password = config.getString("password");
+                builder.addHeader("Authorization", Credentials.basic(username, password));
+            } catch (Exception ignored) {
+            }
+        }
+        return builder;
     }
 
     public Request makeRequest(FileNode path) throws JSONException {
         Request.Builder builder = new Request.Builder();
         builder = builder.method("PROPFIND", RequestBody.create(requestBody, xml));
         builder = setUrl(builder, path.getPath());
-        builder = maybeAddAuth(builder);
         builder = builder.addHeader("Depth", "1");
         return builder.build();
     }

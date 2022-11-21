@@ -30,6 +30,7 @@ import com.orion.iptv.ui.video.VideoPlayerActivity;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -83,11 +84,9 @@ public class SharesContentFragment extends Fragment {
         assert share != null;
         client = new WebDavClient(share);
 
-        homeButton.setOnClickListener(buttonView -> {
-            requireActivity()
-                    .getSupportFragmentManager()
-                    .popBackStack(SharesHomeFragment.TAG, 0);
-        });
+        homeButton.setOnClickListener(buttonView -> requireActivity()
+                .getSupportFragmentManager()
+                .popBackStack(SharesHomeFragment.TAG, 0));
         initView();
         refresh();
     }
@@ -160,8 +159,8 @@ public class SharesContentFragment extends Fragment {
                         if (children == null) {
                             children = new ArrayList<>();
                         }
-                        children.add(0, FileNode.CURRENT);
                         children.add(0, FileNode.PARENT);
+                        children.add(0, FileNode.CURRENT);
                         java.util.List<FileNode> finalChildren = children;
                         mHandler.post(() -> {
                             setViewVisible(loading, false);
@@ -178,11 +177,8 @@ public class SharesContentFragment extends Fragment {
             String server = config.getString("server");
             HttpUrl httpUrl = HttpUrl.parse(server);
             assert httpUrl != null;
-            String url = httpUrl.newBuilder()
-                    .addPathSegments(node.getPath())
-                    .build()
-                    .toString();
-            return Uri.parse(url);
+            HttpUrl.Builder builder = httpUrl.newBuilder().addPathSegments(node.getPath());
+            return Uri.parse(builder.build().toString());
         } catch (JSONException err) {
             Log.e("SharesContentFragment", err.toString());
             return null;
@@ -207,6 +203,16 @@ public class SharesContentFragment extends Fragment {
     public void play(FileNode node) {
         Intent intent = new Intent(requireContext(), VideoPlayerActivity.class);
         intent.setData(makeUri(node));
+        JSONObject config = share.getConfig();
+        if (config.has("username")) {
+            Bundle bundle = new Bundle();
+            try {
+                bundle.putString("username", config.getString("username"));
+                bundle.putString("password", config.getString("password"));
+                intent.putExtra("auth", bundle);
+            } catch (JSONException ignored){
+            }
+        }
         startActivity(intent);
     }
 

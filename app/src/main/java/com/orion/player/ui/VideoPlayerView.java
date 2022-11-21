@@ -124,6 +124,7 @@ public class VideoPlayerView extends Fragment {
     private final class ComponentListener implements IExtPlayer.Listener {
         @Override
         public void onPlayerError(Exception error) {
+            buffering.hide();
             toast.setMessage(error.toString());
         }
 
@@ -138,7 +139,6 @@ public class VideoPlayerView extends Fragment {
         public void onPlaybackStateChanged(int state) {
             switch (state) {
                 case IExtPlayer.STATE_READY:
-                case IExtPlayer.STATE_IDLE:
                     buffering.hide();
                     break;
                 case IExtPlayer.STATE_ENDED:
@@ -147,6 +147,8 @@ public class VideoPlayerView extends Fragment {
                     break;
                 case IExtPlayer.STATE_BUFFERING:
                     buffering.show();
+                    break;
+                case IExtPlayer.STATE_IDLE:
                     break;
             }
         }

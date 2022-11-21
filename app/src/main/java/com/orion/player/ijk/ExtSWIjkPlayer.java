@@ -20,7 +20,10 @@ import com.orion.player.ExtVideoSize;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 
+import okhttp3.HttpUrl;
 import tv.danmaku.ijk.media.player.IMediaPlayer;
 import tv.danmaku.ijk.media.player.IjkMediaMeta;
 import tv.danmaku.ijk.media.player.IjkMediaPlayer;
@@ -39,6 +42,7 @@ public class ExtSWIjkPlayer implements IExtPlayer,
     protected final ComponentListener componentListener;
 
     protected @State int playbackState = IExtPlayer.STATE_IDLE;
+    protected boolean prepared = false;
     protected Exception playerError = null;
     protected long seekToPositionMsWhenReady = 0;
     protected boolean playWhenReady = false;
@@ -82,8 +86,22 @@ public class ExtSWIjkPlayer implements IExtPlayer,
     public void setDataSource(ExtDataSource dataSource) {
         this.dataSource = dataSource;
         listeners.forEach(listener -> listener.onDataSourceUsed(dataSource));
+        HttpUrl.Builder builder = Objects.requireNonNull(
+                HttpUrl.parse(dataSource.getUri())
+        ).newBuilder();
+        ExtDataSource.Auth auth = dataSource.getAuth();
+        if (auth != null) {
+            builder.username(auth.username);
+            builder.password(auth.password);
+        }
+        String url = builder.build().toString();
         try {
-            ijkMediaPlayer.setDataSource(dataSource.getUri());
+            Map<String, String> headers = dataSource.getHeaders();
+            if (headers != null) {
+                ijkMediaPlayer.setDataSource(url, headers);
+            } else {
+                ijkMediaPlayer.setDataSource(url);
+            }
         } catch (Exception error) {
             notifyError(error);
         }
@@ -106,11 +124,11 @@ public class ExtSWIjkPlayer implements IExtPlayer,
     @Override
     public void play() {
         try {
-            if (playbackState == STATE_IDLE) {
-                playWhenReady = true;
-            } else {
+            if (prepared) {
                 ijkMediaPlayer.start();
                 listeners.forEach(listener -> listener.onIsPlayingChanged(true));
+            } else {
+                playWhenReady = true;
             }
         } catch (IllegalStateException ignored) {
         }
@@ -119,11 +137,11 @@ public class ExtSWIjkPlayer implements IExtPlayer,
     @Override
     public void pause() {
         try {
-            if (playbackState == STATE_IDLE) {
-                playWhenReady = false;
-            } else {
+            if (prepared) {
                 ijkMediaPlayer.pause();
                 listeners.forEach(listener -> listener.onIsPlayingChanged(false));
+            } else {
+                playWhenReady = false;
             }
         } catch (IllegalStateException ignored) {
         }
@@ -217,7 +235,7 @@ public class ExtSWIjkPlayer implements IExtPlayer,
 
     @Override
     public boolean isPlaying() {
-        return ijkMediaPlayer.isPlaying();
+        return ijkMediaPlayer.isPlaying() && playbackState == STATE_READY;
     }
 
     @Override
@@ -325,7 +343,8 @@ public class ExtSWIjkPlayer implements IExtPlayer,
 
     @Override
     public void onPrepared(IMediaPlayer mp) {
-        maybeChangePlayerStateTo(STATE_READY);
+        prepared = true;
+        maybeChangePlayerStateTo(STATE_BUFFERING);
         IjkMediaMeta mediaMeta = ijkMediaPlayer.getMediaInfo().mMeta;
         listeners.forEach(listener -> listener.onDurationChanged(
                 mediaMeta.mStartUS/1000,
@@ -391,11 +410,7 @@ public class ExtSWIjkPlayer implements IExtPlayer,
             case IMediaPlayer.MEDIA_INFO_BUFFERING_START:
                 state = STATE_BUFFERING;
                 break;
-            case IMediaPlayer.MEDIA_INFO_AUDIO_DECODED_START:
-            case IMediaPlayer.MEDIA_INFO_AUDIO_RENDERING_START:
-            case IMediaPlayer.MEDIA_INFO_STARTED_AS_NEXT:
             case IMediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START:
-            case IMediaPlayer.MEDIA_INFO_AUDIO_SEEK_RENDERING_START:
             case IMediaPlayer.MEDIA_INFO_VIDEO_SEEK_RENDERING_START:
             case IMediaPlayer.MEDIA_INFO_BUFFERING_END:
                 state = STATE_READY;
