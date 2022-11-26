@@ -64,7 +64,7 @@ public class LivePlayerViewModel extends ViewModel {
     private final MutableLiveData<Pair<Pair<Integer, Integer>, ChannelInfo>> currentChannel;
     private final MutableLiveData<Pair<Integer, Pair<ChannelInfo, EpgProgram>>> currentEpgProgram;
     private final MutableLiveData<Pair<Integer, Pair<ChannelInfo, EpgProgram>>> nextEpgProgram;
-    private final MutableLiveData<Pair<Integer, ExtDataSource>> liveSource;
+    private final MutableLiveData<Pair<Integer, DataSource>> liveSource;
     private final MutableLiveData<Pair<Integer, IExtPlayerFactory<? extends IExtPlayer>>> playerFactory;
     private final MutableLiveData<String> settingUrl;
 
@@ -127,7 +127,7 @@ public class LivePlayerViewModel extends ViewModel {
         nextEpgProgram.observe(owner, observer);
     }
 
-    public void observeLiveSource(LifecycleOwner owner, Observer<Pair<Integer, ExtDataSource>> observer) {
+    public void observeLiveSource(LifecycleOwner owner, Observer<Pair<Integer, DataSource>> observer) {
         liveSource.observe(owner, observer);
     }
 
@@ -156,10 +156,10 @@ public class LivePlayerViewModel extends ViewModel {
         PreferenceStore.setInt(ChannelPosKey, position);
         PreferenceStore.setString(ChannelNameKey, item.info.channelName);
 
-        List<ExtDataSource> sources = item.getSources()
+        List<DataSource> sources = item.getSources()
                 .stream()
                 .filter(link -> link != null && !link.isEmpty())
-                .map(link -> new ExtDataSource(link, item.info))
+                .map(link -> new DataSource(new ExtDataSource(link), item.info))
                 .collect(Collectors.toList());
         sourceManager = new DataSourceManager(sources);
         liveSource.setValue(sourceManager.getCurrentDataSource());
@@ -253,11 +253,11 @@ public class LivePlayerViewModel extends ViewModel {
         return playerFactory.getValue();
     }
 
-    public Pair<Integer, ExtDataSource> getCurrentSource() {
+    public Pair<Integer, DataSource> getCurrentSource() {
         return liveSource.getValue();
     }
 
-    public int indexOf(ExtDataSource dataSource) {
+    public int indexOf(DataSource dataSource) {
         return sourceManager.getCursor(dataSource);
     }
 

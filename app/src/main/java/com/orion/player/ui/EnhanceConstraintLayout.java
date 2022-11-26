@@ -4,30 +4,31 @@ import android.content.Context;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
-import android.widget.FrameLayout;
+import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.constraintlayout.widget.ConstraintLayout;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class AutoHide extends FrameLayout {
+public class EnhanceConstraintLayout extends ConstraintLayout {
     private final List<EventListener> listeners;
 
-    public AutoHide(@NonNull Context context) {
+    public EnhanceConstraintLayout(@NonNull Context context) {
         this(context, null);
     }
 
-    public AutoHide(@NonNull Context context, @Nullable AttributeSet attrs) {
+    public EnhanceConstraintLayout(@NonNull Context context, @Nullable AttributeSet attrs) {
         this(context, attrs, 0);
     }
 
-    public AutoHide(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+    public EnhanceConstraintLayout(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         this(context, attrs, defStyleAttr, 0);
     }
 
-    public AutoHide(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+    public EnhanceConstraintLayout(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
         listeners = new ArrayList<>();
     }
@@ -52,8 +53,15 @@ public class AutoHide extends FrameLayout {
         return super.dispatchKeyEvent(event);
     }
 
+    @Override
+    protected void onVisibilityChanged(@NonNull View changedView, int visibility) {
+        super.onVisibilityChanged(changedView, visibility);
+        listeners.forEach(listeners -> listeners.onVisibilityChanged(changedView, visibility));
+    }
+
     public interface EventListener {
         default void onMotionEvent(MotionEvent ev) {}
         default void onKeyEvent(KeyEvent ev) {}
+        default void onVisibilityChanged(@NonNull View changedView, int visibility) {}
     }
 }

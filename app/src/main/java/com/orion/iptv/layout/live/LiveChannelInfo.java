@@ -1,8 +1,9 @@
 package com.orion.iptv.layout.live;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.content.res.Resources;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.SystemClock;
 import android.util.Pair;
 import android.view.LayoutInflater;
@@ -12,15 +13,18 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.orion.iptv.R;
 import com.orion.iptv.bean.ChannelInfo;
 import com.orion.iptv.bean.EpgProgram;
-import com.orion.player.ExtDataSource;
 import com.orion.player.ExtTrackInfo;
 import com.orion.player.IExtPlayer;
+import com.orion.player.ui.EnhanceConstraintLayout;
 
 import java.util.List;
 import java.util.Locale;
@@ -28,6 +32,7 @@ import java.util.Locale;
 public class LiveChannelInfo extends Fragment {
     private final String[] units = {"bps", "kbps", "Mbps", "Gbps"};
     protected LivePlayerViewModel viewModel;
+    protected EnhanceConstraintLayout container;
     protected TextView channelNumber;
     protected TextView channelName;
     protected TextView codecInfo;
@@ -38,7 +43,6 @@ public class LiveChannelInfo extends Fragment {
     protected TextView nextEpgProgram;
     protected Resources res;
 
-    protected Handler mHandler;
     protected long hideMyselfAt = 0;
     protected final Runnable hideMyself = new Runnable() {
         @Override
@@ -46,11 +50,12 @@ public class LiveChannelInfo extends Fragment {
             if (hideMyselfAt <= 0) {
                 return;
             }
-            if (SystemClock.uptimeMillis() >= hideMyselfAt) {
+            long diff = SystemClock.uptimeMillis() - hideMyselfAt;
+            if (diff >= 0) {
                 hideMyselfAt = 0;
                 hide();
             } else {
-                mHandler.postAtTime(this, hideMyselfAt);
+                container.postDelayed(this, -diff);
             }
         }
     };
@@ -65,7 +70,8 @@ public class LiveChannelInfo extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        mHandler = new Handler(requireContext().getMainLooper());
+
+        container = (EnhanceConstraintLayout) view;
         channelNumber = view.findViewById(R.id.channelNumber);
         channelName = view.findViewById(R.id.channelName);
         codecInfo = view.findViewById(R.id.codecInfo);
@@ -79,7 +85,7 @@ public class LiveChannelInfo extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
-        res = requireContext().getResources();
+        res = requireActivity().getResources();
         channelName.setSelected(true);
         currentEpgProgram.setSelected(true);
         nextEpgProgram.setSelected(true);
@@ -87,16 +93,31 @@ public class LiveChannelInfo extends Fragment {
         viewModel.observeLiveSource(requireActivity(), this::updateChannelInfo);
         viewModel.observeCurrentEpgProgram(requireActivity(), this::setCurrentEpgProgram);
         viewModel.observeNextEpgProgram(requireActivity(), this::setNextEpgProgram);
+        container.addEventListener(new EnhanceConstraintLayout.EventListener() {
+            @Override
+            public void onVisibilityChanged(@NonNull View changedView, int visibility) {
+                if (changedView != container) {
+                    return;
+                }
+                container.removeCallbacks(hideMyself);
+                if (visibility == View.VISIBLE && hideMyselfAt > 0) {
+                    container.postDelayed(hideMyself, Math.max(hideMyselfAt-SystemClock.uptimeMillis(), 1));
+                }
+            }
+        });
+        ViewCompat.setOnApplyWindowInsetsListener(requireView(), (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
+            mlp.leftMargin += insets.left;
+            mlp.rightMargin += insets.right;
+            mlp.bottomMargin += insets.bottom;
+            v.setLayoutParams(mlp);
+            return WindowInsetsCompat.CONSUMED;
+        });
     }
 
-    @Override
-    public void onStop() {
-        super.onStop();
-        mHandler.removeCallbacksAndMessages(null);
-    }
-
-    protected void updateChannelInfo(Pair<Integer, ExtDataSource> dataSource) {
-        ChannelInfo info = (ChannelInfo) dataSource.second.getTag();
+    protected void updateChannelInfo(Pair<Integer, DataSource> dataSource) {
+        ChannelInfo info = dataSource.second.channelInfo;
         assert info != null;
         setChannelNumber(info.channelNumber);
         setChannelName(info.channelName);
@@ -106,15 +127,15 @@ public class LiveChannelInfo extends Fragment {
         setLinkInfo(dataSource.first, viewModel.getSourceCount());
     }
 
-    public void setChannelName(String name) {
+    protected void setChannelName(String name) {
         this.channelName.setText(name);
     }
 
-    public void setChannelNumber(int number) {
+    protected void setChannelNumber(int number) {
         this.channelNumber.setText(String.format(Locale.ENGLISH, "%d", number));
     }
 
-    private String formatBitrate(long bitrate) {
+    protected String formatBitrate(long bitrate) {
         float base = 1000.0f;
         float rate = (float) bitrate;
         int i = 0;
@@ -127,7 +148,7 @@ public class LiveChannelInfo extends Fragment {
         return String.format(Locale.ENGLISH, "%.2f%s", rate, units[i]);
     }
 
-    public void setBitrateInfo(long bitrate) {
+    protected void setBitrateInfo(long bitrate) {
         if (bitrate <= 0) {
             this.bitrateInfo.setVisibility(View.GONE);
             return;
@@ -137,19 +158,19 @@ public class LiveChannelInfo extends Fragment {
         this.bitrateInfo.setVisibility(View.VISIBLE);
     }
 
-    public void setCodecInfo(String info) {
+    protected void setCodecInfo(String info) {
         this.codecInfo.setText(info);
     }
 
-    public void setMediaInfo(String info) {
+    protected void setMediaInfo(String info) {
         this.mediaInfo.setText(info);
     }
 
-    public void setLinkInfo(int currentIndex, int totalLinks) {
-        this.linkInfo.setText(String.format(Locale.ENGLISH, "[%d/%d]", currentIndex+1, totalLinks));
+    protected void setLinkInfo(int currentIndex, int totalLinks) {
+        this.linkInfo.setText(String.format(Locale.ENGLISH, "线路[%d/%d]", currentIndex+1, totalLinks));
     }
 
-    public void setCurrentEpgProgram(Pair<Integer, Pair<ChannelInfo, EpgProgram>> program) {
+    protected void setCurrentEpgProgram(Pair<Integer, Pair<ChannelInfo, EpgProgram>> program) {
         if (program != null) {
             currentEpgProgram.setText(program.second.second.content());
         } else {
@@ -157,7 +178,7 @@ public class LiveChannelInfo extends Fragment {
         }
     }
 
-    public void setNextEpgProgram(Pair<Integer, Pair<ChannelInfo, EpgProgram>> program) {
+    protected void setNextEpgProgram(Pair<Integer, Pair<ChannelInfo, EpgProgram>> program) {
         if (program != null) {
             nextEpgProgram.setText(program.second.second.content());
         } else {
@@ -169,9 +190,13 @@ public class LiveChannelInfo extends Fragment {
         player.addListener(listener);
     }
 
+    public boolean isViewHidden() {
+        return container.getVisibility() == View.GONE;
+    }
+
     @SuppressWarnings("unused")
     public void toggleVisibility() {
-        if (isHidden()) {
+        if (isViewHidden()) {
             show();
         } else {
             hide();
@@ -179,40 +204,54 @@ public class LiveChannelInfo extends Fragment {
     }
 
     public void show(long displayMillis) {
-        if (!isHidden() && hideMyselfAt <= 0) {
+        if (!isViewHidden() && hideMyselfAt <= 0) {
             // we have showed it without auth hide, so ignore this operation
             return;
         }
-        show();
         hideMyselfAt = SystemClock.uptimeMillis() + displayMillis;
+        _show();
     }
 
     public void show() {
         hideMyselfAt = 0;
-        getParentFragmentManager().beginTransaction()
-                .show(this)
-                .commit();
+        _show();
+    }
+
+    protected void _show() {
+        container.setAlpha(0);
+        container.setVisibility(View.VISIBLE);
+        container.animate()
+                .alpha(1f)
+                .setDuration(200)
+                .setListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        super.onAnimationEnd(animation);
+                        container.setAlpha(1f);
+                    }
+                });
     }
 
     public void hide(long delayMillis) {
-        mHandler.removeCallbacks(hideMyself);
+        if (isViewHidden()) {
+            return;
+        }
+        container.removeCallbacks(hideMyself);
         hideMyselfAt = SystemClock.uptimeMillis() + delayMillis;
-        mHandler.postAtTime(hideMyself, hideMyselfAt);
+        container.postDelayed(hideMyself, delayMillis);
     }
 
     public void hide() {
-        getParentFragmentManager().beginTransaction()
-                .hide(this)
-                .commit();
-    }
-
-    @Override
-    public void onHiddenChanged(boolean hidden) {
-        super.onHiddenChanged(hidden);
-        mHandler.removeCallbacks(hideMyself);
-        if (!hidden && hideMyselfAt > 0) {
-            mHandler.postAtTime(hideMyself, hideMyselfAt);
-        }
+        container.animate()
+                .alpha(0f)
+                .setDuration(200)
+                .setListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        super.onAnimationEnd(animation);
+                        container.setVisibility(View.GONE);
+                    }
+                });
     }
 
     private class PlayerEventListener implements IExtPlayer.Listener {

@@ -33,6 +33,9 @@ public class GroupListViewHolderFactory implements ViewHolderFactory<ViewHolder<
 
             @Override
             public void setActivated(boolean isActivated) {
+                if (itemView.isActivated() == isActivated) {
+                    return;
+                }
                 itemView.setActivated(isActivated);
                 content.setSelected(isActivated);
             }

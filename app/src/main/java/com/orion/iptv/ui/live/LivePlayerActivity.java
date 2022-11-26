@@ -5,12 +5,18 @@ import android.os.Handler;
 import android.util.DisplayMetrics;
 import android.util.Pair;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
 import androidx.core.view.GestureDetectorCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -20,6 +26,7 @@ import com.orion.iptv.bean.ChannelSource;
 import com.orion.iptv.bean.EpgProgram;
 import com.orion.iptv.epg.m51zmt.M51ZMT;
 import com.orion.iptv.layout.dialog.ChannelSourceDialog;
+import com.orion.iptv.layout.live.DataSource;
 import com.orion.iptv.layout.live.LiveChannelInfo;
 import com.orion.iptv.layout.live.LiveChannelList;
 import com.orion.iptv.layout.live.LivePlayerSetting;
@@ -27,6 +34,7 @@ import com.orion.iptv.layout.live.LivePlayerViewModel;
 import com.orion.iptv.misc.SourceTypeDetector;
 import com.orion.iptv.network.DownloadHelper;
 import com.orion.iptv.layout.NetworkSpeed;
+import com.orion.player.ui.Gesture;
 import com.orion.player.ui.VideoView;
 import com.orion.iptv.misc.PreferenceStore;
 import com.orion.player.ExtDataSource;
@@ -70,6 +78,7 @@ public class LivePlayerActivity extends AppCompatActivity {
     private GestureDetectorCompat gestureDetector;
     private float xFlyingThreshold;
     private float yFlyingThreshold;
+    private Gesture.Rect gestureArea;
 
     private final EpgRefresher epgRefresher = new EpgRefresher();
 
@@ -80,8 +89,8 @@ public class LivePlayerActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_liveplayer);
-        mViewModel = new ViewModelProvider(this).get(LivePlayerViewModel.class);
 
+        mViewModel = new ViewModelProvider(this).get(LivePlayerViewModel.class);
         gestureDetector = new GestureDetectorCompat(this, new GestureListener());
         DisplayMetrics metrics = this.getResources().getDisplayMetrics();
         Log.i(TAG, String.format(Locale.ENGLISH, "display size: %dx%d", metrics.widthPixels, metrics.heightPixels));
@@ -89,26 +98,15 @@ public class LivePlayerActivity extends AppCompatActivity {
         xFlyingThreshold = metrics.xdpi * 0.8f;
         // y flying 2cm on screen in pixel unit
         yFlyingThreshold = metrics.ydpi * 0.8f;
-        mHandler = new Handler(this.getMainLooper());
-        mPlayerHandler = new Handler(this.getMainLooper());
 
+        videoView = findViewById(R.id.video_view);
+        buffering = findViewById(R.id.buffering);
+        toast = findViewById(R.id.toast);
+        networkSpeed = findViewById(R.id.network_speed);
         FragmentManager fg = getSupportFragmentManager();
-        videoView = (VideoView) fg.findFragmentByTag("video_view");
-        buffering = (Buffering) fg.findFragmentByTag("buffering");
-        toast = (Toast) fg.findFragmentByTag("toast");
         channelInfo = (LiveChannelInfo) fg.findFragmentByTag("channel_info");
         channelList = (LiveChannelList) fg.findFragmentByTag("channel_list");
         playerSetting = (LivePlayerSetting) fg.findFragmentByTag("live_player_setting");
-        networkSpeed = (NetworkSpeed) fg.findFragmentByTag("network_speed");
-
-        getSupportFragmentManager().beginTransaction()
-                .hide(buffering)
-                .hide(toast)
-                .hide(channelList)
-                .hide(channelInfo)
-                .hide(playerSetting)
-                .commit();
-
         pendingCalls = new ArrayList<>();
     }
 
@@ -131,9 +129,38 @@ public class LivePlayerActivity extends AppCompatActivity {
         dialog.show();
     }
 
+    protected float dp2px(int dp) {
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics());
+    }
+
+    protected void initGestureArea() {
+        DisplayMetrics metrics = getResources().getDisplayMetrics();
+        gestureArea = new Gesture.Rect(metrics.widthPixels, metrics.heightPixels);
+        gestureArea.inset(dp2px(48), dp2px(48));
+    }
+
     @Override
     public void onStart() {
         super.onStart();
+
+        mHandler = new Handler(this.getMainLooper());
+        mPlayerHandler = new Handler(this.getMainLooper());
+
+        buffering.hide();
+        toast.hide();
+        getSupportFragmentManager().beginTransaction()
+                .hide(channelList)
+                .hide(channelInfo)
+                .hide(playerSetting)
+                .commit();
+
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        ViewCompat.setOnApplyWindowInsetsListener(getWindow().getDecorView(), (v, windowInsets) -> {
+            initGestureArea();
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemGestures());
+            gestureArea.inset(insets.left, insets.top, insets.right, insets.bottom);
+            return WindowInsetsCompat.CONSUMED;
+        });
         maybeShowSettingUrlDialog();
         mViewModel.observePlayerFactory(this, this::switchPlayer);
         mViewModel.observeLiveSource(this, this::switchDataSource);
@@ -150,13 +177,13 @@ public class LivePlayerActivity extends AppCompatActivity {
 
     private void switchPlayer(Pair<Integer, IExtPlayerFactory<? extends IExtPlayer>> playerFactory) {
         this.playerFactory = playerFactory.second;
-        Pair<Integer, ExtDataSource> dataSource = mViewModel.getCurrentSource();
+        Pair<Integer, DataSource> dataSource = mViewModel.getCurrentSource();
         if (dataSource != null) {
             switchDataSource(dataSource);
         }
     }
 
-    private void switchDataSource(Pair<Integer, ExtDataSource> dataSource) {
+    private void switchDataSource(Pair<Integer, DataSource> dataSource) {
         mPlayerHandler.removeCallbacksAndMessages(null);
         if (player != null) {
             player.release();
@@ -166,14 +193,17 @@ public class LivePlayerActivity extends AppCompatActivity {
         videoView.setPlayer(player);
         networkSpeed.setPlayer(player);
         channelInfo.setPlayer(player);
-        player.setDataSource(dataSource.second);
+        player.setDataSource(dataSource.second.dataSource);
         player.prepare();
         player.play();
     }
 
+    protected boolean inTouchArea(MotionEvent event) {
+        return gestureArea.in(event.getX(), event.getY());
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        super.onTouchEvent(event);
         return gestureDetector.onTouchEvent(event);
     }
 
@@ -190,6 +220,7 @@ public class LivePlayerActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        hideSystemBars();
         if (player != null) {
             player.play();
         }
@@ -215,9 +246,21 @@ public class LivePlayerActivity extends AppCompatActivity {
         }
     }
 
+    protected void hideSystemBars() {
+        WindowInsetsControllerCompat windowInsetsController = ViewCompat.getWindowInsetsController(getWindow().getDecorView());
+        if (windowInsetsController == null) {
+            return;
+        }
+        windowInsetsController.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+        windowInsetsController.hide(WindowInsetsCompat.Type.systemBars());
+    }
+
     private void processChannelList(String response) {
         ChannelSource source = ChannelSource.from("默认分组", response);
-        mHandler.post(() -> mViewModel.updateChannelSource(source));
+        mHandler.post(() -> {
+            buffering.hide();
+            mViewModel.updateChannelSource(source);
+        });
     }
 
     protected void fetchSetting(String url, int depth) {
@@ -233,15 +276,16 @@ public class LivePlayerActivity extends AppCompatActivity {
                 new Callback() {
                     @Override
                     public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                        buffering.hide();
                         pendingCalls.remove(call);
                         Log.e(TAG, "got channel list failed, " + e);
-                        toast.setMessage(e.toString(), 5*1000);
+                        mHandler.post(()->{
+                            buffering.hide();
+                            toast.setMessage(e.toString(), 5*1000);
+                        });
                     }
 
                     @Override
                     public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                        buffering.hide();
                         pendingCalls.remove(call);
                         String text = Objects.requireNonNull(response.body()).string();
                         if (SourceTypeDetector.isJson(text)) {
@@ -300,12 +344,15 @@ public class LivePlayerActivity extends AppCompatActivity {
     private class GestureListener extends GestureDetector.SimpleOnGestureListener {
         @Override
         public boolean onDown(@NonNull MotionEvent e) {
-            return true;
+            return inTouchArea(e);
         }
 
         @Override
         public boolean onSingleTapConfirmed(MotionEvent e) {
-            if (!playerSetting.isHidden()) {
+            if (!inTouchArea(e)) {
+                return false;
+            }
+            if (!playerSetting.isViewHidden()) {
                 playerSetting.hide();
             } else {
                 channelList.toggleVisibility();
@@ -315,7 +362,10 @@ public class LivePlayerActivity extends AppCompatActivity {
 
         @Override
         public void onLongPress(@NonNull MotionEvent e) {
-            if (!channelList.isHidden()) {
+            if (!inTouchArea(e)) {
+                return;
+            }
+            if (!channelList.isViewHidden()) {
                 channelList.hide();
             } else {
                 playerSetting.toggleVisibility();
@@ -324,6 +374,9 @@ public class LivePlayerActivity extends AppCompatActivity {
 
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            if (!inTouchArea(e1)) {
+                return false;
+            }
             float distX = e2.getX() - e1.getX();
             // distance is too short ignore this event
             if (Math.abs(distX) > xFlyingThreshold) {

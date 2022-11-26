@@ -87,7 +87,7 @@ public class ExtSWIjkPlayer implements IExtPlayer,
         listeners.forEach(listener -> listener.onDataSourceUsed(dataSource));
         String url = dataSource.getUri();
         ExtDataSource.Auth auth = dataSource.getAuth();
-        if (auth != null && url.startsWith("http")) {
+        if (!auth.equals(ExtDataSource.NoAuth) && url.startsWith("http")) {
             HttpUrl origUrl = HttpUrl.parse(dataSource.getUri());
             if (origUrl == null) {
                 String msg = String.format(Locale.getDefault(), "unsupported url: %s", dataSource.getUri());
@@ -101,7 +101,7 @@ public class ExtSWIjkPlayer implements IExtPlayer,
         }
         try {
             Map<String, String> headers = dataSource.getHeaders();
-            if (headers != null) {
+            if (headers.size() > 0) {
                 ijkMediaPlayer.setDataSource(url, headers);
             } else {
                 ijkMediaPlayer.setDataSource(url);
@@ -413,6 +413,8 @@ public class ExtSWIjkPlayer implements IExtPlayer,
             case IMediaPlayer.MEDIA_INFO_BUFFERING_START:
                 state = STATE_BUFFERING;
                 break;
+            case IMediaPlayer.MEDIA_INFO_AUDIO_RENDERING_START:
+            case IMediaPlayer.MEDIA_INFO_AUDIO_SEEK_RENDERING_START:
             case IMediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START:
             case IMediaPlayer.MEDIA_INFO_VIDEO_SEEK_RENDERING_START:
             case IMediaPlayer.MEDIA_INFO_BUFFERING_END:

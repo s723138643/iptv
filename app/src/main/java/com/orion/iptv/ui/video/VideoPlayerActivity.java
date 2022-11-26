@@ -2,81 +2,151 @@ package com.orion.iptv.ui.video;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.FragmentManager;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
+import androidx.preference.PreferenceManager;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.ArrayMap;
 import android.util.Log;
+import android.view.View;
+import android.widget.ImageButton;
+import android.widget.TextView;
 
 import com.orion.iptv.R;
-import com.orion.iptv.layout.NetworkSpeed;
 import com.orion.player.ExtDataSource;
 import com.orion.player.IExtPlayer;
 import com.orion.player.IExtPlayerFactory;
 import com.orion.player.exo.ExtExoPlayerFactory;
 import com.orion.player.ijk.ExtHWIjkPlayerFactory;
+import com.orion.player.ijk.ExtSWIjkPlayerFactory;
 import com.orion.player.ui.VideoPlayerView;
+import com.orion.player.ui.VideoView;
 
-import java.util.Locale;
 import java.util.Map;
 
 public class VideoPlayerActivity extends AppCompatActivity {
     private static final String TAG = "VideoPlayerActivity";
+    private static final long NoPosition = -1;
 
-    private VideoPlayerView videoPlayerView;
-    private NetworkSpeed networkSpeed;
-
-    private IExtPlayerFactory<? extends IExtPlayer> iExtPlayerFactory;
+    private VideoPlayerView playerView;
+    private View header;
+    private TextView title;
+    private ImageButton settings;
     private IExtPlayer player;
+    private long currentPosition = NoPosition;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_video_player);
-        FragmentManager fg = getSupportFragmentManager();
-        videoPlayerView = (VideoPlayerView) fg.findFragmentByTag("video_player");
-        networkSpeed = (NetworkSpeed) fg.findFragmentByTag("network_speed");
-        iExtPlayerFactory = new ExtHWIjkPlayerFactory();
+
+        playerView = findViewById(R.id.video_player);
+        header = findViewById(R.id.header);
+        title = findViewById(R.id.title);
+        settings = findViewById(R.id.settings);
+    }
+
+    protected ExtDataSource getDataSource() {
+        Intent intent = getIntent();
+        Uri uri = intent.getData();
+        if (uri == null) {
+            return null;
+        }
+        Log.i(TAG, uri.toString());
+        ExtDataSource dataSource = new ExtDataSource(uri.toString());
+        if (intent.hasExtra("headers")) {
+            Bundle bundle = intent.getBundleExtra("headers");
+            Map<String, String> headers = new ArrayMap<>();
+            headers.keySet().forEach(key -> headers.put(key, bundle.getString(key)));
+            dataSource.setHeaders(headers);
+        }
+        if (intent.hasExtra("auth")) {
+            Bundle bundle = intent.getBundleExtra("auth");
+            ExtDataSource.Auth auth = new ExtDataSource.Auth(
+                    bundle.getString("username"),
+                    bundle.getString("password")
+            );
+            dataSource.setAuth(auth);
+        }
+        return dataSource;
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        player = iExtPlayerFactory.create(this);
-        videoPlayerView.setPlayer(player);
-        networkSpeed.setPlayer(player);
-        Intent intent = getIntent();
-        Uri uri = intent.getData();
-        if (uri != null) {
-            Log.i("VideoPlayer", uri.toString());
-            ExtDataSource dataSource = new ExtDataSource(uri.toString());
-            if (intent.hasExtra("headers")) {
-                Bundle bundle = intent.getBundleExtra("headers");
-                Map<String, String> headers = new ArrayMap<>();
-                headers.keySet().forEach(key -> headers.put(key, bundle.getString(key)));
-                dataSource.setHeaders(headers);
-            }
-            if (intent.hasExtra("auth")) {
-                Bundle bundle = intent.getBundleExtra("auth");
-                ExtDataSource.Auth auth = new ExtDataSource.Auth(
-                        bundle.getString("username"),
-                        bundle.getString("password")
-                );
-                dataSource.setAuth(auth);
-            }
-            player.setDataSource(dataSource);
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        header.setVisibility(View.GONE);
+        settings.setOnClickListener(v -> {
+            startActivity(new Intent(this, VideoPlayerSettingsActivity.class));
+        });
+
+        ExtDataSource dataSource = getDataSource();
+        if (dataSource == null) {
+            finish();
+            return;
         }
+        setTitle(dataSource);
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        String playerType = preferences.getString("player_type", "ijkplayer");
+        String surfaceType = preferences.getString("surface_type", "surface_view");
+
+        playerView.setSurfaceType(toVideoViewSurfaceType(surfaceType));
+        playerView.setOrientationSwitchCallback(this::switchOrientation);
+        playerView.setOnControllerVisibilityChangedListener(this::changeHeaderVisibility);
+
+        player = createPlayer(playerType);
+        playerView.setPlayer(player);
+
+        player.setDataSource(dataSource);
         player.prepare();
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (player != null) {
-            player.play();
+    protected void switchOrientation() {
+        int orientation = getRequestedOrientation();
+        int newOrientation = orientation == ActivityInfo.SCREEN_ORIENTATION_PORTRAIT ? ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE : ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
+        setRequestedOrientation(newOrientation);
+    }
+
+    protected void changeHeaderVisibility(int visibility) {
+        header.setVisibility(visibility);
+    }
+
+    @NonNull
+    private IExtPlayer createPlayer(String playerType) {
+        IExtPlayerFactory<? extends IExtPlayer> factory;
+        switch (playerType) {
+            case "ijkplayer":
+                factory = new ExtHWIjkPlayerFactory();
+                break;
+            case "ijkplayer_sw":
+                factory = new ExtSWIjkPlayerFactory();
+                break;
+            case "exoplayer":
+            default:
+                factory = new ExtExoPlayerFactory();
         }
+        return factory.create(this);
+    }
+
+    private @VideoView.SurfaceType int toVideoViewSurfaceType(String surfaceType) {
+        @VideoView.SurfaceType int type;
+        switch (surfaceType) {
+            case "texture_view":
+                type = VideoView.SURFACE_TYPE_TEXTURE_VIEW;
+                break;
+            case "surface_view":
+            default:
+                type = VideoView.SURFACE_TYPE_SURFACE_VIEW;
+        }
+        return type;
     }
 
     @Override
@@ -84,38 +154,19 @@ public class VideoPlayerActivity extends AppCompatActivity {
         super.onPause();
         if (player != null) {
             player.pause();
+            currentPosition = player.getCurrentPosition();
         }
     }
 
     @Override
-    protected void onSaveInstanceState(@NonNull Bundle outState) {
-        Log.i(TAG, "saving state...");
-        super.onSaveInstanceState(outState);
-        if (player == null) {
-            return;
-        }
-        long position = player.getCurrentPosition();
-        outState.putLong("playbackPosition", position);
-        ExtDataSource dataSource = player.getDataSource();
-        assert dataSource != null;
-        outState.putString("mediaId", dataSource.getUri());
-        Log.i(TAG, String.format(Locale.ENGLISH, "save at %s::%d", dataSource.getUri(), position));
-    }
-
-    @Override
-    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
-        Log.i(TAG, "restoring state...");
-        super.onRestoreInstanceState(savedInstanceState);
-        long position = savedInstanceState.getLong("playbackPosition");
-        String mediaId = savedInstanceState.getString("mediaId");
-
+    protected void onResume() {
+        super.onResume();
+        hideSystemBars();
         if (player != null) {
-            ExtDataSource dataSource = player.getDataSource();
-            if (!mediaId.equals(dataSource.getUri())) {
-                return;
+            if (currentPosition != NoPosition) {
+                player.seekTo(currentPosition);
             }
-            player.seekTo(position);
-            Log.i(TAG, String.format(Locale.ENGLISH, "seek to %s::%d", mediaId, position));
+            player.play();
         }
     }
 
@@ -125,5 +176,23 @@ public class VideoPlayerActivity extends AppCompatActivity {
         if (player != null) {
             player.release();
         }
+    }
+
+    protected void setTitle(ExtDataSource dataSource) {
+        Uri uri = Uri.parse(dataSource.getUri());
+        String file = uri.getLastPathSegment();
+        if (file == null || !file.contains(".")) {
+            return;
+        }
+        title.setText(file);
+    }
+
+    protected void hideSystemBars() {
+        WindowInsetsControllerCompat windowInsetsController = ViewCompat.getWindowInsetsController(getWindow().getDecorView());
+        if (windowInsetsController == null) {
+            return;
+        }
+        windowInsetsController.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+        windowInsetsController.hide(WindowInsetsCompat.Type.systemBars());
     }
 }

@@ -2,6 +2,7 @@ package com.orion.iptv.recycleradapter;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.os.Looper;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
@@ -47,19 +48,24 @@ public class RecyclerAdapter<T extends ViewHolder<U>, U> extends RecyclerView.Ad
         return items.size();
     }
 
-    private void changeState(@NonNull RecyclerView.ViewHolder holder, int position) {
-        onBindViewHolder((T) holder, position);
+    private boolean positionIsValid(int position) {
+        return position < 0 || position >= items.size();
+    }
+
+    private boolean isNotSelectable(int position) {
+        return !repeatClickEnabled && position == currentSelected;
     }
 
     private void onSelected(@NonNull RecyclerView.ViewHolder holder, int position) {
         Log.i("Adapter", String.format(Locale.ENGLISH, "position: %d, selected: %d", position, currentSelected));
-        if (position < 0 || (!repeatClickEnabled && position == currentSelected)) {
+        assert Looper.myLooper() == Looper.getMainLooper();
+        if (positionIsValid(position) || isNotSelectable(position)) {
             return;
         }
         if (position != currentSelected) {
             lastSelected = currentSelected;
             currentSelected = position;
-            changeState(holder, position);
+            notifyItemChanged(position);
             if (lastSelected != RecyclerView.NO_POSITION) {
                 notifyItemChanged(lastSelected);
             }
@@ -76,14 +82,14 @@ public class RecyclerAdapter<T extends ViewHolder<U>, U> extends RecyclerView.Ad
     private void _selectQuiet(int position) {
         lastSelected = currentSelected;
         currentSelected = position;
+        notifyItemChanged(currentSelected);
         if (lastSelected != RecyclerView.NO_POSITION) {
             notifyItemChanged(lastSelected);
         }
-        notifyItemChanged(currentSelected);
     }
 
     public void select(int position) {
-        if (position < 0 || position >= items.size() || position == currentSelected) {
+        if (positionIsValid(position) || isNotSelectable(position)) {
             return;
         }
         _selectQuiet(position);
@@ -94,7 +100,7 @@ public class RecyclerAdapter<T extends ViewHolder<U>, U> extends RecyclerView.Ad
 
     public void selectQuiet(int position) {
         Log.i("Adapter", String.format(Locale.ENGLISH, "position: %d, selected: %d", position, currentSelected));
-        if (position < 0 || position >= items.size() || position == currentSelected) {
+        if (positionIsValid(position) || isNotSelectable(position)) {
             return;
         }
 
@@ -106,7 +112,7 @@ public class RecyclerAdapter<T extends ViewHolder<U>, U> extends RecyclerView.Ad
     }
 
     public void deselect(int position) {
-        if (position < 0 || position >= items.size() || position != currentSelected) {
+        if (positionIsValid(position) || position != currentSelected) {
             return;
         }
         currentSelected = RecyclerView.NO_POSITION;

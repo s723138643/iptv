@@ -23,6 +23,7 @@ import static java.lang.annotation.ElementType.PARAMETER;
 import static java.lang.annotation.ElementType.TYPE_USE;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -61,6 +62,7 @@ public final class AspectRatioFrameLayout extends FrameLayout {
     private @ResizeMode int resizeMode;
     private Resize resize;
     private ExtVideoSize videoSize;
+    private int orientation;
 
     public AspectRatioFrameLayout(@NonNull Context context) {
         this(context, /* attrs= */ null, 0, 0);
@@ -78,10 +80,34 @@ public final class AspectRatioFrameLayout extends FrameLayout {
         super(context, attrs, defStyleAttr, defStyleRes);
         resizeMode = RESIZE_MODE_FIT;
         resize = getResize(resizeMode);
-        DisplayMetrics metrics = context.getResources().getDisplayMetrics();
-        display = new ExtVideoSize(metrics.widthPixels, metrics.heightPixels);
-        Log.i(TAG, String.format(Locale.getDefault(), "display size: %dx%d %.2f", display.width, display.height, display.widthHeightRatio));
         videoSize = ExtVideoSize.UNKNOWN;
+    }
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        orientation = getResources().getConfiguration().orientation;
+        display = getDisplaySize();
+        setOnSystemUiVisibilityChangeListener(visibility -> display = getDisplaySize());
+    }
+
+    @Override
+    protected void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        if (newConfig.orientation == orientation) {
+            return;
+        }
+        orientation = newConfig.orientation;
+        display = getDisplaySize();
+        requestLayout();
+    }
+
+    private ExtVideoSize getDisplaySize() {
+        DisplayMetrics metrics = new DisplayMetrics();
+        getDisplay().getRealMetrics(metrics);
+        display = new ExtVideoSize(metrics.widthPixels, metrics.heightPixels);
+        Log.i(TAG, String.format(Locale.getDefault(), "display size: %s", display));
+        return display;
     }
 
     public void setVideoSize(ExtVideoSize videoSize) {
@@ -122,11 +148,7 @@ public final class AspectRatioFrameLayout extends FrameLayout {
         Log.i(TAG, String.format(Locale.getDefault(), "measureSpec: %dx%d", widthMeasureSpec, heightMeasureSpec));
         if (videoSize.equals(ExtVideoSize.UNKNOWN)) {
             // have no video size yet, set to original display size;
-            Log.i(TAG, String.format(Locale.getDefault(), "finalSize: %s", display));
-            super.onMeasure(
-                    MeasureSpec.makeMeasureSpec(display.width, MeasureSpec.EXACTLY),
-                    MeasureSpec.makeMeasureSpec(display.height, MeasureSpec.EXACTLY)
-            );
+            super.onMeasure(widthMeasureSpec, heightMeasureSpec);
             return;
         }
 

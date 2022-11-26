@@ -1,32 +1,45 @@
 package com.orion.player.ui;
 
+import android.content.Context;
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 
 import com.orion.iptv.R;
 
-public class Buffering extends Fragment {
+public class Buffering extends FrameLayout {
 
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public Buffering(@NonNull Context context) {
+        this(context, null);
+    }
+
+    public Buffering(@NonNull Context context, @Nullable AttributeSet attrs) {
+        this(context, attrs, 0);
+    }
+
+    public Buffering(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+        this(context, attrs, defStyleAttr, 0);
+    }
+
+    public Buffering(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+        super(context, attrs, defStyleAttr, defStyleRes);
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_buffering, container, false);
+        LayoutInflater.from(context).inflate(R.layout.fragment_buffering, this, true);
     }
 
     public void show() {
-        getParentFragmentManager().beginTransaction()
-                .show(this)
-                .commit();
+        setVisibility(View.VISIBLE);
     }
 
     public void hide() {
-        getParentFragmentManager().beginTransaction()
-                .hide(this)
-                .commit();
+        setVisibility(View.GONE);
     }
 }

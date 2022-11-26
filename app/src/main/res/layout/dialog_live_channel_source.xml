@@ -28,7 +28,8 @@
                 android:minHeight="40dp"
                 android:hint="@string/channel_source_hint"
                 android:inputType="textUri"
-                android:singleLine="true" />
+                android:singleLine="true"
+                android:padding="8dp"/>
         </com.google.android.material.textfield.TextInputLayout>
     </LinearLayout>
 </ScrollView>

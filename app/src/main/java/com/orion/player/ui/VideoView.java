@@ -19,18 +19,20 @@ import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.ElementType.PARAMETER;
 import static java.lang.annotation.ElementType.TYPE_USE;
 
-import android.os.Bundle;
+import android.content.Context;
+import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
 
+import com.google.android.exoplayer2.video.VideoDecoderGLSurfaceView;
 import com.orion.iptv.R;
 import com.orion.player.IExtPlayer;
 import com.orion.player.ExtVideoSize;
@@ -41,35 +43,41 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-public class VideoView extends Fragment {
+public class VideoView extends FrameLayout {
+    @SuppressWarnings("unused")
     private static final String TAG = "VideoView";
-
 
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target({METHOD, PARAMETER, TYPE_USE})
-    @IntDef({SURFACE_TYPE_SURFACE_VIEW, SURFACE_TYPE_TEXTURE_VIEW})
+    @IntDef({SURFACE_TYPE_SURFACE_VIEW, SURFACE_TYPE_TEXTURE_VIEW, SURFACE_TYPE_GL_SURFACE_VIEW})
     public @interface SurfaceType{}
     public static final int SURFACE_TYPE_SURFACE_VIEW = 0;
     public static final int SURFACE_TYPE_TEXTURE_VIEW = 1;
+    public static final int SURFACE_TYPE_GL_SURFACE_VIEW = 2;
 
-    private ComponentListener componentListener;
-    private AspectRatioFrameLayout contentFrame;
+    private final ComponentListener componentListener;
+    private final AspectRatioFrameLayout contentFrame;
     private @Nullable View surfaceView;
     private @Nullable IExtPlayer iExtPlayer;
     private @SurfaceType int surfaceType;
 
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_video_view, container, false);
-        contentFrame = (AspectRatioFrameLayout) view;
-        return view;
+    public VideoView(@NonNull Context context) {
+        this(context, null);
     }
 
-    @Override
-    public void onStart() {
-        super.onStart();
+    public VideoView(@NonNull Context context, @Nullable AttributeSet attrs) {
+        this(context, attrs, 0);
+    }
+
+    public VideoView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+        this(context, attrs, defStyleAttr, 0);
+    }
+
+    public VideoView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+        super(context, attrs, defStyleAttr, defStyleRes);
+        LayoutInflater.from(context).inflate(R.layout.fragment_video_view, this, true);
+        contentFrame = findViewById(R.id.content_frame);
         componentListener = new ComponentListener();
         surfaceType = SURFACE_TYPE_SURFACE_VIEW;
         // Content frame.
@@ -83,11 +91,14 @@ public class VideoView extends Fragment {
         View surface;
         switch (surfaceType) {
             case SURFACE_TYPE_TEXTURE_VIEW:
-                surface = new TextureView(requireContext());
+                surface = new TextureView(getContext());
+                break;
+            case SURFACE_TYPE_GL_SURFACE_VIEW:
+                surface = new VideoDecoderGLSurfaceView(getContext());
                 break;
             case SURFACE_TYPE_SURFACE_VIEW:
             default:
-                surface = new SurfaceView(requireContext());
+                surface = new SurfaceView(getContext());
                 break;
         }
         ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(
@@ -118,25 +129,30 @@ public class VideoView extends Fragment {
             return;
         }
         if (surface instanceof SurfaceView) {
-            iExtPlayer.clearVideoSurfaceView((SurfaceView) surface);
+            iExtPlayer.setVideoSurfaceView((SurfaceView) surface);
         } else if (surface instanceof TextureView) {
-            iExtPlayer.clearVideoTextureView((TextureView) surface);
+            iExtPlayer.setVideoTextureView((TextureView) surface);
         }
     }
 
+    @SuppressWarnings("unused")
     public void setSurfaceType(@SurfaceType int surfaceType) {
+        if (this.surfaceType == surfaceType) {
+            return;
+        }
         assert contentFrame != null;
         this.surfaceType = surfaceType;
         View newSurface = createSurfaceView(surfaceType);
         if (surfaceView != null) {
-            contentFrame.removeView(surfaceView);
             maybeDetachViewFromPlayer(surfaceView);
+            contentFrame.removeView(surfaceView);
         }
         surfaceView = newSurface;
-        maybeAttachViewToPlayer(newSurface);
         contentFrame.addView(newSurface, 0);
+        maybeAttachViewToPlayer(newSurface);
     }
 
+    @SuppressWarnings("unused")
     public void setResizeMode(@AspectRatioFrameLayout.ResizeMode int resizeMode) {
         assert contentFrame != null;
         contentFrame.setResizeMode(resizeMode);

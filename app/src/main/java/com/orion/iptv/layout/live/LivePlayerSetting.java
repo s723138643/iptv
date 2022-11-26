@@ -1,5 +1,7 @@
 package com.orion.iptv.layout.live;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.SystemClock;
@@ -20,7 +22,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.orion.iptv.R;
 import com.orion.iptv.recycleradapter.RecyclerAdapter;
 import com.orion.iptv.recycleradapter.ViewHolder;
-import com.orion.player.ui.AutoHide;
+import com.orion.player.ui.EnhanceConstraintLayout;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,16 +33,18 @@ public class LivePlayerSetting extends Fragment {
     private RecyclerView settingValueView;
     private RecyclerAdapter<ViewHolder<SettingValue>, SettingValue> valueViewAdapter;
     private List<SettingMenu> menus;
-    private Handler mHandler;
-    private static final long AutoHideAfterMillis = 5*1000;
+    EnhanceConstraintLayout enhanceConstraintLayout;
+    private static final long AutoHideAfterMillis = 5 * 1000;
     private long hideMyselfAt = 0;
     private final Runnable hideMyself = new Runnable() {
         @Override
         public void run() {
-            if (SystemClock.uptimeMillis() >= hideMyselfAt) {
+            long diff = SystemClock.uptimeMillis() - hideMyselfAt;
+            if (diff >= 0) {
+                hideMyselfAt = 0;
                 hide();
             } else {
-                mHandler.postAtTime(this, hideMyselfAt);
+                enhanceConstraintLayout.postDelayed(this, -diff);
             }
         }
     };
@@ -55,20 +59,7 @@ public class LivePlayerSetting extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        mHandler = new Handler(requireContext().getMainLooper());
-        AutoHide autoHide = (AutoHide) view;
-        autoHide.addEventListener(new AutoHide.EventListener() {
-            @Override
-            public void onMotionEvent(MotionEvent ev) {
-                hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
-            }
-
-            @Override
-            public void onKeyEvent(KeyEvent ev) {
-                hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
-            }
-        });
-
+        enhanceConstraintLayout = (EnhanceConstraintLayout) view;
         settingMenuView = view.findViewById(R.id.livePlayerMenu);
         settingValueView = view.findViewById(R.id.livePlayerValue);
     }
@@ -79,46 +70,61 @@ public class LivePlayerSetting extends Fragment {
         LivePlayerViewModel viewModel = new ViewModelProvider(requireActivity()).get(LivePlayerViewModel.class);
 
         menus = new ArrayList<>();
-        menus.add(new SetChannelSourceUrl(requireContext(), viewModel));
+        menus.add(new SetChannelSourceUrl(requireActivity(), viewModel));
         menus.add(new SetPlayerFactory(viewModel));
+        enhanceConstraintLayout.addEventListener(new EnhanceConstraintLayout.EventListener() {
+            @Override
+            public void onMotionEvent(MotionEvent ev) {
+                hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
+            }
 
+            @Override
+            public void onKeyEvent(KeyEvent ev) {
+                hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
+            }
+
+            @Override
+            public void onVisibilityChanged(@NonNull View changedView, int visibility) {
+                if (changedView != enhanceConstraintLayout) {
+                    return;
+                }
+                enhanceConstraintLayout.removeCallbacks(hideMyself);
+                if (visibility == View.VISIBLE && hideMyselfAt > 0) {
+                    enhanceConstraintLayout.postDelayed(hideMyself, Math.max(hideMyselfAt-SystemClock.uptimeMillis(), 1));
+                }
+            }
+        });
         initMenuList();
         initValueList();
     }
 
-    @Override
-    public void onStop() {
-        super.onStop();
-        mHandler.removeCallbacksAndMessages(null);
-    }
-
     protected void initValueList() {
-        LinearLayoutManager layoutManager = new LinearLayoutManager(requireContext());
+        LinearLayoutManager layoutManager = new LinearLayoutManager(requireActivity());
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         layoutManager.setMeasurementCacheEnabled(false);
         settingValueView.setLayoutManager(layoutManager);
         valueViewAdapter = new RecyclerAdapter<>(
-                requireContext(),
+                requireActivity(),
                 menus.get(0).getValues(),
-                new ValueListViewHolderFactory(requireContext(), R.layout.layout_list_item)
+                new ValueListViewHolderFactory(requireActivity(), R.layout.layout_list_item)
         );
         valueViewAdapter.setOnSelectedListener(this::onValueSelected);
         settingValueView.setAdapter(valueViewAdapter);
-        settingValueView.addOnItemTouchListener(valueViewAdapter.new OnItemTouchListener(requireContext(), settingValueView));
+        settingValueView.addOnItemTouchListener(valueViewAdapter.new OnItemTouchListener(requireActivity(), settingValueView));
     }
 
     protected void initMenuList() {
-        LinearLayoutManager layoutManager = new LinearLayoutManager(requireContext());
+        LinearLayoutManager layoutManager = new LinearLayoutManager(requireActivity());
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         layoutManager.setMeasurementCacheEnabled(false);
         settingMenuView.setLayoutManager(layoutManager);
         RecyclerAdapter<ViewHolder<SettingMenu>, SettingMenu> menuViewAdapter = new RecyclerAdapter<>(
-                requireContext(),
+                requireActivity(),
                 menus,
-                new MenuListViewHolderFactory(requireContext(), R.layout.layout_list_item)
+                new MenuListViewHolderFactory(requireActivity(), R.layout.layout_list_item)
         );
         settingMenuView.setAdapter(menuViewAdapter);
-        settingMenuView.addOnItemTouchListener(menuViewAdapter.new OnItemTouchListener(requireContext(), settingMenuView));
+        settingMenuView.addOnItemTouchListener(menuViewAdapter.new OnItemTouchListener(requireActivity(), settingMenuView));
         menuViewAdapter.setOnSelectedListener(this::onMenuSelected);
         menuViewAdapter.selectQuiet(0);
     }
@@ -127,7 +133,7 @@ public class LivePlayerSetting extends Fragment {
         value.onSelected();
         if (value.isButton()) {
             Log.i("Setting", "clear selection...");
-            mHandler.postDelayed(valueViewAdapter::clearSelection, 800);
+            enhanceConstraintLayout.postDelayed(valueViewAdapter::clearSelection, 800);
         }
     }
 
@@ -141,8 +147,12 @@ public class LivePlayerSetting extends Fragment {
         }
     }
 
+    public boolean isViewHidden() {
+        return enhanceConstraintLayout.getVisibility() == View.GONE;
+    }
+
     public void toggleVisibility() {
-        if (isHidden()) {
+        if (enhanceConstraintLayout.getVisibility() == View.GONE) {
             show();
         } else {
             hide();
@@ -150,26 +160,36 @@ public class LivePlayerSetting extends Fragment {
     }
 
     public void show() {
-        getParentFragmentManager()
-                .beginTransaction()
-                .show(this)
-                .commit();
+        hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
+        enhanceConstraintLayout.setAlpha(0f);
+        enhanceConstraintLayout.setVisibility(View.VISIBLE);
+        enhanceConstraintLayout.animate()
+                .alpha(1f)
+                .setDuration(200)
+                .setListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        super.onAnimationEnd(animation);
+                        enhanceConstraintLayout.setAlpha(1f);
+                    }
+                });
     }
 
     public void hide() {
-        getParentFragmentManager()
-                .beginTransaction()
-                .hide(this)
-                .commit();
-    }
-
-    @Override
-    public void onHiddenChanged(boolean hidden) {
-        super.onHiddenChanged(hidden);
-        mHandler.removeCallbacks(hideMyself);
-        if (!hidden) {
-            hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
-            mHandler.postAtTime(hideMyself, hideMyselfAt);
-        }
+        enhanceConstraintLayout.animate()
+                .alpha(0f)
+                .setDuration(200)
+                .setListener(new AnimatorListenerAdapter() {
+                    /**
+                     * {@inheritDoc}
+                     *
+                     * @param animation
+                     */
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        super.onAnimationEnd(animation);
+                        enhanceConstraintLayout.setVisibility(View.GONE);
+                    }
+                });
     }
 }

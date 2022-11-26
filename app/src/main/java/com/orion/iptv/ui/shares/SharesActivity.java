@@ -29,6 +29,9 @@ public class SharesActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_shares);
+        if (savedInstanceState != null) {
+            return;
+        }
         SharesViewModel sharesViewModel = new ViewModelProvider(this).get(SharesViewModel.class);
         resumeFromFile(sharesViewModel);
         sharesViewModel.getShares().observe(this, this::saveToFile);

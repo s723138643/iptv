@@ -1,27 +1,31 @@
 package com.orion.player.ui;
 
-import android.os.Bundle;
+import android.content.Context;
+import android.content.res.Configuration;
+import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.util.TypedValue;
 import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
-import android.view.View;
-import android.view.ViewGroup;
+import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.graphics.Insets;
 import androidx.core.view.GestureDetectorCompat;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import com.orion.iptv.R;
 import com.orion.player.ExtDataSource;
 import com.orion.player.IExtPlayer;
 import com.orion.player.ExtVideoSize;
 
-public class VideoPlayerView extends Fragment {
-    @SuppressWarnings("unused")
+public class VideoPlayerView extends FrameLayout {
     private static final String TAG = "VideoPlayerView";
+    private static final int GestureInsetXdp = 48;
+    private static final int GestureInsetYdp = 48;
 
     private ComponentListener componentListener;
 
@@ -30,33 +34,54 @@ public class VideoPlayerView extends Fragment {
     private PlayerController controller;
     private Buffering buffering;
     private Toast toast;
+    private Gesture.Rect gestureArea;
+    private int orientation;
 
     IExtPlayer iExtPlayer;
 
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_video_player_view, container, false);
-        FragmentManager fg = getChildFragmentManager();
-        videoView = (VideoView) fg.findFragmentByTag("video_view");
-        controller = (PlayerController) fg.findFragmentByTag("player_controller");
-        gesture = (Gesture) fg.findFragmentByTag("gesture");
-        buffering = (Buffering) fg.findFragmentByTag("buffering");
-        toast = (Toast) fg.findFragmentByTag("toast");
-        return view;
+    public VideoPlayerView(@NonNull Context context) {
+        this(context, null);
     }
 
-    @Override
-    public void onStart() {
-        super.onStart();
+    public VideoPlayerView(@NonNull Context context, @Nullable AttributeSet attrs) {
+        this(context, attrs, 0);
+    }
+
+    public VideoPlayerView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+        this(context, attrs, defStyleAttr, 0);
+    }
+
+    public VideoPlayerView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+        super(context, attrs, defStyleAttr, defStyleRes);
+        LayoutInflater.from(context).inflate(R.layout.fragment_video_player_view, this, true);
+        initView();
+    }
+
+    protected void initView() {
+        videoView = findViewById(R.id.video_view);
+        controller = findViewById(R.id.player_controller);
+        gesture = findViewById(R.id.gesture);
+        buffering = findViewById(R.id.buffering);
+        toast = findViewById(R.id.toast);
+
         toast.hide();
         buffering.hide();
         gesture.hide();
         controller.hide();
+
         componentListener = new ComponentListener();
+
+        initGestureArea();
+        ViewCompat.setOnApplyWindowInsetsListener(this, (v, insets) -> {
+            initGestureArea();
+            Insets sysInsets = insets.getInsets(WindowInsetsCompat.Type.systemGestures());
+            gestureArea.inset(sysInsets.left, sysInsets.top, sysInsets.right, sysInsets.bottom);
+            return WindowInsetsCompat.CONSUMED;
+        });
+
         GestureListener gestureListener = new GestureListener();
-        GestureDetectorCompat gestureDetector = new GestureDetectorCompat(requireContext(), gestureListener);
-        requireView().setOnTouchListener((mView, event)-> {
+        GestureDetectorCompat gestureDetector = new GestureDetectorCompat(getContext(), gestureListener);
+        setOnTouchListener((mView, event)-> {
             mView.performClick();
             if (event.getAction() == MotionEvent.ACTION_UP) {
                 if (gestureListener.isScrolling()) {
@@ -67,71 +92,82 @@ public class VideoPlayerView extends Fragment {
         });
     }
 
+    @Override
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        if (newConfig.orientation == orientation) {
+            return;
+        }
+        initGestureArea();
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    protected float dp2px(float dp) {
+        return TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                dp,
+                getResources().getDisplayMetrics()
+        );
+    }
+
+    protected void initGestureArea() {
+        DisplayMetrics metrics = getResources().getDisplayMetrics();
+        gestureArea = new Gesture.Rect(metrics.widthPixels, metrics.heightPixels);
+        gestureArea.inset(dp2px(GestureInsetXdp), dp2px(GestureInsetYdp));
+    }
+
+    public void setSurfaceType(@VideoView.SurfaceType int type) {
+        videoView.setSurfaceType(type);
+    }
+
     /**
      * Sets the {@link IExtPlayer} to use.
      */
-    public void setPlayer(@Nullable IExtPlayer iExtPlayer) {
-        if (this.iExtPlayer == iExtPlayer) {
-            return;
-        }
+    public void setPlayer(@NonNull IExtPlayer iExtPlayer) {
         videoView.setPlayer(iExtPlayer);
         controller.setPlayer(iExtPlayer);
-        @Nullable IExtPlayer oldIExtPlayer = this.iExtPlayer;
-        if (oldIExtPlayer != null) {
-            oldIExtPlayer.removeListener(componentListener);
+        if (this.iExtPlayer != null) {
+            this.iExtPlayer.removeListener(componentListener);
         }
         this.iExtPlayer = iExtPlayer;
-        if (iExtPlayer != null) {
-            iExtPlayer.addListener(componentListener);
-        }
+        iExtPlayer.addListener(componentListener);
     }
 
-    /**
-     * Returns the {@link AspectRatioFrameLayout.ResizeMode}.
-     */
-    @SuppressWarnings("unused")
-    public @AspectRatioFrameLayout.ResizeMode int getResizeMode() {
-        return videoView.getResizeMode();
+    public void setOrientationSwitchCallback(PlayerController.OrientationSwitchCallback callback) {
+        controller.setOrientationCallback(callback);
     }
 
-    @SuppressWarnings("unused")
-    @Nullable
-    public View getVideoSurfaceView() {
-        return videoView.getVideoSurfaceView();
+    public void setOnControllerVisibilityChangedListener(PlayerController.OnVisibilityChangedListener listener) {
+        controller.setOnVisibilityChangedListener(listener);
     }
 
     private void updateAspectRatio(ExtVideoSize videoSize) {
         videoView.setVideoSize(videoSize);
     }
 
-    @Override
-    public void onStop() {
-        super.onStop();
-    }
-
     private class GestureListener extends GestureDetector.SimpleOnGestureListener {
         private final float displayWidth;
         // max duration for gesture fast forward or rewind
         @SuppressWarnings("FieldCanBeLocal")
-        private final float maxScrollDuration = 30.0f * 60 * 1000;
+        private final float maxScrollDuration = 10.0f * 60 * 1000;
         @SuppressWarnings("FieldCanBeLocal")
         private final float MIN_SCROLL = 32.0f;
         private boolean scrolling;
         private long position;
 
         {
-            DisplayMetrics metrics = requireContext().getResources().getDisplayMetrics();
+            DisplayMetrics metrics = getResources().getDisplayMetrics();
             displayWidth = (float) metrics.widthPixels;
         }
 
         @Override
         public boolean onDown(@NonNull MotionEvent e) {
-            return true;
+            return gestureArea.in(e.getX(), e.getY());
         }
 
         @Override
         public boolean onDoubleTap(@NonNull MotionEvent e) {
-            if (iExtPlayer == null) {
+            if (iExtPlayer == null || !gestureArea.in(e.getX(), e.getY())) {
                 return true;
             }
             if (iExtPlayer.isPlaying()) {
@@ -144,17 +180,21 @@ public class VideoPlayerView extends Fragment {
 
         @Override
         public boolean onSingleTapConfirmed(MotionEvent e) {
+            if (!gestureArea.in(e.getX(), e.getY())) {
+                return false;
+            }
             controller.toggleVisibility();
             return true;
         }
 
         @Override
         public boolean onScroll(@NonNull MotionEvent e1, @NonNull MotionEvent e2, float distanceX, float distanceY) {
-            if (iExtPlayer == null) {
+            if (iExtPlayer == null || !gestureArea.in(e1.getX(), e1.getY())) {
                 return true;
             }
             float dx = e2.getX() - e1.getX();
-            if (Math.abs(dx) < MIN_SCROLL) {
+            float dy = e2.getY() - e1.getY();
+            if (Math.abs(dx) < MIN_SCROLL || Math.abs(dx) <= Math.abs(dy) * 1.78) {
                 return true;
             }
             // real scroll distance, make sure it start at 0

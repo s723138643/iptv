@@ -2,13 +2,17 @@ package com.orion.iptv.layout.live;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -24,7 +28,7 @@ import com.orion.iptv.bean.ChannelItem;
 import com.orion.iptv.bean.EpgProgram;
 import com.orion.iptv.recycleradapter.RecyclerAdapter;
 import com.orion.iptv.recycleradapter.ViewHolder;
-import com.orion.player.ui.AutoHide;
+import com.orion.player.ui.EnhanceConstraintLayout;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,6 +39,8 @@ public class LiveChannelList extends Fragment {
     private static final String TAG = "LiveChannelList";
 
     private LivePlayerViewModel mViewModel;
+
+    EnhanceConstraintLayout enhanceConstraintLayout;
     private RecyclerView groupList;
     private RecyclerView channelList;
     private RecyclerView epgList;
@@ -42,16 +48,17 @@ public class LiveChannelList extends Fragment {
     private View channelSpacer3;
     private ToggleButton showEpgButton;
 
-    private Handler mHandler;
     private static final long AutoHideAfterMillis = 5*1000;
     private long hideMyselfAt = 0;
     private final Runnable hideMyself = new Runnable() {
         @Override
         public void run() {
-            if (SystemClock.uptimeMillis() >= hideMyselfAt) {
+            long diff = SystemClock.uptimeMillis() - hideMyselfAt;
+            if (diff >= 0) {
+                hideMyselfAt = 0;
                 hide();
             } else {
-                mHandler.postAtTime(this, hideMyselfAt);
+                enhanceConstraintLayout.postDelayed(this, -diff);
             }
         }
     };
@@ -66,20 +73,7 @@ public class LiveChannelList extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        mHandler = new Handler(requireContext().getMainLooper());
-        AutoHide autoHide = (AutoHide) view;
-        autoHide.addEventListener(new AutoHide.EventListener() {
-            @Override
-            public void onMotionEvent(MotionEvent ev) {
-                hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
-            }
-
-            @Override
-            public void onKeyEvent(KeyEvent ev) {
-                hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
-            }
-        });
-
+        enhanceConstraintLayout = (EnhanceConstraintLayout) view;
         groupList = view.findViewById(R.id.channelGroup);
         channelList = view.findViewById(R.id.channelList);
         epgList = view.findViewById(R.id.channelEpgList);
@@ -93,15 +87,40 @@ public class LiveChannelList extends Fragment {
     public void onStart() {
         super.onStart();
         mViewModel = new ViewModelProvider(requireActivity()).get(LivePlayerViewModel.class);
+        enhanceConstraintLayout.addEventListener(new EnhanceConstraintLayout.EventListener() {
+            @Override
+            public void onMotionEvent(MotionEvent ev) {
+                hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
+            }
+
+            @Override
+            public void onKeyEvent(KeyEvent ev) {
+                hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
+            }
+
+            @Override
+            public void onVisibilityChanged(@NonNull View changedView, int visibility) {
+                if (changedView != enhanceConstraintLayout) {
+                    return;
+                }
+                enhanceConstraintLayout.removeCallbacks(hideMyself);
+                if (visibility == View.VISIBLE && hideMyselfAt > 0) {
+                    enhanceConstraintLayout.postDelayed(hideMyself, Math.max(hideMyselfAt-SystemClock.uptimeMillis(), 1));
+                }
+            }
+        });
         initGroupList();
         initChannelList();
         initEpgList();
-    }
-
-    @Override
-    public void onStop() {
-        super.onStop();
-        mHandler.removeCallbacksAndMessages(null);
+        ViewCompat.setOnApplyWindowInsetsListener(requireView(), (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
+            mlp.leftMargin += insets.left;
+            mlp.topMargin += insets.top;
+            mlp.bottomMargin += insets.bottom;
+            v.setLayoutParams(mlp);
+            return WindowInsetsCompat.CONSUMED;
+        });
     }
 
     protected void initEpgList() {
@@ -114,7 +133,7 @@ public class LiveChannelList extends Fragment {
                 epgList.setVisibility(View.GONE);
             }
         });
-        LinearLayoutManager layoutManager = new LinearLayoutManager(requireContext());
+        LinearLayoutManager layoutManager = new LinearLayoutManager(requireActivity());
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         layoutManager.setMeasurementCacheEnabled(false);
         epgList.setLayoutManager(layoutManager);
@@ -137,17 +156,18 @@ public class LiveChannelList extends Fragment {
             }
         });
         epgList.setAdapter(epgListViewAdapter);
+        epgList.setHasFixedSize(true);
     }
 
     protected void initChannelList() {
-        LinearLayoutManager layoutManager = new LinearLayoutManager(requireContext());
+        LinearLayoutManager layoutManager = new LinearLayoutManager(requireActivity());
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         layoutManager.setMeasurementCacheEnabled(false);
         channelList.setLayoutManager(layoutManager);
         RecyclerAdapter<ViewHolder<ChannelItem>, ChannelItem> channelListViewAdapter = new RecyclerAdapter<>(
-                requireContext(),
+                requireActivity(),
                 mViewModel.getChannels().map(pair -> pair.second).orElse(new ArrayList<>()),
-                new ChannelListViewHolderFactory(requireContext(), R.layout.layout_list_item_with_number)
+                new ChannelListViewHolderFactory(requireActivity(), R.layout.layout_list_item_with_number)
         );
         mViewModel.observeChannels(requireActivity(), channels -> {
             if (channels != null) {
@@ -167,18 +187,19 @@ public class LiveChannelList extends Fragment {
             Log.i(TAG, String.format(Locale.ENGLISH, "channel item %d::%s selected", position, item.info.channelName));
             mViewModel.selectChannel(position, item);
         });
-        channelList.addOnItemTouchListener(channelListViewAdapter.new OnItemTouchListener(requireContext(), channelList));
+        channelList.addOnItemTouchListener(channelListViewAdapter.new OnItemTouchListener(requireActivity(), channelList));
+        channelList.setHasFixedSize(true);
     }
 
     protected void initGroupList() {
-        LinearLayoutManager layoutManager = new LinearLayoutManager(requireContext());
+        LinearLayoutManager layoutManager = new LinearLayoutManager(requireActivity());
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         layoutManager.setMeasurementCacheEnabled(false);
         groupList.setLayoutManager(layoutManager);
         RecyclerAdapter<ViewHolder<ChannelGroup>, ChannelGroup> groupListViewAdapter = new RecyclerAdapter<>(
-                requireContext(),
+                requireActivity(),
                 mViewModel.getGroups().orElse(new ArrayList<>()),
-                new GroupListViewHolderFactory(requireContext(), R.layout.layout_list_item)
+                new GroupListViewHolderFactory(requireActivity(), R.layout.layout_list_item)
         );
         mViewModel.observeGroups(requireActivity(), groups -> {
             int visibility = (groups == null || groups.size() < 2) ? View.GONE : View.VISIBLE;
@@ -190,11 +211,16 @@ public class LiveChannelList extends Fragment {
         });
         groupList.setAdapter(groupListViewAdapter);
         groupListViewAdapter.setOnSelectedListener((position, item) -> mViewModel.selectGroup(position, item));
-        groupList.addOnItemTouchListener(groupListViewAdapter.new OnItemTouchListener(requireContext(), groupList));
+        groupList.addOnItemTouchListener(groupListViewAdapter.new OnItemTouchListener(requireActivity(), groupList));
+        groupList.setHasFixedSize(true);
+    }
+
+    public boolean isViewHidden() {
+        return enhanceConstraintLayout.getVisibility() == View.GONE;
     }
 
     public void toggleVisibility() {
-        if (isHidden()) {
+        if (enhanceConstraintLayout.getVisibility() == View.GONE) {
             show();
         } else {
             hide();
@@ -202,26 +228,36 @@ public class LiveChannelList extends Fragment {
     }
 
     public void show() {
-        getParentFragmentManager()
-                .beginTransaction()
-                .show(this)
-                .commit();
+        hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
+        enhanceConstraintLayout.setAlpha(0f);
+        enhanceConstraintLayout.setVisibility(View.VISIBLE);
+        enhanceConstraintLayout.animate()
+                .alpha(1f)
+                .setDuration(200)
+                .setListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        super.onAnimationEnd(animation);
+                        enhanceConstraintLayout.setAlpha(1f);
+                    }
+                });
     }
 
     public void hide() {
-        getParentFragmentManager()
-                .beginTransaction()
-                .hide(this)
-                .commit();
-    }
-
-    @Override
-    public void onHiddenChanged(boolean hidden) {
-        super.onHiddenChanged(hidden);
-        mHandler.removeCallbacks(hideMyself);
-        if (!hidden) {
-            hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
-            mHandler.postAtTime(hideMyself, hideMyselfAt);
-        }
+        enhanceConstraintLayout.animate()
+                .alpha(0f)
+                .setDuration(200)
+                .setListener(new AnimatorListenerAdapter() {
+                    /**
+                     * {@inheritDoc}
+                     *
+                     * @param animation
+                     */
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        super.onAnimationEnd(animation);
+                        enhanceConstraintLayout.setVisibility(View.GONE);
+                    }
+                });
     }
 }

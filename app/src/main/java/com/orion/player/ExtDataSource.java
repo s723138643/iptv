@@ -1,25 +1,22 @@
 package com.orion.player;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import androidx.collection.ArrayMap;
 
 import java.util.Map;
+import java.util.Objects;
 
 public class ExtDataSource {
+    public static final Auth NoAuth = new Auth("", "");
+
     private final String uri;
-    private final Object tag;
     private Map<String, String> headers;
     private Auth auth;
 
     public ExtDataSource(String uri) {
-        this(uri, null);
-    }
-
-    public ExtDataSource(String uri, Object tag) {
         this.uri = uri;
-        this.tag = tag;
-        this.headers = null;
-        this.auth = null;
+        this.headers = new ArrayMap<>();
+        this.auth = NoAuth;
     }
 
     @NonNull
@@ -27,26 +24,21 @@ public class ExtDataSource {
         return uri;
     }
 
-    @Nullable
-    public Object getTag() {
-        return tag;
-    }
-
-    @Nullable
+    @NonNull
     public Map<String, String> getHeaders() {
         return headers;
     }
 
-    @Nullable
+    @NonNull
     public Auth getAuth() {
         return auth;
     }
 
-    public void setHeaders(Map<String, String> headers) {
+    public void setHeaders(@NonNull Map<String, String> headers) {
         this.headers = headers;
     }
 
-    public void setAuth(Auth auth) {
+    public void setAuth(@NonNull Auth auth) {
         this.auth = auth;
     }
 
@@ -57,6 +49,19 @@ public class ExtDataSource {
         public Auth(String username, String password) {
             this.username = username;
             this.password = password;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Auth auth = (Auth) o;
+            return username.equals(auth.username) && password.equals(auth.password);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(username, password);
         }
     }
 }

@@ -4,33 +4,46 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:theme="@style/VideoPlayer"
     android:background="@color/black"
     android:keepScreenOn="true"
     tools:context=".ui.video.VideoPlayerActivity">
 
-    <androidx.fragment.app.FragmentContainerView
-        android:id="@+id/video_player"
+    <com.orion.player.ui.VideoPlayerView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:name="com.orion.player.ui.VideoPlayerView"
-        android:tag="video_player"
+        android:id="@+id/video_player"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        tools:layout="@layout/fragment_video_player_view" />
+        app:layout_constraintBottom_toBottomOf="parent" />
 
-    <androidx.fragment.app.FragmentContainerView
-        android:id="@+id/network_speed"
-        android:layout_width="wrap_content"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="16dp"
-        android:layout_marginTop="8dp"
-        android:name="com.orion.iptv.layout.NetworkSpeed"
-        android:tag="network_speed"
+        android:id="@+id/header"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        tools:layout="@layout/fragment_network_speed" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/title"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
+
+        <ImageButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/settings"
+            android:src="@drawable/exo_ic_settings"
+            android:contentDescription="@string/player_setting"
+            android:background="@color/transparent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

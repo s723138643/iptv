@@ -1,39 +1,51 @@
 package com.orion.player.ui;
 
 import android.annotation.SuppressLint;
-import android.os.Bundle;
+import android.content.Context;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
 
+import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.orion.iptv.R;
 
-import java.util.Arrays;
 import java.util.Locale;
 
-public class Gesture extends Fragment {
+public class Gesture extends FrameLayout {
 
+
+    private final int fastForwardIconRes = com.google.android.exoplayer2.ui.R.drawable.exo_icon_fastforward;
+    private final int rewindIconRes = com.google.android.exoplayer2.ui.R.drawable.exo_icon_rewind;
     private ImageView indicator;
     private TextView position;
 
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_gesture, container, false);
+    public Gesture(@NonNull Context context) {
+        this(context, null);
     }
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        indicator = view.findViewById(R.id.direction_indicator);
-        position = view.findViewById(R.id.position);
+    public Gesture(@NonNull Context context, @Nullable AttributeSet attrs) {
+        this(context, attrs, 0);
+    }
+
+    public Gesture(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+        this(context, attrs, defStyleAttr, 0);
+    }
+
+    public Gesture(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+        super(context, attrs, defStyleAttr, defStyleRes);
+        LayoutInflater.from(context).inflate(R.layout.fragment_gesture, this, true);
+        initView();
+    }
+
+    public void initView() {
+        indicator = findViewById(R.id.direction_indicator);
+        position = findViewById(R.id.position);
     }
 
     protected String formatDuration(long duration) {
@@ -48,20 +60,58 @@ public class Gesture extends Fragment {
 
     @SuppressLint("SetTextI18n")
     public void setPosition(long position, long duration, boolean fastForward) {
-        int res = fastForward ? com.google.android.exoplayer2.ui.R.drawable.exo_icon_fastforward : com.google.android.exoplayer2.ui.R.drawable.exo_icon_rewind;
+        int res = fastForward ? fastForwardIconRes : rewindIconRes;
         indicator.setImageResource(res);
         this.position.setText(formatDuration(position) + "/" + formatDuration(duration));
     }
 
     public void show() {
-        getParentFragmentManager().beginTransaction()
-                .show(this)
-                .commit();
+        setVisibility(View.VISIBLE);
     }
 
     public void hide() {
-        getParentFragmentManager().beginTransaction()
-                .hide(this)
-                .commit();
+        setVisibility(View.GONE);
+    }
+
+    public static class Rect {
+        public float left;
+        public float top;
+        public float right;
+        public float bottom;
+
+        public Rect() {
+            left = 0f;
+            top  = 0f;
+            right = 0f;
+            bottom = 0f;
+        }
+
+        public Rect(int width, int height) {
+            left = 0;
+            top = 0;
+            right = width;
+            bottom = height;
+        }
+
+        public void inset(float dx, float dy) {
+            left += dx;
+            top += dy;
+            right -= dx;
+            bottom -= dy;
+        }
+
+        public void inset(int dLeft, int dTop, int dRight, int dBottom) {
+            left += dLeft;
+            top += dTop;
+            right += dRight;
+            bottom += dBottom;
+        }
+
+        public boolean in(float x, float y) {
+            return x >= left
+                    && x <= right
+                    && y >= top
+                    && y <= bottom;
+        }
     }
 }

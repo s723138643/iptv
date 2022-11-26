@@ -36,6 +36,9 @@ public class ChannelListViewHolderFactory implements ViewHolderFactory<ViewHolde
 
             @Override
             public void setActivated(boolean isActivated) {
+                if (itemView.isActivated() == isActivated) {
+                    return;
+                }
                 itemView.setActivated(isActivated);
                 number.setSelected(isActivated);
                 content.setSelected(isActivated);

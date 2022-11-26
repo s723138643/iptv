@@ -45,4 +45,40 @@
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="gesture_direction_indicator">indicator of gestuer direction</string>
     <string name="default_gesture_position">0:00:00/0:00:00</string>
+    <string name="enter_fullscreen">enter or exit fullscreen mode</string>
+    <string name="player_setting">player setting</string>
+    <string name="ijkplayer">IjkPlayer(硬解)</string>
+    <string name="ijkplayer_sw">IjkPlayer(软解)</string>
+    <string name="exoplayer">Exoplayer</string>
+    <string name="surface_view">SurfaceView</string>
+    <string name="texture_view">TextureView</string>
+    <string name="set_player_type">设置播放器</string>
+    <string name="set_surface_type">设置surface</string>
+    <!-- Preference Titles -->
+    <string name="messages_header">Messages</string>
+    <string name="sync_header">Sync</string>
+
+    <!-- Messages Preferences -->
+    <string name="signature_title">Your signature</string>
+    <string name="reply_title">Default reply action</string>
+
+    <!-- Sync Preferences -->
+    <string name="sync_title">Sync email periodically</string>
+    <string name="attachment_title">Download incoming attachments</string>
+    <string name="attachment_summary_on">Automatically download attachments for incoming emails
+    </string>
+    <string name="attachment_summary_off">Only download attachments when manually requested</string>
+    <string name="player_type_header">set player type</string>
+    <string name="surface_type_header">Set Surface Type</string>
+    <string name="player_setting_header">Player Settings</string>
+    <string name="title_activity_player_settings">PlayerSettingsActivity</string>
+    <string name="title_activity_video_player_settings">VideoPlayerSettingsActivity</string>
+    <!-- Strings used for fragments for navigation -->
+    <string name="first_fragment_label">First Fragment</string>
+    <string name="second_fragment_label">Second Fragment</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+
+    <string name="hello_first_fragment">Hello first fragment</string>
+    <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
 </resources>

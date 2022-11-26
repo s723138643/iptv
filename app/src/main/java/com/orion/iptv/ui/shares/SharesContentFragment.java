@@ -30,7 +30,6 @@ import com.orion.iptv.ui.video.VideoPlayerActivity;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -81,14 +80,25 @@ public class SharesContentFragment extends Fragment {
         mHandler = new Handler(requireContext().getMainLooper());
 
         share = viewModel.getSelectedShare();
-        assert share != null;
+        if (share == null) {
+            requireActivity()
+                    .getSupportFragmentManager()
+                    .popBackStack();
+            return;
+        }
         client = new WebDavClient(share);
-
         homeButton.setOnClickListener(buttonView -> requireActivity()
                 .getSupportFragmentManager()
                 .popBackStack(SharesHomeFragment.TAG, 0));
         initView();
-        refresh();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (share != null) {
+            refresh();
+        }
     }
 
     @Override
@@ -149,7 +159,7 @@ public class SharesContentFragment extends Fragment {
                         mHandler.post(() -> {
                             setViewVisible(loading, false);
                             showToast(e.toString());
-                            adapter.setData(List.of(FileNode.PARENT, FileNode.CURRENT));
+                            adapter.setData(List.of(FileNode.CURRENT, FileNode.PARENT));
                         });
                     }
 

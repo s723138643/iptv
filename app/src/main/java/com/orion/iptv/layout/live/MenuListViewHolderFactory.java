@@ -32,6 +32,9 @@ public class MenuListViewHolderFactory implements ViewHolderFactory<ViewHolder<S
 
             @Override
             public void setActivated(boolean isActivated) {
+                if (itemView.isActivated() == isActivated) {
+                    return;
+                }
                 itemView.setActivated(isActivated);
                 desc.setSelected(true);
             }

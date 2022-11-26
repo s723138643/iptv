@@ -22,7 +22,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="40dp"
                 android:hint="@string/webdav_input_name_hint"
-                android:singleLine="true" />
+                android:singleLine="true"
+                android:padding="8dp"/>
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -38,7 +39,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="40dp"
                 android:hint="@string/webdav_input_address_hint"
-                android:singleLine="true" />
+                android:singleLine="true"
+                android:padding="8dp"/>
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -53,7 +55,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="40dp"
                 android:hint="@string/webdav_input_root_path_hint"
-                android:singleLine="true" />
+                android:singleLine="true"
+                android:padding="8dp"/>
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -68,7 +71,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="40dp"
                 android:hint="@string/webdav_input_username_hint"
-                android:singleLine="true" />
+                android:singleLine="true"
+                android:padding="8dp"/>
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -85,7 +89,8 @@
                 android:layout_height="40dp"
                 android:hint="@string/webdav_input_password_hint"
                 android:inputType="textPassword"
-                android:singleLine="true" />
+                android:singleLine="true"
+                android:padding="8dp"/>
         </com.google.android.material.textfield.TextInputLayout>
     </LinearLayout>
 </ScrollView>

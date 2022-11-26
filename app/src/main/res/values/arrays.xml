@@ -1,0 +1,23 @@
+<resources>
+    <string-array name="player_type_entries">
+        <item>IjkPlayer(硬解)</item>
+        <item>IjkPlayer(软解)</item>
+        <item>Exoplayer</item>
+    </string-array>
+
+    <string-array name="player_type_values">
+        <item>ijkplayer</item>
+        <item>ijkplayer_sw</item>
+        <item>exoplayer</item>
+    </string-array>
+
+    <string-array name="surface_type_entries">
+        <item>SurfaceView</item>
+        <item>TextureView</item>
+    </string-array>
+
+    <string-array name="surface_type_values">
+        <item>surface_view</item>
+        <item>texture_view</item>
+    </string-array>
+</resources>

@@ -2,6 +2,7 @@ package com.orion.iptv.ui.shares;
 
 import androidx.lifecycle.ViewModelProvider;
 
+import android.annotation.SuppressLint;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -15,7 +16,6 @@ import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.os.Handler;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -39,8 +39,6 @@ public class SharesHomeFragment extends Fragment {
     protected ImageButton addShareButton;
     protected View selectionAction;
 
-    private Handler mHandler;
-
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -55,13 +53,12 @@ public class SharesHomeFragment extends Fragment {
         selectionAction = view.findViewById(R.id.selection_actions);
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     @Override
     public void onStart() {
         super.onStart();
 
         mViewModel = new ViewModelProvider(requireActivity()).get(SharesViewModel.class);
-        mHandler = new Handler(requireContext().getMainLooper());
-
         addShareButton.setOnClickListener((addRootButton) -> {
             WebDavSettingDialog dialog =  new WebDavSettingDialog(requireContext());
             dialog.setOnSubmitListener(share -> {
@@ -80,7 +77,7 @@ public class SharesHomeFragment extends Fragment {
         mViewModel.getShares().observe(getViewLifecycleOwner(), shares -> {
             Log.i("SharesHomeFragment", "shares changed, size: " + shares.size());
             adapter.setShares(shares);
-            mHandler.post(adapter::notifyDataSetChanged);
+            adapter.notifyDataSetChanged();
         });
         adapter.setItemClickListener(itemView -> {
             getBindingAdapterPosition(itemView).map(position -> {

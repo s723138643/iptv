@@ -66,11 +66,11 @@ public class ExtExoPlayer implements IExtPlayer {
         OkHttpDataSource.Factory okHttpDataSourceFactory = new OkHttpDataSource.Factory((Call.Factory) client);
         Map<String, String> headers = new ArrayMap<>();
         ExtDataSource.Auth auth = dataSource.getAuth();
-        if (auth != null) {
+        if (!auth.equals(ExtDataSource.NoAuth)) {
             headers.put("Authorization", Credentials.basic(auth.username, auth.password));
         }
         Map<String, String> origHeaders = dataSource.getHeaders();
-        if (origHeaders != null) {
+        if (origHeaders.size() > 0) {
             headers.putAll(origHeaders);
         }
         if (headers.size() > 0) {
@@ -139,8 +139,9 @@ public class ExtExoPlayer implements IExtPlayer {
     @Override
     public void release() {
         if (mHandler != null) {
-            innerPlayer.release();
             listeners.clear();
+            mHandler.removeCallbacksAndMessages(null);
+            innerPlayer.release();
         } else {
             listeners.clear();
             pendingOperations.clear();

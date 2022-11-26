@@ -1,18 +1,21 @@
 package com.orion.player.ui;
 
-import android.os.Bundle;
+import android.annotation.SuppressLint;
+import android.content.Context;
+import android.content.res.Configuration;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
+import androidx.constraintlayout.widget.ConstraintLayout;
 
-import android.os.Handler;
 import android.os.SystemClock;
+import android.util.AttributeSet;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -23,21 +26,27 @@ import com.orion.player.IExtPlayer;
 
 import java.util.Locale;
 
-public class PlayerController extends Fragment {
-    @SuppressWarnings("unused")
+public class PlayerController extends FrameLayout {
     private static final String TAG = "PlayerController";
     private static final int playIconRes = com.google.android.exoplayer2.ui.R.drawable.exo_icon_play;
     private static final int pauseIconRes = com.google.android.exoplayer2.ui.R.drawable.exo_icon_pause;
+    private static final int fullscreenIconRes = com.google.android.exoplayer2.ui.R.drawable.exo_ic_fullscreen_enter;
+    private static final int fullscreenExitIconRes = com.google.android.exoplayer2.ui.R.drawable.exo_ic_fullscreen_exit;
 
+    private TextView title;
     private TextView position;
     private TextView duration;
     private SeekBar seekBar;
     private ImageButton seekToPrevButton;
     private ImageButton playButton;
     private ImageButton seekToNextButton;
-    private @Nullable IExtPlayer player;
+    private ImageButton fullscreenButton;
 
-    private Handler mHandler;
+    private @Nullable IExtPlayer player;
+    private int orientation;
+    private ViewGroup.MarginLayoutParams originMargin;
+    private OrientationSwitchCallback orientationSwitchCallback;
+    private OnVisibilityChangedListener listener;
 
     private final IExtPlayer.Listener componentListener = new ComponentListener();
     private final Runnable updatePosition = new Runnable() {
@@ -52,7 +61,7 @@ public class PlayerController extends Fragment {
             seekBar.setSecondaryProgress((int) (buffered / 1000));
             seekBar.setProgress((int) (current / 1000));
 
-            mHandler.postDelayed(this, 40);
+            postDelayed(this, 40);
         }
     };
     private static final long AutoHideAfterMillis = 5*1000;
@@ -60,48 +69,46 @@ public class PlayerController extends Fragment {
     private final Runnable hideMyself = new Runnable() {
         @Override
         public void run() {
-            if (SystemClock.uptimeMillis() >= hideMyselfAt) {
+            long diff = SystemClock.uptimeMillis() - hideMyselfAt;
+            if (diff >= 0) {
                 hide();
             } else {
-                mHandler.postAtTime(this, hideMyselfAt);
+                postDelayed(this, -diff);
             }
         }
     };
 
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_player_controller, container, false);
+    public PlayerController(@NonNull Context context) {
+        this(context, null);
     }
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-
-        mHandler = new Handler(requireContext().getMainLooper());
-        AutoHide autoHide = (AutoHide) view;
-        autoHide.addEventListener(new AutoHide.EventListener() {
-            @Override
-            public void onMotionEvent(MotionEvent ev) {
-                hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
-            }
-
-            @Override
-            public void onKeyEvent(KeyEvent ev) {
-                hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
-            }
-        });
-
-        position = view.findViewById(R.id.position);
-        duration = view.findViewById(R.id.media_duration);
-        seekBar = view.findViewById(R.id.seek_bar);
-        seekToPrevButton = view.findViewById(R.id.prev);
-        seekToNextButton = view.findViewById(R.id.next);
-        playButton = view.findViewById(R.id.play_or_pause);
+    public PlayerController(@NonNull Context context, @Nullable AttributeSet attrs) {
+        this(context, attrs, 0);
     }
 
-    @Override
-    public void onStart() {
-        super.onStart();
+    public PlayerController(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+        this(context, attrs, defStyleAttr, 0);
+    }
+
+    public PlayerController(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+        super(context, attrs, defStyleAttr, defStyleRes);
+        LayoutInflater.from(context).inflate(R.layout.fragment_player_controller, this, true);
+        initView();
+    }
+
+    @SuppressLint("SourceLockedOrientationActivity")
+    public void initView() {
+        position = findViewById(R.id.position);
+        duration = findViewById(R.id.media_duration);
+        seekBar = findViewById(R.id.seek_bar);
+        seekToPrevButton = findViewById(R.id.prev);
+        seekToNextButton = findViewById(R.id.next);
+        playButton = findViewById(R.id.play_or_pause);
+        fullscreenButton = findViewById(R.id.fullscreen);
+
+        orientation = getResources().getConfiguration().orientation;
+        int resId = orientation == Configuration.ORIENTATION_PORTRAIT ? fullscreenIconRes : fullscreenExitIconRes;
+        fullscreenButton.setImageResource(resId);
 
         seekBar.setMin(0);
         playButton.setOnClickListener(button -> {
@@ -113,8 +120,8 @@ public class PlayerController extends Fragment {
             } else {
                 if (player.getPlaybackState() == IExtPlayer.STATE_ENDED) {
                     player.seekTo(0);
-                    mHandler.removeCallbacks(updatePosition);
-                    mHandler.post(updatePosition);
+                    removeCallbacks(updatePosition);
+                    post(updatePosition);
                     if (!player.isPlaying()) {
                         player.play();
                     }
@@ -150,41 +157,84 @@ public class PlayerController extends Fragment {
                 }
             }
         });
-    }
 
-    @Override
-    public void onStop() {
-        super.onStop();
-        mHandler.removeCallbacksAndMessages(null);
-    }
-
-    @Override
-    public void onHiddenChanged(boolean hidden) {
-        super.onHiddenChanged(hidden);
-        mHandler.removeCallbacks(hideMyself);
-        if (hidden) {
-            mHandler.removeCallbacks(updatePosition);
-        } else{
-            hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
-            mHandler.postAtTime(hideMyself, hideMyselfAt);
-            if (player != null && player.getPlaybackState() > IExtPlayer.STATE_IDLE)
-            {
-                mHandler.post(updatePosition);
+        fullscreenButton.setOnClickListener(button -> {
+            if (orientationSwitchCallback == null) {
+                return;
             }
+            orientationSwitchCallback.switchOrientation();
+        });
+    }
+
+    @Override
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        if (newConfig.orientation == orientation) {
+            return;
+        }
+        orientation = newConfig.orientation;
+        int resId = orientation == Configuration.ORIENTATION_PORTRAIT ? fullscreenIconRes : fullscreenExitIconRes;
+        fullscreenButton.setImageResource(resId);
+    }
+
+    protected void initState(IExtPlayer player) {
+        long currentPosition = player.getCurrentPosition();
+        long currentDuration = player.getDuration();
+        currentPosition = currentPosition >= 0 ? currentPosition : 0;
+        currentDuration = currentDuration >= 0 ? currentDuration : 0;
+        position.setText(formatDuration(currentPosition));
+        duration.setText(formatDuration(currentDuration));
+        seekBar.setMax((int) (currentDuration / 1000));
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
+        return super.dispatchTouchEvent(ev);
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override
+    protected void onVisibilityChanged(View view, int visibility) {
+        post(() -> {
+            if (listener != null) {
+                listener.onVisibilityChanged(visibility);
+            }
+        });
+        removeCallbacks(hideMyself);
+        if (visibility == View.GONE) {
+            removeCallbacks(updatePosition);
+            return;
+        }
+        hideMyselfAt = SystemClock.uptimeMillis() + AutoHideAfterMillis;
+        postDelayed(hideMyself, AutoHideAfterMillis);
+        if (player != null) {
+            initState(player);
+            post(updatePosition);
         }
     }
 
     public void setPlayer(IExtPlayer player) {
+        removeCallbacks(updatePosition);
         if (this.player != null) {
             this.player.removeListener(componentListener);
-            mHandler.removeCallbacks(updatePosition);
         }
         this.player = player;
-        this.player.addListener(componentListener);
+        player.addListener(componentListener);
+        initState(player);
+        @IExtPlayer.State int state = player.getPlaybackState();
+        if (state == IExtPlayer.STATE_BUFFERING || state == IExtPlayer.STATE_READY) {
+            post(updatePosition);
+        }
     }
 
     public void toggleVisibility() {
-        if (isHidden()) {
+        if (getVisibility() == View.GONE) {
             show();
         } else {
             hide();
@@ -192,15 +242,19 @@ public class PlayerController extends Fragment {
     }
 
     public void show() {
-        getParentFragmentManager().beginTransaction()
-                .show(this)
-                .commit();
+        setVisibility(View.VISIBLE);
     }
 
     public void hide() {
-        getParentFragmentManager().beginTransaction()
-                .hide(this)
-                .commit();
+        setVisibility(View.GONE);
+    }
+
+    public void setOrientationCallback(OrientationSwitchCallback callback) {
+        orientationSwitchCallback = callback;
+    }
+
+    public void setOnVisibilityChangedListener(OnVisibilityChangedListener listener) {
+        this.listener = listener;
     }
 
     private String formatDuration(long duration) {
@@ -217,8 +271,8 @@ public class PlayerController extends Fragment {
     private class ComponentListener implements IExtPlayer.Listener {
         @Override
         public void onDataSourceUsed(ExtDataSource dataSource) {
-            mHandler.removeCallbacks(updatePosition);
-            mHandler.post(updatePosition);
+            removeCallbacks(updatePosition);
+            post(updatePosition);
         }
 
         @Override
@@ -236,7 +290,7 @@ public class PlayerController extends Fragment {
             switch (state) {
                 case IExtPlayer.STATE_IDLE:
                 case IExtPlayer.STATE_ENDED:
-                    mHandler.removeCallbacks(updatePosition);
+                    removeCallbacks(updatePosition);
                     break;
                 case IExtPlayer.STATE_BUFFERING:
                 case IExtPlayer.STATE_READY:
@@ -254,5 +308,13 @@ public class PlayerController extends Fragment {
             position.setText(formatDuration(offsetMs));
             duration.setText(formatDuration(durationMs));
         }
+    }
+
+    public interface OrientationSwitchCallback {
+        void switchOrientation();
+    }
+
+    public interface OnVisibilityChangedListener {
+        void onVisibilityChanged(int visibility);
     }
 }
