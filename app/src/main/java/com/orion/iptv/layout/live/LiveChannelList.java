@@ -27,13 +27,13 @@ import com.orion.iptv.bean.ChannelGroup;
 import com.orion.iptv.bean.ChannelItem;
 import com.orion.iptv.bean.EpgProgram;
 import com.orion.iptv.recycleradapter.RecyclerAdapter;
-import com.orion.iptv.recycleradapter.ViewHolder;
+import com.orion.iptv.recycleradapter.Selection;
 import com.orion.player.ui.EnhanceConstraintLayout;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
-import java.util.stream.Collectors;
 
 public class LiveChannelList extends Fragment {
     private static final String TAG = "LiveChannelList";
@@ -135,83 +135,75 @@ public class LiveChannelList extends Fragment {
         });
         LinearLayoutManager layoutManager = new LinearLayoutManager(requireActivity());
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
-        layoutManager.setMeasurementCacheEnabled(false);
+        // layoutManager.setMeasurementCacheEnabled(false);
         epgList.setLayoutManager(layoutManager);
-        RecyclerAdapter<ViewHolder<EpgProgram>, EpgProgram> epgListViewAdapter = new RecyclerAdapter<>(
-                requireContext(),
-                new ArrayList<>(),
-                new EpgListViewHolderFactory(requireContext(), R.layout.layout_list_item)
-        );
+        Selection<EpgProgram> epgProgramSelection = new Selection<>(epgList);
         mViewModel.observeEpgs(requireActivity(), epgs -> {
-            if (epgs != null) {
-                epgListViewAdapter.setData(Arrays.stream(epgs.second).collect(Collectors.toList()));
-            } else {
-                epgListViewAdapter.setData(new ArrayList<>());
-            }
+            List<EpgProgram> items = epgs != null ? Arrays.asList(epgs.second) : new ArrayList<>();
+            RecyclerAdapter<EpgProgram> epgListViewAdapter = new RecyclerAdapter<>(
+                    requireContext(),
+                    items,
+                    new EpgListViewHolderFactory(requireContext(), R.layout.layout_list_item)
+            );
+            epgProgramSelection.setAdapter(epgListViewAdapter);
+            epgList.swapAdapter(epgListViewAdapter, true);
         });
         mViewModel.observeCurrentEpgProgram(requireActivity(), pair -> {
             if (pair != null) {
-                epgListViewAdapter.selectQuiet(pair.first);
-                epgList.smoothScrollToPosition(pair.first);
+                epgProgramSelection.selectQuiet(pair.first);
+                epgList.scrollToPosition(pair.first);
             }
         });
-        epgList.setAdapter(epgListViewAdapter);
         epgList.setHasFixedSize(true);
     }
 
     protected void initChannelList() {
         LinearLayoutManager layoutManager = new LinearLayoutManager(requireActivity());
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
-        layoutManager.setMeasurementCacheEnabled(false);
+        // layoutManager.setMeasurementCacheEnabled(false);
         channelList.setLayoutManager(layoutManager);
-        RecyclerAdapter<ViewHolder<ChannelItem>, ChannelItem> channelListViewAdapter = new RecyclerAdapter<>(
-                requireActivity(),
-                mViewModel.getChannels().map(pair -> pair.second).orElse(new ArrayList<>()),
-                new ChannelListViewHolderFactory(requireActivity(), R.layout.layout_list_item_with_number)
-        );
+        Selection<ChannelItem> selection = new Selection<>(channelList);
         mViewModel.observeChannels(requireActivity(), channels -> {
-            if (channels != null) {
-                int pos = mViewModel.getSelectedChannelInGroup(channels.first);
-                if (pos >= 0) {
-                    channelListViewAdapter.resume(channels.second, pos);
-                    channelList.smoothScrollToPosition(pos);
-                } else {
-                    channelListViewAdapter.setData(channels.second);
-                }
-            } else {
-                channelListViewAdapter.setData(new ArrayList<>());
-            }
+            List<ChannelItem> items = channels != null ? channels.second : new ArrayList<>();
+            int position = channels != null ? mViewModel.getSelectedChannelInGroup(channels.first) : RecyclerView.NO_POSITION;
+            LiveAdapter<ChannelItem> channelListViewAdapter = new LiveAdapter<>(
+                    requireActivity(),
+                    items,
+                    new ChannelListViewHolderFactory(requireActivity(), R.layout.layout_list_item_with_number)
+            );
+            selection.setAdapter(channelListViewAdapter, position);
+            channelList.swapAdapter(channelListViewAdapter, true);
+            channelList.scrollToPosition(position);
         });
-        channelList.setAdapter(channelListViewAdapter);
-        channelListViewAdapter.setOnSelectedListener((position, item) -> {
+        selection.addSelectedListener((position, item) -> {
             Log.i(TAG, String.format(Locale.ENGLISH, "channel item %d::%s selected", position, item.info.channelName));
             mViewModel.selectChannel(position, item);
         });
-        channelList.addOnItemTouchListener(channelListViewAdapter.new OnItemTouchListener(requireActivity(), channelList));
         channelList.setHasFixedSize(true);
     }
 
     protected void initGroupList() {
         LinearLayoutManager layoutManager = new LinearLayoutManager(requireActivity());
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
-        layoutManager.setMeasurementCacheEnabled(false);
+        // layoutManager.setMeasurementCacheEnabled(false);
         groupList.setLayoutManager(layoutManager);
-        RecyclerAdapter<ViewHolder<ChannelGroup>, ChannelGroup> groupListViewAdapter = new RecyclerAdapter<>(
-                requireActivity(),
-                mViewModel.getGroups().orElse(new ArrayList<>()),
-                new GroupListViewHolderFactory(requireActivity(), R.layout.layout_list_item)
-        );
+        Selection<ChannelGroup> selection = new Selection<>(groupList);
         mViewModel.observeGroups(requireActivity(), groups -> {
             int visibility = (groups == null || groups.size() < 2) ? View.GONE : View.VISIBLE;
             channelSpacer1.setVisibility(visibility);
             groupList.setVisibility(visibility);
+            LiveAdapter<ChannelGroup> groupListViewAdapter = new LiveAdapter<>(
+                    requireActivity(),
+                    groups != null ? groups : new ArrayList<>(),
+                    new GroupListViewHolderFactory(requireActivity(), R.layout.layout_list_item)
+            );
+            groupListViewAdapter.setSelection(selection);
             int selectedGroup = mViewModel.getSelectedGroup();
-            groupListViewAdapter.resume(groups, selectedGroup);
-            groupList.smoothScrollToPosition(selectedGroup);
+            selection.setAdapter(groupListViewAdapter, selectedGroup);
+            groupList.swapAdapter(groupListViewAdapter, true);
+            groupList.scrollToPosition(selectedGroup);
         });
-        groupList.setAdapter(groupListViewAdapter);
-        groupListViewAdapter.setOnSelectedListener((position, item) -> mViewModel.selectGroup(position, item));
-        groupList.addOnItemTouchListener(groupListViewAdapter.new OnItemTouchListener(requireActivity(), groupList));
+        selection.addSelectedListener((position, item) -> mViewModel.selectGroup(position, item));
         groupList.setHasFixedSize(true);
     }
 

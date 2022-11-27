@@ -3,7 +3,6 @@ package com.orion.iptv.layout.live;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -21,7 +20,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.orion.iptv.R;
 import com.orion.iptv.recycleradapter.RecyclerAdapter;
-import com.orion.iptv.recycleradapter.ViewHolder;
+import com.orion.iptv.recycleradapter.Selection;
 import com.orion.player.ui.EnhanceConstraintLayout;
 
 import java.util.ArrayList;
@@ -31,7 +30,8 @@ import java.util.Locale;
 public class LivePlayerSetting extends Fragment {
     private RecyclerView settingMenuView;
     private RecyclerView settingValueView;
-    private RecyclerAdapter<ViewHolder<SettingValue>, SettingValue> valueViewAdapter;
+    private Selection<SettingValue> valueSelection;
+    private Selection<SettingMenu> menuSelection;
     private List<SettingMenu> menus;
     EnhanceConstraintLayout enhanceConstraintLayout;
     private static final long AutoHideAfterMillis = 5 * 1000;
@@ -103,14 +103,15 @@ public class LivePlayerSetting extends Fragment {
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         layoutManager.setMeasurementCacheEnabled(false);
         settingValueView.setLayoutManager(layoutManager);
-        valueViewAdapter = new RecyclerAdapter<>(
+        valueSelection = new Selection<>(settingValueView);
+        RecyclerAdapter<SettingValue> valueViewAdapter = new RecyclerAdapter<>(
                 requireActivity(),
                 menus.get(0).getValues(),
                 new ValueListViewHolderFactory(requireActivity(), R.layout.layout_list_item)
         );
-        valueViewAdapter.setOnSelectedListener(this::onValueSelected);
+        valueSelection.setAdapter(valueViewAdapter);
         settingValueView.setAdapter(valueViewAdapter);
-        settingValueView.addOnItemTouchListener(valueViewAdapter.new OnItemTouchListener(requireActivity(), settingValueView));
+        valueSelection.addSelectedListener(this::onValueSelected);
     }
 
     protected void initMenuList() {
@@ -118,33 +119,35 @@ public class LivePlayerSetting extends Fragment {
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         layoutManager.setMeasurementCacheEnabled(false);
         settingMenuView.setLayoutManager(layoutManager);
-        RecyclerAdapter<ViewHolder<SettingMenu>, SettingMenu> menuViewAdapter = new RecyclerAdapter<>(
+        Selection<SettingMenu> selection = new Selection<>(settingMenuView);
+        RecyclerAdapter<SettingMenu> menuViewAdapter = new RecyclerAdapter<>(
                 requireActivity(),
                 menus,
                 new MenuListViewHolderFactory(requireActivity(), R.layout.layout_list_item)
         );
+        selection.setAdapter(menuViewAdapter, 0);
         settingMenuView.setAdapter(menuViewAdapter);
-        settingMenuView.addOnItemTouchListener(menuViewAdapter.new OnItemTouchListener(requireActivity(), settingMenuView));
-        menuViewAdapter.setOnSelectedListener(this::onMenuSelected);
-        menuViewAdapter.selectQuiet(0);
+        selection.addSelectedListener(this::onMenuSelected);
     }
 
     private void onValueSelected(int position, SettingValue value) {
         value.onSelected();
         if (value.isButton()) {
             Log.i("Setting", "clear selection...");
-            enhanceConstraintLayout.postDelayed(valueViewAdapter::clearSelection, 800);
+            enhanceConstraintLayout.postDelayed(valueSelection::clearSelection, 800);
         }
     }
 
     private void onMenuSelected(int position, SettingMenu menu) {
         Log.i("Setting", String.format(Locale.ENGLISH, "menu %s selected", menu.content()));
         int selectedPosition = menu.getSelectedPosition();
-        if (selectedPosition >= 0) {
-            this.valueViewAdapter.resume(menu.getValues(), selectedPosition);
-        } else {
-            this.valueViewAdapter.setData(menu.getValues());
-        }
+        RecyclerAdapter<SettingValue> valueAdapter = new RecyclerAdapter<>(
+                requireActivity(),
+                menu.getValues(),
+                new ValueListViewHolderFactory(requireActivity(), R.layout.layout_list_item)
+        );
+        valueSelection.setAdapter(valueAdapter, selectedPosition);
+        settingValueView.swapAdapter(valueAdapter, true);
     }
 
     public boolean isViewHidden() {

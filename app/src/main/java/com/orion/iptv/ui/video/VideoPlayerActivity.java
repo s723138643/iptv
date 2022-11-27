@@ -111,7 +111,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
 
     protected void switchOrientation() {
         int orientation = getRequestedOrientation();
-        int newOrientation = orientation == ActivityInfo.SCREEN_ORIENTATION_PORTRAIT ? ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE : ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
+        int newOrientation = orientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE ? ActivityInfo.SCREEN_ORIENTATION_PORTRAIT : ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
         setRequestedOrientation(newOrientation);
     }
 

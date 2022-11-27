@@ -3,11 +3,12 @@ package com.orion.iptv.bean;
 import androidx.annotation.NonNull;
 
 import com.orion.iptv.recycleradapter.ListItemWithNumber;
+import com.orion.iptv.recycleradapter.ListItemWithStableId;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class ChannelItem implements ListItemWithNumber {
+public class ChannelItem implements ListItemWithNumber, ListItemWithStableId {
     public final ChannelInfo info;
     public List<String> links;
 
@@ -16,12 +17,19 @@ public class ChannelItem implements ListItemWithNumber {
         links = new ArrayList<>();
     }
 
+    @Override
     public String number() {
         return String.valueOf(info.channelNumber);
     }
 
+    @Override
     public String content() {
         return info.channelName;
+    }
+
+    @Override
+    public long getId() {
+        return info.channelNumber;
     }
 
     public void append(String link) {

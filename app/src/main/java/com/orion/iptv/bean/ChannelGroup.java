@@ -1,13 +1,13 @@
 package com.orion.iptv.bean;
 
 import com.orion.iptv.recycleradapter.ListItem;
-import com.orion.player.ExtDataSource;
+import com.orion.iptv.recycleradapter.ListItemWithStableId;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class ChannelGroup implements ListItem {
+public class ChannelGroup implements ListItem, ListItemWithStableId {
     public final GroupInfo info;
     public final List<ChannelItem> channels;
     private final NumberGenerator generator;
@@ -18,8 +18,14 @@ public class ChannelGroup implements ListItem {
         channels = new ArrayList<>();
     }
 
+    @Override
     public String content() {
         return info.groupName;
+    }
+
+    @Override
+    public long getId() {
+        return info.groupNumber;
     }
 
     public void appendChannel(String name, String link) {

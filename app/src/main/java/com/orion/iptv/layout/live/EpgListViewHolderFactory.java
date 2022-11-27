@@ -11,7 +11,7 @@ import com.orion.iptv.bean.EpgProgram;
 import com.orion.iptv.recycleradapter.ViewHolder;
 import com.orion.iptv.recycleradapter.ViewHolderFactory;
 
-public class EpgListViewHolderFactory implements ViewHolderFactory<ViewHolder<EpgProgram>, EpgProgram> {
+public class EpgListViewHolderFactory implements ViewHolderFactory<ViewHolder<EpgProgram>> {
     private final Context context;
     private final int layoutId;
 

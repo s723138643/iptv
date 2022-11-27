@@ -13,6 +13,8 @@ import com.orion.iptv.network.DownloadHelper;
 import com.orion.iptv.ui.live.LivePlayerActivity;
 import com.orion.iptv.ui.shares.SharesActivity;
 
+import java.util.concurrent.TimeUnit;
+
 import okhttp3.Cache;
 import okhttp3.OkHttpClient;
 
@@ -24,6 +26,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         PreferenceStore.setPreferences(PreferenceManager.getDefaultSharedPreferences(this));
         OkHttpClient client = new OkHttpClient.Builder()
+                .connectTimeout(10, TimeUnit.SECONDS)
                 .cache(new Cache(this.getCacheDir(), 50 * 1024 * 1024))
                 .followSslRedirects(true)
                 .build();

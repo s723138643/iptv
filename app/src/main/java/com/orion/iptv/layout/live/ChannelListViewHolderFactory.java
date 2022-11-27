@@ -11,7 +11,7 @@ import com.orion.iptv.bean.ChannelItem;
 import com.orion.iptv.recycleradapter.ViewHolder;
 import com.orion.iptv.recycleradapter.ViewHolderFactory;
 
-public class ChannelListViewHolderFactory implements ViewHolderFactory<ViewHolder<ChannelItem>, ChannelItem> {
+public class ChannelListViewHolderFactory implements ViewHolderFactory<ViewHolder<ChannelItem>> {
     private final Context context;
     private final int layoutId;
 

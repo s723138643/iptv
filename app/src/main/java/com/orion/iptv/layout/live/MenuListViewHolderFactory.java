@@ -10,7 +10,7 @@ import com.orion.iptv.R;
 import com.orion.iptv.recycleradapter.ViewHolder;
 import com.orion.iptv.recycleradapter.ViewHolderFactory;
 
-public class MenuListViewHolderFactory implements ViewHolderFactory<ViewHolder<SettingMenu>, SettingMenu> {
+public class MenuListViewHolderFactory implements ViewHolderFactory<ViewHolder<SettingMenu>> {
     private final Context context;
     private final int layoutId;
 

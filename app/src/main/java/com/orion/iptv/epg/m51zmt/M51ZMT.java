@@ -42,7 +42,9 @@ public class M51ZMT {
         CacheControl cacheControl = new CacheControl.Builder()
                 .maxAge(3, TimeUnit.HOURS)
                 .build();
-        Request request = newRequest(channelName, date).cacheControl(cacheControl).build();
+        Request request = newRequest(channelName, date)
+                .cacheControl(cacheControl)
+                .build();
         Log.i(TAG, "request epg url: " + request.url());
         return DownloadHelper.get(request, new okhttp3.Callback() {
             @Override
@@ -51,9 +53,9 @@ public class M51ZMT {
             }
 
             @Override
-            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                String text = Objects.requireNonNull(response.body()).string();
+            public void onResponse(@NonNull Call call, @NonNull Response response) {
                 try {
+                    String text = Objects.requireNonNull(response.body()).string();
                     EpgProgram[] epgPrograms = M51ZMT.toEpgProgram(text);
                     callback.onResponse(call, epgPrograms);
                 } catch (Exception e) {

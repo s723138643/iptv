@@ -10,7 +10,7 @@ import com.orion.iptv.R;
 import com.orion.iptv.recycleradapter.ViewHolder;
 import com.orion.iptv.recycleradapter.ViewHolderFactory;
 
-public class ValueListViewHolderFactory implements ViewHolderFactory<ViewHolder<SettingValue>, SettingValue> {
+public class ValueListViewHolderFactory implements ViewHolderFactory<ViewHolder<SettingValue>> {
     private final Context context;
     private final int layoutId;
 

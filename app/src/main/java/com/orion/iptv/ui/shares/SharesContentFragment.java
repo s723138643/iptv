@@ -25,6 +25,7 @@ import android.widget.TextView;
 import com.orion.iptv.R;
 import com.orion.iptv.network.WebDavClient;
 import com.orion.iptv.recycleradapter.RecyclerAdapter;
+import com.orion.iptv.recycleradapter.Selection;
 import com.orion.iptv.ui.video.VideoPlayerActivity;
 
 import org.json.JSONException;
@@ -42,7 +43,7 @@ public class SharesContentFragment extends Fragment {
     private FileNode path;
     ImageButton homeButton;
     private RecyclerView nodes;
-    private RecyclerAdapter<FileNodeViewHolder, FileNode> adapter;
+    Selection<FileNode> selection;
     private TextView pathHint;
     private ProgressBar loading;
     private TextView toast;
@@ -114,14 +115,16 @@ public class SharesContentFragment extends Fragment {
         nodes.setLayoutManager(layoutManager);
         DividerItemDecoration itemDecoration = new DividerItemDecoration(requireContext(), DividerItemDecoration.VERTICAL);
         nodes.addItemDecoration(itemDecoration);
+        selection = new Selection<>(nodes);
+        selection.setCanRepeatSelect(true);
 
-        adapter = new RecyclerAdapter<>(
+        RecyclerAdapter<FileNode> adapter = new RecyclerAdapter<>(
                 requireContext(),
                 new ArrayList<>(),
                 new FileNodeViewHolderFactory(requireContext(), R.layout.layout_list_item)
         );
-        adapter.setRepeatClickEnabled(true);
-        adapter.setOnSelectedListener((position, node) -> {
+        selection.setAdapter(adapter);
+        selection.addSelectedListener((position, node) -> {
             if (node == FileNode.PARENT) {
                 requireActivity()
                         .getSupportFragmentManager()
@@ -143,7 +146,6 @@ public class SharesContentFragment extends Fragment {
             }
         });
         nodes.setAdapter(adapter);
-        nodes.addOnItemTouchListener(adapter.new OnItemTouchListener(requireContext(), nodes));
     }
 
     public void refresh() {
@@ -159,22 +161,34 @@ public class SharesContentFragment extends Fragment {
                         mHandler.post(() -> {
                             setViewVisible(loading, false);
                             showToast(e.toString());
-                            adapter.setData(List.of(FileNode.CURRENT, FileNode.PARENT));
+                            RecyclerAdapter<FileNode> adapter = new RecyclerAdapter<>(
+                                    requireActivity(),
+                                    List.of(FileNode.CURRENT, FileNode.PARENT),
+                                    new FileNodeViewHolderFactory(requireContext(), R.layout.layout_list_item)
+                            );
+                            selection.setAdapter(adapter);
+                            nodes.swapAdapter(adapter, true);
                         });
                     }
 
                     @Override
                     public void onResponse(@Nullable List<FileNode> children) {
                         Log.i(TAG, String.format(Locale.ENGLISH, "current path: %s", path.getPath()));
-                        if (children == null) {
-                            children = new ArrayList<>();
+                        List<FileNode> items = new ArrayList<>(children == null ? 2 : children.size() + 2);
+                        items.add(0, FileNode.PARENT);
+                        items.add(0, FileNode.CURRENT);
+                        if (children != null) {
+                            items.addAll(children);
                         }
-                        children.add(0, FileNode.PARENT);
-                        children.add(0, FileNode.CURRENT);
-                        java.util.List<FileNode> finalChildren = children;
                         mHandler.post(() -> {
                             setViewVisible(loading, false);
-                            adapter.setData(finalChildren);
+                            RecyclerAdapter<FileNode> adapter = new RecyclerAdapter<>(
+                                    requireActivity(),
+                                    items,
+                                    new FileNodeViewHolderFactory(requireContext(), R.layout.layout_list_item)
+                            );
+                            selection.setAdapter(adapter);
+                            nodes.swapAdapter(adapter, true);
                         });
                     }
                 }

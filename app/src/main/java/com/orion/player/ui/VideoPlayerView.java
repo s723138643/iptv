@@ -83,12 +83,13 @@ public class VideoPlayerView extends FrameLayout {
         GestureDetectorCompat gestureDetector = new GestureDetectorCompat(getContext(), gestureListener);
         setOnTouchListener((mView, event)-> {
             mView.performClick();
+            boolean handled =  gestureDetector.onTouchEvent(event);
             if (event.getAction() == MotionEvent.ACTION_UP) {
                 if (gestureListener.isScrolling()) {
                     gestureListener.stopScrolling();
                 }
             }
-            return gestureDetector.onTouchEvent(event);
+            return handled;
         });
     }
 

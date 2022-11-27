@@ -11,7 +11,7 @@ import com.orion.iptv.bean.ChannelGroup;
 import com.orion.iptv.recycleradapter.ViewHolder;
 import com.orion.iptv.recycleradapter.ViewHolderFactory;
 
-public class GroupListViewHolderFactory implements ViewHolderFactory<ViewHolder<ChannelGroup>, ChannelGroup> {
+public class GroupListViewHolderFactory implements ViewHolderFactory<ViewHolder<ChannelGroup>> {
     private final Context context;
     private final int layoutId;
 

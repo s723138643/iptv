@@ -5,9 +5,10 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.orion.iptv.recycleradapter.ViewHolder;
 import com.orion.iptv.recycleradapter.ViewHolderFactory;
 
-public class FileNodeViewHolderFactory implements ViewHolderFactory<FileNodeViewHolder, FileNode> {
+public class FileNodeViewHolderFactory implements ViewHolderFactory<ViewHolder<FileNode>> {
     private final Context context;
     private final int layout;
 
