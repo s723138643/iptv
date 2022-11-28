@@ -1,5 +1,6 @@
 package com.orion.iptv.ui.live;
 
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.DisplayMetrics;
@@ -8,10 +9,15 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
+import android.view.RoundedCorner;
+import android.view.WindowInsets;
+import android.view.WindowManager;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.graphics.Insets;
+import androidx.core.view.DisplayCutoutCompat;
 import androidx.core.view.GestureDetectorCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
@@ -34,7 +40,7 @@ import com.orion.iptv.layout.live.LivePlayerViewModel;
 import com.orion.iptv.misc.SourceTypeDetector;
 import com.orion.iptv.network.DownloadHelper;
 import com.orion.iptv.layout.NetworkSpeed;
-import com.orion.player.ui.Gesture;
+import com.orion.player.ui.Rect;
 import com.orion.player.ui.VideoView;
 import com.orion.iptv.misc.PreferenceStore;
 import com.orion.player.ExtDataSource;
@@ -62,6 +68,7 @@ public class LivePlayerActivity extends AppCompatActivity {
     protected LivePlayerViewModel mViewModel;
 
     protected VideoView videoView;
+    protected ConstraintLayout overlay;
     protected LiveChannelInfo channelInfo;
     protected LiveChannelList channelList;
     protected LivePlayerSetting playerSetting;
@@ -78,7 +85,10 @@ public class LivePlayerActivity extends AppCompatActivity {
     private GestureDetectorCompat gestureDetector;
     private float xFlyingThreshold;
     private float yFlyingThreshold;
-    private Gesture.Rect gestureArea;
+    private final Rect gestureArea = new Rect(0, 0);
+    private Rect gesturePadding = new Rect(0, 0, 0, 0);
+    private Rect overlayPadding = new Rect(0, 0, 0, 0);
+    private final int[] overlayLocation = new int[2];
 
     private final EpgRefresher epgRefresher = new EpgRefresher();
 
@@ -89,9 +99,17 @@ public class LivePlayerActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_liveplayer);
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            getWindow().getAttributes().layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+        }
 
+        mHandler = new Handler(this.getMainLooper());
+        mPlayerHandler = new Handler(this.getMainLooper());
+        pendingCalls = new ArrayList<>();
         mViewModel = new ViewModelProvider(this).get(LivePlayerViewModel.class);
         gestureDetector = new GestureDetectorCompat(this, new GestureListener());
+
         DisplayMetrics metrics = this.getResources().getDisplayMetrics();
         Log.i(TAG, String.format(Locale.ENGLISH, "display size: %dx%d", metrics.widthPixels, metrics.heightPixels));
         // x flying 2cm on screen in pixel unit
@@ -100,6 +118,7 @@ public class LivePlayerActivity extends AppCompatActivity {
         yFlyingThreshold = metrics.ydpi * 0.8f;
 
         videoView = findViewById(R.id.video_view);
+        overlay = findViewById(R.id.overlay);
         buffering = findViewById(R.id.buffering);
         toast = findViewById(R.id.toast);
         networkSpeed = findViewById(R.id.network_speed);
@@ -107,7 +126,88 @@ public class LivePlayerActivity extends AppCompatActivity {
         channelInfo = (LiveChannelInfo) fg.findFragmentByTag("channel_info");
         channelList = (LiveChannelList) fg.findFragmentByTag("channel_list");
         playerSetting = (LivePlayerSetting) fg.findFragmentByTag("live_player_setting");
-        pendingCalls = new ArrayList<>();
+
+        ConstraintLayout.LayoutParams original = (ConstraintLayout.LayoutParams) overlay.getLayoutParams();
+        ViewCompat.setOnApplyWindowInsetsListener(overlay, (v, insets) -> {
+            Log.w(TAG, "apply window insets...");
+            Insets gesInsets = insets.getInsets(WindowInsetsCompat.Type.systemGestures());
+            gesturePadding = new Rect(gesInsets.left, gesInsets.top, gesInsets.right, gesInsets.bottom);
+
+            Insets sysInsets = insets.getInsets(WindowInsetsCompat.Type.statusBars());
+            int paddingH = Math.max(sysInsets.left, sysInsets.right);
+            int paddingV = Math.max(sysInsets.top, sysInsets.bottom);
+            Log.w(TAG, String.format(Locale.getDefault(), "paddingH: %d, paddingV: %d", paddingH, paddingV));
+            DisplayCutoutCompat cutout = insets.getDisplayCutout();
+            if (cutout != null) {
+                paddingH = Math.max(paddingH, Math.max(cutout.getSafeInsetLeft(), cutout.getSafeInsetRight()));
+                paddingV = Math.max(paddingV, Math.max(cutout.getSafeInsetTop(), cutout.getSafeInsetBottom()));
+            }
+            Log.w(TAG, String.format(Locale.getDefault(), "paddingH: %d, paddingV: %d", paddingH, paddingV));
+            WindowInsets rootInsets = overlay.getRootWindowInsets();
+            if (rootInsets != null) {
+                int cornerH = 0;
+                int cornerV = 0;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    RoundedCorner topLeft = rootInsets.getRoundedCorner(RoundedCorner.POSITION_TOP_LEFT);
+                    if (topLeft != null) {
+                        cornerH = Math.max(cornerH, topLeft.getRadius());
+                    }
+                    RoundedCorner topRight = rootInsets.getRoundedCorner(RoundedCorner.POSITION_TOP_RIGHT);
+                    if (topRight != null) {
+                        cornerH = Math.max(cornerH, topRight.getRadius());
+                    }
+                    RoundedCorner bottomLeft = rootInsets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_LEFT);
+                    if (bottomLeft != null) {
+                        cornerV = Math.max(cornerV, bottomLeft.getRadius());
+                    }
+                    RoundedCorner bottomRight = rootInsets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_RIGHT);
+                    if (bottomRight != null) {
+                        cornerV = Math.max(cornerV, bottomRight.getRadius());
+                    }
+                }
+                int offsetH = cornerH - (int) ((float) cornerH * Math.sin(Math.toRadians(45)));
+                int offsetV = cornerV - (int) ((float) cornerV * Math.sin(Math.toRadians(45)));
+                paddingH = Math.max(paddingH, offsetH);
+                paddingV = Math.max(paddingV, offsetV);
+            }
+            Log.w(TAG, String.format(Locale.getDefault(), "paddingH: %d, paddingV: %d", paddingH, paddingV));
+            overlayPadding = new Rect(paddingH, paddingV, paddingH, paddingV);
+
+            return WindowInsetsCompat.CONSUMED;
+        });
+        overlay.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom)->{
+            if (left==oldLeft && top==oldTop && right==oldRight && bottom==oldBottom) {
+                return;
+            }
+            Log.w(TAG, String.format(Locale.getDefault(), "layout changed: (%d, %d, %d, %d)", left, top, right, bottom));
+            overlay.getLocationInWindow(overlayLocation);
+            Log.w(TAG, String.format(Locale.getDefault(), "overlay location: (%d, %d)", overlayLocation[0], overlayLocation[1]));
+            gestureArea.reset(left, top, right, bottom);
+            gestureArea.inset(gesturePadding);
+            gestureArea.inset(dp2px(48), dp2px(48));
+            Log.w(TAG, String.format(Locale.getDefault(), "gesture area: (%d, %d, %d, %d)", gestureArea.left, gestureArea.top, gestureArea.right, gestureArea.bottom));
+
+            if (overlayLocation[0] <= overlayPadding.left || overlayLocation[1] <= overlayPadding.top) {
+                int paddingLeft = Math.max(0, overlayPadding.left - original.leftMargin);
+                int paddingTop = Math.max(0, overlayPadding.top - original.topMargin);
+                int paddingRight = Math.max(0, overlayPadding.right - original.rightMargin);
+                int paddingBottom = Math.max(0, overlayPadding.bottom - original.bottomMargin);
+                Log.w(TAG, String.format(Locale.getDefault(), "apply padding: (%d, %d, %d, %d)", paddingLeft, paddingTop, paddingRight, paddingBottom));
+                overlay.post(()-> overlay.setPadding(paddingLeft, paddingTop, paddingRight, paddingBottom));
+            }
+        });
+
+        mViewModel.observePlayerFactory(this, this::switchPlayer);
+        mViewModel.observeLiveSource(this, this::switchDataSource);
+        mViewModel.observeNextEpgProgram(this, nextEpgProgram -> {
+            epgRefresher.stop();
+            if (nextEpgProgram == null) {
+                return;
+            }
+            epgRefresher.start(nextEpgProgram);
+        });
+        mViewModel.observeSettingUrl(this, this::onSettingUrl);
+        mViewModel.observeCurrentChannel(this, this::onCurrentChannel);
     }
 
     protected void postPlayerAction(long delayMillis, Runnable r) {
@@ -133,18 +233,9 @@ public class LivePlayerActivity extends AppCompatActivity {
         return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics());
     }
 
-    protected void initGestureArea() {
-        DisplayMetrics metrics = getResources().getDisplayMetrics();
-        gestureArea = new Gesture.Rect(metrics.widthPixels, metrics.heightPixels);
-        gestureArea.inset(dp2px(48), dp2px(48));
-    }
-
     @Override
     public void onStart() {
         super.onStart();
-
-        mHandler = new Handler(this.getMainLooper());
-        mPlayerHandler = new Handler(this.getMainLooper());
 
         buffering.hide();
         toast.hide();
@@ -154,25 +245,7 @@ public class LivePlayerActivity extends AppCompatActivity {
                 .hide(playerSetting)
                 .commit();
 
-        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
-        ViewCompat.setOnApplyWindowInsetsListener(getWindow().getDecorView(), (v, windowInsets) -> {
-            initGestureArea();
-            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemGestures());
-            gestureArea.inset(insets.left, insets.top, insets.right, insets.bottom);
-            return WindowInsetsCompat.CONSUMED;
-        });
         maybeShowSettingUrlDialog();
-        mViewModel.observePlayerFactory(this, this::switchPlayer);
-        mViewModel.observeLiveSource(this, this::switchDataSource);
-        mViewModel.observeNextEpgProgram(this, nextEpgProgram -> {
-            epgRefresher.stop();
-            if (nextEpgProgram == null) {
-                return;
-            }
-            epgRefresher.start(nextEpgProgram);
-        });
-        mViewModel.observeSettingUrl(this, this::onSettingUrl);
-        mViewModel.observeCurrentChannel(this, this::onCurrentChannel);
     }
 
     private void switchPlayer(Pair<Integer, IExtPlayerFactory<? extends IExtPlayer>> playerFactory) {

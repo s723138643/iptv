@@ -2,9 +2,6 @@ package com.orion.iptv.layout.live;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -81,11 +78,7 @@ public class LiveChannelList extends Fragment {
         channelSpacer1 = view.findViewById(R.id.channelSpacer1);
         channelSpacer3 = view.findViewById(R.id.channelSpacer3);
         showEpgButton = view.findViewById(R.id.showEpgButton);
-    }
 
-    @Override
-    public void onStart() {
-        super.onStart();
         mViewModel = new ViewModelProvider(requireActivity()).get(LivePlayerViewModel.class);
         enhanceConstraintLayout.addEventListener(new EnhanceConstraintLayout.EventListener() {
             @Override
@@ -112,18 +105,10 @@ public class LiveChannelList extends Fragment {
         initGroupList();
         initChannelList();
         initEpgList();
-        ViewCompat.setOnApplyWindowInsetsListener(requireView(), (v, windowInsets) -> {
-            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
-            ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
-            mlp.leftMargin += insets.left;
-            mlp.topMargin += insets.top;
-            mlp.bottomMargin += insets.bottom;
-            v.setLayoutParams(mlp);
-            return WindowInsetsCompat.CONSUMED;
-        });
     }
 
     protected void initEpgList() {
+        epgList.setItemAnimator(null);
         showEpgButton.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
                 channelSpacer3.setVisibility(View.VISIBLE);
@@ -158,6 +143,7 @@ public class LiveChannelList extends Fragment {
     }
 
     protected void initChannelList() {
+        channelList.setItemAnimator(null);
         LinearLayoutManager layoutManager = new LinearLayoutManager(requireActivity());
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         // layoutManager.setMeasurementCacheEnabled(false);
@@ -183,6 +169,7 @@ public class LiveChannelList extends Fragment {
     }
 
     protected void initGroupList() {
+        groupList.setItemAnimator(null);
         LinearLayoutManager layoutManager = new LinearLayoutManager(requireActivity());
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         // layoutManager.setMeasurementCacheEnabled(false);

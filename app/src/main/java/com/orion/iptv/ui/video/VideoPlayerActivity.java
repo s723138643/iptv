@@ -12,12 +12,11 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.ArrayMap;
 import android.util.Log;
-import android.view.View;
-import android.widget.ImageButton;
-import android.widget.TextView;
+import android.view.WindowManager;
 
 import com.orion.iptv.R;
 import com.orion.player.ExtDataSource;
@@ -36,9 +35,6 @@ public class VideoPlayerActivity extends AppCompatActivity {
     private static final long NoPosition = -1;
 
     private VideoPlayerView playerView;
-    private View header;
-    private TextView title;
-    private ImageButton settings;
     private IExtPlayer player;
     private long currentPosition = NoPosition;
 
@@ -46,11 +42,17 @@ public class VideoPlayerActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_video_player);
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            getWindow().getAttributes().layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+        }
 
         playerView = findViewById(R.id.video_player);
-        header = findViewById(R.id.header);
-        title = findViewById(R.id.title);
-        settings = findViewById(R.id.settings);
+        playerView.setSettingsCallback(v -> {
+            Intent intent = new Intent(this, VideoPlayerSettingsActivity.class);
+            startActivity(intent);
+        });
+        playerView.setOrientationSwitchCallback(this::switchOrientation);
     }
 
     protected ExtDataSource getDataSource() {
@@ -81,30 +83,20 @@ public class VideoPlayerActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
-        header.setVisibility(View.GONE);
-        settings.setOnClickListener(v -> {
-            startActivity(new Intent(this, VideoPlayerSettingsActivity.class));
-        });
 
         ExtDataSource dataSource = getDataSource();
         if (dataSource == null) {
             finish();
             return;
         }
-        setTitle(dataSource);
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         String playerType = preferences.getString("player_type", "ijkplayer");
         String surfaceType = preferences.getString("surface_type", "surface_view");
 
         playerView.setSurfaceType(toVideoViewSurfaceType(surfaceType));
-        playerView.setOrientationSwitchCallback(this::switchOrientation);
-        playerView.setOnControllerVisibilityChangedListener(this::changeHeaderVisibility);
-
         player = createPlayer(playerType);
         playerView.setPlayer(player);
-
         player.setDataSource(dataSource);
         player.prepare();
     }
@@ -113,10 +105,6 @@ public class VideoPlayerActivity extends AppCompatActivity {
         int orientation = getRequestedOrientation();
         int newOrientation = orientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE ? ActivityInfo.SCREEN_ORIENTATION_PORTRAIT : ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
         setRequestedOrientation(newOrientation);
-    }
-
-    protected void changeHeaderVisibility(int visibility) {
-        header.setVisibility(visibility);
     }
 
     @NonNull
@@ -159,6 +147,23 @@ public class VideoPlayerActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (currentPosition != NoPosition) {
+            outState.putLong("video_position", currentPosition);
+        }
+    }
+
+    @Override
+    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        long position = savedInstanceState.getLong("video_position", NoPosition);
+        if (position != NoPosition) {
+            currentPosition = position;
+        }
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         hideSystemBars();
@@ -176,15 +181,6 @@ public class VideoPlayerActivity extends AppCompatActivity {
         if (player != null) {
             player.release();
         }
-    }
-
-    protected void setTitle(ExtDataSource dataSource) {
-        Uri uri = Uri.parse(dataSource.getUri());
-        String file = uri.getLastPathSegment();
-        if (file == null || !file.contains(".")) {
-            return;
-        }
-        title.setText(file);
     }
 
     protected void hideSystemBars() {

@@ -72,46 +72,4 @@ public class Gesture extends FrameLayout {
     public void hide() {
         setVisibility(View.GONE);
     }
-
-    public static class Rect {
-        public float left;
-        public float top;
-        public float right;
-        public float bottom;
-
-        public Rect() {
-            left = 0f;
-            top  = 0f;
-            right = 0f;
-            bottom = 0f;
-        }
-
-        public Rect(int width, int height) {
-            left = 0;
-            top = 0;
-            right = width;
-            bottom = height;
-        }
-
-        public void inset(float dx, float dy) {
-            left += dx;
-            top += dy;
-            right -= dx;
-            bottom -= dy;
-        }
-
-        public void inset(int dLeft, int dTop, int dRight, int dBottom) {
-            left += dLeft;
-            top += dTop;
-            right += dRight;
-            bottom += dBottom;
-        }
-
-        public boolean in(float x, float y) {
-            return x >= left
-                    && x <= right
-                    && y >= top
-                    && y <= bottom;
-        }
-    }
 }

@@ -45,18 +45,13 @@ public class SharesHomeFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_shares_home, container, false);
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         addShareButton = view.findViewById(R.id.add_share);
         sharesView = view.findViewById(R.id.shares_body);
         selectionAction = view.findViewById(R.id.selection_actions);
-    }
-
-    @SuppressLint("NotifyDataSetChanged")
-    @Override
-    public void onStart() {
-        super.onStart();
 
         mViewModel = new ViewModelProvider(requireActivity()).get(SharesViewModel.class);
         addShareButton.setOnClickListener((addRootButton) -> {

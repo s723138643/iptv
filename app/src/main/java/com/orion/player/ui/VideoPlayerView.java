@@ -1,18 +1,28 @@
 package com.orion.player.ui;
 
 import android.content.Context;
-import android.content.res.Configuration;
+import android.net.Uri;
+import android.os.Build;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
+import android.view.RoundedCorner;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.WindowInsets;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.graphics.Insets;
+import androidx.core.view.DisplayCutoutCompat;
 import androidx.core.view.GestureDetectorCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -22,19 +32,30 @@ import com.orion.player.ExtDataSource;
 import com.orion.player.IExtPlayer;
 import com.orion.player.ExtVideoSize;
 
+import java.util.Locale;
+
 public class VideoPlayerView extends FrameLayout {
     private static final String TAG = "VideoPlayerView";
     private static final int GestureInsetXdp = 48;
     private static final int GestureInsetYdp = 48;
 
     private ComponentListener componentListener;
+    private SettingsButtonCallback settingsCallback;
 
     private VideoView videoView;
+    private ConstraintLayout overlay;
     private Gesture gesture;
     private PlayerController controller;
     private Buffering buffering;
     private Toast toast;
-    private Gesture.Rect gestureArea;
+    private TextView title;
+
+    private final Rect gestureArea = new Rect(0, 0);
+    private Rect gesturePadding = new Rect(0, 0, 0, 0);
+    private Rect overlayPadding = new Rect(0, 0, 0, 0);
+    private final int[] overlayLocation = new int[2];
+    private ConstraintLayout.LayoutParams original;
+
     private int orientation;
 
     IExtPlayer iExtPlayer;
@@ -59,11 +80,16 @@ public class VideoPlayerView extends FrameLayout {
 
     protected void initView() {
         videoView = findViewById(R.id.video_view);
+        overlay = findViewById(R.id.overlay);
         controller = findViewById(R.id.player_controller);
         gesture = findViewById(R.id.gesture);
         buffering = findViewById(R.id.buffering);
         toast = findViewById(R.id.toast);
+        ViewGroup header = findViewById(R.id.header);
+        title = findViewById(R.id.title);
+        ImageButton settings = findViewById(R.id.settings);
 
+        header.setVisibility(View.GONE);
         toast.hide();
         buffering.hide();
         gesture.hide();
@@ -71,12 +97,74 @@ public class VideoPlayerView extends FrameLayout {
 
         componentListener = new ComponentListener();
 
-        initGestureArea();
-        ViewCompat.setOnApplyWindowInsetsListener(this, (v, insets) -> {
-            initGestureArea();
-            Insets sysInsets = insets.getInsets(WindowInsetsCompat.Type.systemGestures());
-            gestureArea.inset(sysInsets.left, sysInsets.top, sysInsets.right, sysInsets.bottom);
+        original = (ConstraintLayout.LayoutParams) overlay.getLayoutParams();
+        ViewCompat.setOnApplyWindowInsetsListener(overlay, (v, insets) -> {
+            Log.w(TAG, "apply window insets...");
+            Insets gesInsets = insets.getInsets(WindowInsetsCompat.Type.systemGestures());
+            gesturePadding = new Rect(gesInsets.left, gesInsets.top, gesInsets.right, gesInsets.bottom);
+
+            Insets sysInsets = insets.getInsets(WindowInsetsCompat.Type.statusBars());
+            int paddingH = Math.max(sysInsets.left, sysInsets.right);
+            int paddingV = Math.max(sysInsets.top, sysInsets.bottom);
+            Log.w(TAG, String.format(Locale.getDefault(), "paddingH: %d, paddingV: %d", paddingH, paddingV));
+            DisplayCutoutCompat cutout = insets.getDisplayCutout();
+            if (cutout != null) {
+                paddingH = Math.max(paddingH, Math.max(cutout.getSafeInsetLeft(), cutout.getSafeInsetRight()));
+                paddingV = Math.max(paddingV, Math.max(cutout.getSafeInsetTop(), cutout.getSafeInsetBottom()));
+            }
+            Log.w(TAG, String.format(Locale.getDefault(), "paddingH: %d, paddingV: %d", paddingH, paddingV));
+            WindowInsets rootInsets = overlay.getRootWindowInsets();
+            if (rootInsets != null) {
+                int cornerH = 0;
+                int cornerV = 0;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    RoundedCorner topLeft = rootInsets.getRoundedCorner(RoundedCorner.POSITION_TOP_LEFT);
+                    if (topLeft != null) {
+                        cornerH = Math.max(cornerH, topLeft.getRadius());
+                    }
+                    RoundedCorner topRight = rootInsets.getRoundedCorner(RoundedCorner.POSITION_TOP_RIGHT);
+                    if (topRight != null) {
+                        cornerH = Math.max(cornerH, topRight.getRadius());
+                    }
+                    RoundedCorner bottomLeft = rootInsets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_LEFT);
+                    if (bottomLeft != null) {
+                        cornerV = Math.max(cornerV, bottomLeft.getRadius());
+                    }
+                    RoundedCorner bottomRight = rootInsets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_RIGHT);
+                    if (bottomRight != null) {
+                        cornerV = Math.max(cornerV, bottomRight.getRadius());
+                    }
+                }
+                int offsetH = cornerH - (int) ((float) cornerH * Math.sin(Math.toRadians(45)));
+                int offsetV = cornerV - (int) ((float) cornerV * Math.sin(Math.toRadians(45)));
+                paddingH = Math.max(paddingH, offsetH);
+                paddingV = Math.max(paddingV, offsetV);
+            }
+            Log.w(TAG, String.format(Locale.getDefault(), "paddingH: %d, paddingV: %d", paddingH, paddingV));
+            overlayPadding = new Rect(paddingH, paddingV, paddingH, paddingV);
+
             return WindowInsetsCompat.CONSUMED;
+        });
+        overlay.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom)->{
+            if (left==oldLeft && top==oldTop && right==oldRight && bottom==oldBottom) {
+                return;
+            }
+            Log.w(TAG, String.format(Locale.getDefault(), "layout changed: (%d, %d, %d, %d)", left, top, right, bottom));
+            overlay.getLocationInWindow(overlayLocation);
+            Log.w(TAG, String.format(Locale.getDefault(), "overlay location: (%d, %d)", overlayLocation[0], overlayLocation[1]));
+            gestureArea.reset(left, top, right, bottom);
+            gestureArea.inset(gesturePadding);
+            gestureArea.inset(dp2px(48), dp2px(48));
+            Log.w(TAG, String.format(Locale.getDefault(), "gesture area: (%d, %d, %d, %d)", gestureArea.left, gestureArea.top, gestureArea.right, gestureArea.bottom));
+
+            if (overlayLocation[0] <= overlayPadding.left || overlayLocation[1] <= overlayPadding.top) {
+                int paddingLeft = Math.max(0, overlayPadding.left - original.leftMargin);
+                int paddingTop = Math.max(0, overlayPadding.top - original.topMargin);
+                int paddingRight = Math.max(0, overlayPadding.right - original.rightMargin);
+                int paddingBottom = Math.max(0, overlayPadding.bottom - original.bottomMargin);
+                Log.w(TAG, String.format(Locale.getDefault(), "apply padding: (%d, %d, %d, %d)", paddingLeft, paddingTop, paddingRight, paddingBottom));
+                overlay.post(()->overlay.setPadding(paddingLeft, paddingTop, paddingRight, paddingBottom));
+            }
         });
 
         GestureListener gestureListener = new GestureListener();
@@ -91,15 +179,12 @@ public class VideoPlayerView extends FrameLayout {
             }
             return handled;
         });
-    }
-
-    @Override
-    public void onConfigurationChanged(@NonNull Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-        if (newConfig.orientation == orientation) {
-            return;
-        }
-        initGestureArea();
+        controller.setOnVisibilityChangedListener(header::setVisibility);
+        settings.setOnClickListener(v -> {
+            if (settingsCallback != null) {
+                settingsCallback.onClicked(v);
+            }
+        });
     }
 
     @SuppressWarnings("SameParameterValue")
@@ -109,12 +194,6 @@ public class VideoPlayerView extends FrameLayout {
                 dp,
                 getResources().getDisplayMetrics()
         );
-    }
-
-    protected void initGestureArea() {
-        DisplayMetrics metrics = getResources().getDisplayMetrics();
-        gestureArea = new Gesture.Rect(metrics.widthPixels, metrics.heightPixels);
-        gestureArea.inset(dp2px(GestureInsetXdp), dp2px(GestureInsetYdp));
     }
 
     public void setSurfaceType(@VideoView.SurfaceType int type) {
@@ -138,12 +217,26 @@ public class VideoPlayerView extends FrameLayout {
         controller.setOrientationCallback(callback);
     }
 
-    public void setOnControllerVisibilityChangedListener(PlayerController.OnVisibilityChangedListener listener) {
-        controller.setOnVisibilityChangedListener(listener);
+    public void setSettingsCallback(SettingsButtonCallback callback) {
+        settingsCallback = callback;
     }
 
     private void updateAspectRatio(ExtVideoSize videoSize) {
         videoView.setVideoSize(videoSize);
+    }
+
+    protected void setTitle(ExtDataSource dataSource) {
+        Uri uri = Uri.parse(dataSource.getUri());
+        String file = uri.getLastPathSegment();
+        if (file == null || !file.contains(".")) {
+            return;
+        }
+        title.setText(file);
+        title.setSelected(true);
+    }
+
+    public interface SettingsButtonCallback {
+        void onClicked(View v);
     }
 
     private class GestureListener extends GestureDetector.SimpleOnGestureListener {
@@ -245,7 +338,9 @@ public class VideoPlayerView extends FrameLayout {
         public void onDataSourceUsed(ExtDataSource dataSource) {
             toast.hide();
             buffering.show();
+            setTitle(dataSource);
             controller.show();
+            setKeepScreenOn(true);
         }
 
         @Override
@@ -257,11 +352,13 @@ public class VideoPlayerView extends FrameLayout {
                 case IExtPlayer.STATE_ENDED:
                     buffering.hide();
                     controller.show();
+                    setKeepScreenOn(false);
                     break;
                 case IExtPlayer.STATE_BUFFERING:
                     buffering.show();
                     break;
                 case IExtPlayer.STATE_IDLE:
+                    setKeepScreenOn(false);
                     break;
             }
         }

@@ -70,11 +70,6 @@ public class SharesContentFragment extends Fragment {
 
         nodes = view.findViewById(R.id.collections);
         homeButton = view.findViewById(R.id.shares_home);
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
 
         SharesViewModel viewModel = new ViewModelProvider(requireActivity()).get(SharesViewModel.class);
         path = (FileNode) requireArguments().getSerializable("path");

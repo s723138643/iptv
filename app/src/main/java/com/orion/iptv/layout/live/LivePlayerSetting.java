@@ -58,16 +58,11 @@ public class LivePlayerSetting extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        LivePlayerViewModel viewModel = new ViewModelProvider(requireActivity()).get(LivePlayerViewModel.class);
 
         enhanceConstraintLayout = (EnhanceConstraintLayout) view;
         settingMenuView = view.findViewById(R.id.livePlayerMenu);
         settingValueView = view.findViewById(R.id.livePlayerValue);
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
-        LivePlayerViewModel viewModel = new ViewModelProvider(requireActivity()).get(LivePlayerViewModel.class);
 
         menus = new ArrayList<>();
         menus.add(new SetChannelSourceUrl(requireActivity(), viewModel));

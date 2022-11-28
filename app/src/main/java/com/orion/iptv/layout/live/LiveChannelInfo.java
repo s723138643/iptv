@@ -13,9 +13,6 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -80,11 +77,7 @@ public class LiveChannelInfo extends Fragment {
         linkInfo = view.findViewById(R.id.linkInfo);
         currentEpgProgram = view.findViewById(R.id.currentEpgProgram);
         nextEpgProgram = view.findViewById(R.id.nextEpgProgram);
-    }
 
-    @Override
-    public void onStart() {
-        super.onStart();
         res = requireActivity().getResources();
         channelName.setSelected(true);
         currentEpgProgram.setSelected(true);
@@ -104,15 +97,6 @@ public class LiveChannelInfo extends Fragment {
                     container.postDelayed(hideMyself, Math.max(hideMyselfAt-SystemClock.uptimeMillis(), 1));
                 }
             }
-        });
-        ViewCompat.setOnApplyWindowInsetsListener(requireView(), (v, windowInsets) -> {
-            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
-            ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
-            mlp.leftMargin += insets.left;
-            mlp.rightMargin += insets.right;
-            mlp.bottomMargin += insets.bottom;
-            v.setLayoutParams(mlp);
-            return WindowInsetsCompat.CONSUMED;
         });
     }
 

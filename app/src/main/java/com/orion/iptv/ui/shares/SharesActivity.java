@@ -29,9 +29,6 @@ public class SharesActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_shares);
-        if (savedInstanceState != null) {
-            return;
-        }
         SharesViewModel sharesViewModel = new ViewModelProvider(this).get(SharesViewModel.class);
         resumeFromFile(sharesViewModel);
         sharesViewModel.getShares().observe(this, this::saveToFile);
@@ -54,7 +51,7 @@ public class SharesActivity extends AppCompatActivity {
                 viewModel.getShares().setValue(muteAbleShares);
             }
         } catch (IOException err) {
-            Log.e(TAG, "resume shares failed, " + err.toString());
+            Log.e(TAG, "resume shares failed, " + err);
         }
     }
 
@@ -68,7 +65,7 @@ public class SharesActivity extends AppCompatActivity {
                 gson.toJson(shares1, writer);
             }
         } catch (IOException err) {
-            Log.e(TAG, "save shares failed, " + err.toString());
+            Log.e(TAG, "save shares failed, " + err);
         }
     }
 }
