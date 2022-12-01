@@ -86,14 +86,41 @@
         app:layout_constraintBottom_toBottomOf="parent"/>
 
     <ImageButton
+        android:id="@+id/audio_track"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/exo_styled_controls_audiotrack"
+        android:contentDescription="@string/audiotrack_selection"
+        android:background="@android:color/transparent"
+        android:layout_marginEnd="8dp"
+        app:layout_constraintStart_toStartOf="@+id/fullscreen"
+        app:layout_constraintTop_toBottomOf="@+id/duration"
+        app:layout_constraintEnd_toStartOf="@+id/subtitle"
+        app:layout_constraintBottom_toBottomOf="parent"/>
+
+    <ImageButton
+        android:id="@+id/subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/exo_ic_subtitle_on"
+        android:contentDescription="@string/subtitle_selection"
+        android:background="@android:color/transparent"
+        android:layout_marginEnd="8dp"
+        app:layout_constraintStart_toEndOf="@+id/audio_track"
+        app:layout_constraintTop_toBottomOf="@+id/duration"
+        app:layout_constraintEnd_toStartOf="@+id/fullscreen"
+        app:layout_constraintBottom_toBottomOf="parent"/>
+
+    <ImageButton
         android:id="@+id/fullscreen"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="@color/transparent"
+        android:background="@android:color/transparent"
         android:contentDescription="@string/enter_fullscreen"
         android:src="@drawable/exo_ic_fullscreen_enter"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/subtitle"
+        app:layout_constraintTop_toBottomOf="@+id/duration"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/duration" />
+        app:layout_constraintBottom_toBottomOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

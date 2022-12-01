@@ -46,17 +46,37 @@ public class ExtTrackInfo {
      */
     public static final int TRACK_TYPE_CUSTOM_BASE = 10000;
 
+    public final int trackId;
+    public final int trackIndex;
+    public final @TrackType int type;
     public final int width;
     public final int height;
     public final String codecs;
     public final long bitrate;
-    public final @TrackType int type;
+    public final long sampleRate;
+    public final String desc;
+    public final boolean selected;
 
-    public ExtTrackInfo(int type, int width, int height, String codecs, long bitrate) {
+    public ExtTrackInfo(
+            int trackId,
+            int trackIndex,
+            int type,
+            int width,
+            int height,
+            String codecs,
+            long bitrate,
+            long sampleRate,
+            String desc,
+            boolean selected) {
+        this.trackId = trackId;
+        this.trackIndex = trackIndex;
+        this.type = type;
         this.width = width;
         this.height = height;
         this.codecs = codecs;
         this.bitrate = bitrate;
-        this.type = type;
+        this.sampleRate = sampleRate;
+        this.desc = desc;
+        this.selected = selected;
     }
 }

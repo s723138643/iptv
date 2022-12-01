@@ -11,6 +11,7 @@ public class ExtHWIjkPlayer extends ExtSWIjkPlayer {
 
     @Override
     protected void setOptions(IjkMediaPlayer ijkMediaPlayer) {
+        super.setOptions(ijkMediaPlayer);
         ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec-all-videos", 1);
         ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec-auto-rotate", 1);
         ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec-handle-resolution-change", 1);

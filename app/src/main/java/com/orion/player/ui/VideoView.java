@@ -20,6 +20,8 @@ import static java.lang.annotation.ElementType.PARAMETER;
 import static java.lang.annotation.ElementType.TYPE_USE;
 
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.SurfaceView;
@@ -32,6 +34,10 @@ import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.google.android.exoplayer2.text.Cue;
+import com.google.android.exoplayer2.text.CueGroup;
+import com.google.android.exoplayer2.ui.CaptionStyleCompat;
+import com.google.android.exoplayer2.ui.SubtitleView;
 import com.google.android.exoplayer2.video.VideoDecoderGLSurfaceView;
 import com.orion.iptv.R;
 import com.orion.player.IExtPlayer;
@@ -42,6 +48,7 @@ import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.List;
 
 public class VideoView extends FrameLayout {
     @SuppressWarnings("unused")
@@ -58,6 +65,7 @@ public class VideoView extends FrameLayout {
 
     private final ComponentListener componentListener;
     private final AspectRatioFrameLayout contentFrame;
+    private final SubtitleView subtitle;
     private @Nullable View surfaceView;
     private @Nullable IExtPlayer iExtPlayer;
     private @SurfaceType int surfaceType;
@@ -77,6 +85,14 @@ public class VideoView extends FrameLayout {
     public VideoView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
         LayoutInflater.from(context).inflate(R.layout.fragment_video_view, this, true);
+        subtitle = findViewById(R.id.subtitle);
+        subtitle.setStyle(new CaptionStyleCompat(
+                Color.WHITE,
+                Color.TRANSPARENT,
+                Color.TRANSPARENT,
+                CaptionStyleCompat.EDGE_TYPE_NONE,
+                Color.TRANSPARENT,
+                Typeface.DEFAULT));
         contentFrame = findViewById(R.id.content_frame);
         componentListener = new ComponentListener();
         surfaceType = SURFACE_TYPE_SURFACE_VIEW;
@@ -181,6 +197,7 @@ public class VideoView extends FrameLayout {
         @Nullable IExtPlayer oldIExtPlayer = this.iExtPlayer;
         if (oldIExtPlayer != null) {
             oldIExtPlayer.removeListener(componentListener);
+            subtitle.setCues(List.of(Cue.EMPTY));
             if (surfaceView instanceof TextureView) {
                 oldIExtPlayer.clearVideoTextureView((TextureView) surfaceView);
             } else if (surfaceView instanceof SurfaceView) {
@@ -226,6 +243,11 @@ public class VideoView extends FrameLayout {
     }
 
     private final class ComponentListener implements IExtPlayer.Listener {
+
+        @Override
+        public void onCues(CueGroup cueGroup) {
+            subtitle.setCues(cueGroup.cues);
+        }
 
         // IExtPlayer.Listener implementation
         @Override

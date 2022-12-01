@@ -6,10 +6,12 @@ import android.content.res.Configuration;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.appcompat.app.AlertDialog;
 
 import android.os.SystemClock;
 import android.util.AttributeSet;
+import android.util.Log;
+import android.util.Pair;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -22,8 +24,11 @@ import android.widget.TextView;
 
 import com.orion.iptv.R;
 import com.orion.player.ExtDataSource;
+import com.orion.player.ExtTrackInfo;
 import com.orion.player.IExtPlayer;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 public class PlayerController extends FrameLayout {
@@ -37,9 +42,7 @@ public class PlayerController extends FrameLayout {
     private TextView position;
     private TextView duration;
     private SeekBar seekBar;
-    private ImageButton seekToPrevButton;
     private ImageButton playButton;
-    private ImageButton seekToNextButton;
     private ImageButton fullscreenButton;
 
     private @Nullable IExtPlayer player;
@@ -47,6 +50,8 @@ public class PlayerController extends FrameLayout {
     private ViewGroup.MarginLayoutParams originMargin;
     private OrientationSwitchCallback orientationSwitchCallback;
     private OnVisibilityChangedListener listener;
+    private Pair<Integer, List<ExtTrackInfo>> audios;
+    private Pair<Integer, List<ExtTrackInfo>> subtitles;
 
     private final IExtPlayer.Listener componentListener = new ComponentListener();
     private final Runnable updatePosition = new Runnable() {
@@ -101,9 +106,11 @@ public class PlayerController extends FrameLayout {
         position = findViewById(R.id.position);
         duration = findViewById(R.id.media_duration);
         seekBar = findViewById(R.id.seek_bar);
-        seekToPrevButton = findViewById(R.id.prev);
-        seekToNextButton = findViewById(R.id.next);
+        ImageButton seekToPrevButton = findViewById(R.id.prev);
+        ImageButton seekToNextButton = findViewById(R.id.next);
         playButton = findViewById(R.id.play_or_pause);
+        ImageButton audioTrackButton = findViewById(R.id.audio_track);
+        ImageButton subtitleButton = findViewById(R.id.subtitle);
         fullscreenButton = findViewById(R.id.fullscreen);
 
         orientation = getResources().getConfiguration().orientation;
@@ -156,6 +163,50 @@ public class PlayerController extends FrameLayout {
                     }
                 }
             }
+        });
+
+        audioTrackButton.setOnClickListener(button -> {
+            if (audios== null || audios.second.isEmpty()) {
+                return;
+            }
+            String[] items = audios.second.stream().map(audio -> audio.desc).toArray(String[]::new);
+            AlertDialog alterDialog = new AlertDialog.Builder(getContext())
+                    .setTitle("select audio")
+                    .setSingleChoiceItems(items, audios.first, (dialog, position) -> {
+                        if (position < 0 || position >= audios.second.size() || player == null) {
+                            dialog.dismiss();
+                            return;
+                        }
+                        ExtTrackInfo trackInfo = audios.second.get(position);
+                        player.selectTrack(trackInfo.type, trackInfo.trackId, trackInfo.trackIndex);
+                        dialog.dismiss();
+                    })
+                    .create();
+            alterDialog.show();
+        });
+
+        subtitleButton.setOnClickListener(button -> {
+            if (subtitles == null || subtitles.second.isEmpty()) {
+                return;
+            }
+            String[] items = subtitles.second.stream().map(subtitle -> subtitle.desc).toArray(String[]::new);
+            AlertDialog alterDialog = new AlertDialog.Builder(getContext())
+                    .setTitle("select subtitle")
+                    .setSingleChoiceItems(items, subtitles.first, (dialog, position) -> {
+                        if (position < 0 || position >= subtitles.second.size() || player == null) {
+                            dialog.dismiss();
+                            return;
+                        }
+                        ExtTrackInfo trackInfo = subtitles.second.get(position);
+                        if (!trackInfo.selected) {
+                            player.selectTrack(trackInfo.type, trackInfo.trackId, trackInfo.trackIndex);
+                        } else {
+                            player.deselectTrack(trackInfo.type, trackInfo.trackId, trackInfo.trackIndex);
+                        }
+                        dialog.dismiss();
+                    })
+                    .create();
+            alterDialog.show();
         });
 
         fullscreenButton.setOnClickListener(button -> {
@@ -307,6 +358,49 @@ public class PlayerController extends FrameLayout {
             seekBar.setProgress((int) (offsetMs / 1000));
             position.setText(formatDuration(offsetMs));
             duration.setText(formatDuration(durationMs));
+        }
+
+        @Override
+        public void onTracksChanged(List<ExtTrackInfo> tracks) {
+            int selectedAudioTrack = -1;
+            int selectedSubtitle = -1;
+            List<ExtTrackInfo> tmpAudios = new ArrayList<>();
+            List<ExtTrackInfo> tmpSubtitles = new ArrayList<>();
+
+            for (ExtTrackInfo track : tracks) {
+                Log.w(TAG, track.type + ", " + track.desc + ", " + track.selected);
+                if (track.type == ExtTrackInfo.TRACK_TYPE_AUDIO) {
+                    tmpAudios.add(track);
+                    if (track.selected) {
+                        selectedAudioTrack = tmpAudios.size() - 1;
+                    }
+                } else if (track.type == ExtTrackInfo.TRACK_TYPE_TEXT) {
+                    tmpSubtitles.add(track);
+                    if (track.selected) {
+                        selectedSubtitle = tmpSubtitles.size() - 1;
+                    }
+                }
+            }
+            if (!tmpAudios.isEmpty()) {
+                audios = Pair.create(selectedAudioTrack, tmpAudios);
+            }
+            if (!tmpSubtitles.isEmpty()) {
+                if (selectedSubtitle >= 0) {
+                    ExtTrackInfo trackInfo = tmpSubtitles.get(selectedSubtitle);
+                    tmpSubtitles.add(new ExtTrackInfo(
+                            trackInfo.trackId,
+                            trackInfo.trackIndex,
+                            ExtTrackInfo.TRACK_TYPE_TEXT,
+                            0,
+                            0,
+                            "null",
+                            0,
+                            0,
+                            "disable subtitle track",
+                            true));
+                }
+                subtitles = Pair.create(selectedSubtitle, tmpSubtitles);
+            }
         }
     }
 

@@ -240,10 +240,10 @@ public class LiveChannelInfo extends Fragment {
 
     private class PlayerEventListener implements IExtPlayer.Listener {
         @Override
-        public void onTracksSelected(List<ExtTrackInfo> tracks) {
+        public void onTracksChanged(List<ExtTrackInfo> tracks) {
             for (int i=0; i<tracks.size(); i++) {
                 ExtTrackInfo track = tracks.get(i);
-                if (track.type == ExtTrackInfo.TRACK_TYPE_VIDEO) {
+                if (track.type == ExtTrackInfo.TRACK_TYPE_VIDEO && track.selected) {
                     setMediaInfo(track.width + "x" + track.height);
                     setCodecInfo(track.codecs);
                     setBitrateInfo(track.bitrate);

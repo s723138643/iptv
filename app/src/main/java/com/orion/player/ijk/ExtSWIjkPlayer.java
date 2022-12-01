@@ -12,6 +12,7 @@ import android.view.TextureView;
 
 import androidx.annotation.NonNull;
 
+import com.google.android.exoplayer2.text.CueGroup;
 import com.orion.player.ExtDataSource;
 import com.orion.player.IExtPlayer;
 import com.orion.player.ExtTrackInfo;
@@ -26,12 +27,14 @@ import okhttp3.HttpUrl;
 import tv.danmaku.ijk.media.player.IMediaPlayer;
 import tv.danmaku.ijk.media.player.IjkMediaMeta;
 import tv.danmaku.ijk.media.player.IjkMediaPlayer;
+import tv.danmaku.ijk.media.player.IjkTimedText;
+import tv.danmaku.ijk.media.player.misc.ITrackInfo;
 
 public class ExtSWIjkPlayer implements IExtPlayer,
         IMediaPlayer.OnErrorListener, IMediaPlayer.OnBufferingUpdateListener,
         IMediaPlayer.OnCompletionListener, IMediaPlayer.OnInfoListener,
         IMediaPlayer.OnPreparedListener, IMediaPlayer.OnVideoSizeChangedListener,
-        IjkMediaPlayer.OnNativeInvokeListener {
+        IMediaPlayer.OnTimedTextListener, IjkMediaPlayer.OnNativeInvokeListener {
 
     protected static final String TAG = "ExtIjkPlayer";
 
@@ -39,6 +42,7 @@ public class ExtSWIjkPlayer implements IExtPlayer,
     protected final List<Listener> listeners;
     protected final Context context;
     protected final ComponentListener componentListener;
+    protected final SubtitleParser subtitleParser = new AssSubtitleParser();
 
     protected @State int playbackState = IExtPlayer.STATE_IDLE;
     protected boolean prepared = false;
@@ -68,10 +72,12 @@ public class ExtSWIjkPlayer implements IExtPlayer,
         ijkMediaPlayer.setOnPreparedListener(this);
         ijkMediaPlayer.setOnNativeInvokeListener(this);
         ijkMediaPlayer.setOnCompletionListener(this);
+        ijkMediaPlayer.setOnTimedTextListener(this);
     }
 
     protected void setOptions(IjkMediaPlayer player) {
         // do nothing
+        player.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "subtitle", 1);
     }
 
     private void notifyError(Exception error) {
@@ -344,14 +350,99 @@ public class ExtSWIjkPlayer implements IExtPlayer,
         listeners.remove(listener);
     }
 
+    protected void notifyTrackChanged() {
+        Bundle meta = ijkMediaPlayer.getMediaMeta();
+        if (meta == null) {
+            return;
+        }
+        List<ExtTrackInfo> tracks = getTracks(IjkMediaMeta.parse(meta));
+        listeners.forEach(listener -> listener.onTracksChanged(tracks));
+    }
+
+    @Override
+    public void selectTrack(@ExtTrackInfo.TrackType int trackType, int trackId, int trackIndex) {
+        Log.i(TAG, "select track: " + trackId + ":" + trackIndex);
+        if (trackType == ExtTrackInfo.TRACK_TYPE_AUDIO || trackType == ExtTrackInfo.TRACK_TYPE_VIDEO) {
+            ijkMediaPlayer.pause();
+            long position = ijkMediaPlayer.getCurrentPosition();
+            ijkMediaPlayer.selectTrack(trackId);
+            ijkMediaPlayer.seekTo(position);
+            ijkMediaPlayer.start();
+        } else {
+            ijkMediaPlayer.selectTrack(trackId);
+        }
+        notifyTrackChanged();
+    }
+
+    @Override
+    public void deselectTrack(@ExtTrackInfo.TrackType int trackType, int trackId, int trackIndex) {
+        Log.i(TAG, "deselect track: " + trackId + ":" + trackIndex);
+        ijkMediaPlayer.deselectTrack(trackId);
+        notifyTrackChanged();
+    }
+
+    protected String makeDesc(@ExtTrackInfo.TrackType int trackType, IjkMediaMeta.IjkStreamMeta streamMeta) {
+        String title = streamMeta.getString("label");
+        String desc;
+        switch (trackType) {
+            case ExtTrackInfo.TRACK_TYPE_AUDIO:
+                desc = streamMeta.mLanguage + ", " + streamMeta.getBitrateInline() + ", " + streamMeta.getSampleRateInline();
+                break;
+            case ExtTrackInfo.TRACK_TYPE_VIDEO:
+                desc = streamMeta.mLanguage + "," + streamMeta.getResolutionInline() + ", " + streamMeta.getBitrateInline();
+                break;
+            case ExtTrackInfo.TRACK_TYPE_TEXT:
+                desc = streamMeta.mLanguage + ", " + streamMeta.mCodecName;
+                break;
+            default:
+                desc = streamMeta.mType + ", " + streamMeta.mCodecName;
+        }
+        return desc;
+    }
+
+    @NonNull
+    protected List<ExtTrackInfo> getTracks(IjkMediaMeta mediaMeta) {
+        List<ExtTrackInfo> extTrackInfo = new ArrayList<>();
+        List<Integer> selectedTracks = new ArrayList<>();
+        selectedTracks.add(ijkMediaPlayer.getSelectedTrack(ITrackInfo.MEDIA_TRACK_TYPE_VIDEO));
+        selectedTracks.add(ijkMediaPlayer.getSelectedTrack(ITrackInfo.MEDIA_TRACK_TYPE_AUDIO));
+        selectedTracks.add(ijkMediaPlayer.getSelectedTrack(ITrackInfo.MEDIA_TRACK_TYPE_TIMEDTEXT));
+        for (IjkMediaMeta.IjkStreamMeta streamMeta: mediaMeta.mStreams) {
+            @ExtTrackInfo.TrackType int trackType = getTrackType(streamMeta.mType);
+            if (trackType == ExtTrackInfo.TRACK_TYPE_UNKNOWN) {
+                continue;
+            }
+            extTrackInfo.add(new ExtTrackInfo(
+                    streamMeta.mIndex,
+                    0,
+                    trackType,
+                    streamMeta.mWidth,
+                    streamMeta.mHeight,
+                    streamMeta.mCodecName,
+                    streamMeta.mBitrate,
+                    streamMeta.mSampleRate,
+                    makeDesc(trackType, streamMeta),
+                    selectedTracks.contains(streamMeta.mIndex)
+            ));
+        }
+        return extTrackInfo;
+    }
+
     @Override
     public void onPrepared(IMediaPlayer mp) {
         prepared = true;
         maybeChangePlayerStateTo(STATE_BUFFERING);
-        IjkMediaMeta mediaMeta = ijkMediaPlayer.getMediaInfo().mMeta;
-        listeners.forEach(listener -> listener.onDurationChanged(
-                mediaMeta.mStartUS/1000,
-                mediaMeta.mDurationUS/1000));
+        Bundle bundle = ijkMediaPlayer.getMediaMeta();
+        if (bundle != null) {
+            IjkMediaMeta mediaMeta = IjkMediaMeta.parse(bundle);
+            List<ExtTrackInfo> extTrackInfo = getTracks(mediaMeta);
+            if (!extTrackInfo.isEmpty()) {
+                listeners.forEach(listener -> listener.onTracksChanged(extTrackInfo));
+            }
+            listeners.forEach(listener -> listener.onDurationChanged(
+                    mediaMeta.mStartUS/1000,
+                    mediaMeta.mDurationUS/1000));
+        }
         if (seekToPositionMsWhenReady > 0) {
             ijkMediaPlayer.seekTo(seekToPositionMsWhenReady);
             seekToPositionMsWhenReady = 0;
@@ -361,6 +452,12 @@ public class ExtSWIjkPlayer implements IExtPlayer,
         } else {
             pause();
         }
+    }
+
+    @Override
+    public void onTimedText(IMediaPlayer mp, IjkTimedText text) {
+        CueGroup cueGroup = subtitleParser.parse(text.getText());
+        listeners.forEach(listener -> listener.onCues(cueGroup));
     }
 
     @Override
@@ -394,14 +491,16 @@ public class ExtSWIjkPlayer implements IExtPlayer,
         return true;
     }
 
-    private @ExtTrackInfo.TrackType int getTrackType(String mType) {
-        if (mType.equalsIgnoreCase("video")) {
+    protected @ExtTrackInfo.TrackType int getTrackType(String mType) {
+        if (mType.equalsIgnoreCase(IjkMediaMeta.IJKM_VAL_TYPE__VIDEO)) {
             return ExtTrackInfo.TRACK_TYPE_VIDEO;
         }
-        if (mType.equalsIgnoreCase("audio")) {
+        if (mType.equalsIgnoreCase(IjkMediaMeta.IJKM_VAL_TYPE__AUDIO)) {
             return ExtTrackInfo.TRACK_TYPE_AUDIO;
         }
-
+        if (mType.equalsIgnoreCase(IjkMediaMeta.IJKM_VAL_TYPE__TIMEDTEXT)) {
+            return ExtTrackInfo.TRACK_TYPE_TEXT;
+        }
         return ExtTrackInfo.TRACK_TYPE_UNKNOWN;
     }
 
@@ -420,21 +519,7 @@ public class ExtSWIjkPlayer implements IExtPlayer,
             case IMediaPlayer.MEDIA_INFO_BUFFERING_END:
                 state = STATE_READY;
                 break;
-            case IMediaPlayer.MEDIA_INFO_VIDEO_DECODED_START:
-                state = STATE_READY;
-                List<ExtTrackInfo> tracksInfo = new ArrayList<>();
-                ijkMediaPlayer.getMediaInfo().mMeta.mStreams.forEach(meta -> {
-                    @ExtTrackInfo.TrackType int type = getTrackType(meta.mType);
-                    if (type == ExtTrackInfo.TRACK_TYPE_UNKNOWN) {
-                        return;
-                    }
-                    tracksInfo.add(new ExtTrackInfo(
-                            type, meta.mWidth, meta.mHeight, meta.mCodecName, meta.mBitrate));
-                });
-                if (tracksInfo.size() > 0) {
-                    listeners.forEach(listener -> listener.onTracksSelected(tracksInfo));
-                }
-                break;
+            default:
         }
         maybeChangePlayerStateTo(state);
         return true;

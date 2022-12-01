@@ -12,7 +12,8 @@ import android.view.TextureView;
 
 import androidx.annotation.IntDef;
 
-import java.io.IOException;
+import com.google.android.exoplayer2.text.CueGroup;
+
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -27,8 +28,9 @@ public interface IExtPlayer {
         default void onPlayerError(Exception error) {}
         default void onVideoSizeChanged(ExtVideoSize videoSize) {}
         default void onDataSourceUsed(ExtDataSource dataSource) {}
-        default void onTracksSelected(List<ExtTrackInfo> tracks) {}
+        default void onTracksChanged(List<ExtTrackInfo> tracks) {}
         default void onIsPlayingChanged(boolean isPlaying) {}
+        default void onCues(CueGroup cues) {}
     }
 
     @Documented
@@ -79,11 +81,16 @@ public interface IExtPlayer {
 
     Exception getPlayerError();
     ExtVideoSize getVideoSize();
+
     void setVideoSurfaceView(SurfaceView surfaceView);
     void clearVideoSurfaceView(SurfaceView surfaceView);
     void setVideoTextureView(TextureView textureView);
     void clearVideoTextureView(TextureView textureView);
+
     void addListener(Listener listener);
     void removeListener(Listener listener);
+
+    void selectTrack(@ExtTrackInfo.TrackType int trackType, int trackId, int trackIndex);
+    void deselectTrack(@ExtTrackInfo.TrackType int trackType, int trackId, int trackIndex);
 }
 
