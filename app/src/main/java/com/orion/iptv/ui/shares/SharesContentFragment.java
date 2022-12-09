@@ -25,7 +25,8 @@ import android.widget.TextView;
 import com.orion.iptv.R;
 import com.orion.iptv.network.WebDavClient;
 import com.orion.iptv.recycleradapter.RecyclerAdapter;
-import com.orion.iptv.recycleradapter.Selection;
+import com.orion.iptv.recycleradapter.DefaultSelection;
+import com.orion.iptv.recycleradapter.SelectionWithFocus;
 import com.orion.iptv.ui.video.VideoPlayerActivity;
 
 import org.json.JSONException;
@@ -43,7 +44,7 @@ public class SharesContentFragment extends Fragment {
     private FileNode path;
     ImageButton homeButton;
     private RecyclerView nodes;
-    Selection<FileNode> selection;
+    DefaultSelection<FileNode> defaultSelection;
     private TextView pathHint;
     private ProgressBar loading;
     private TextView toast;
@@ -87,14 +88,7 @@ public class SharesContentFragment extends Fragment {
                 .getSupportFragmentManager()
                 .popBackStack(SharesHomeFragment.TAG, 0));
         initView();
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        if (share != null) {
-            refresh();
-        }
+        refresh();
     }
 
     @Override
@@ -110,16 +104,16 @@ public class SharesContentFragment extends Fragment {
         nodes.setLayoutManager(layoutManager);
         DividerItemDecoration itemDecoration = new DividerItemDecoration(requireContext(), DividerItemDecoration.VERTICAL);
         nodes.addItemDecoration(itemDecoration);
-        selection = new Selection<>(nodes);
-        selection.setCanRepeatSelect(true);
+        defaultSelection = new SelectionWithFocus<>(nodes);
+        defaultSelection.setCanRepeatSelect(true);
 
         RecyclerAdapter<FileNode> adapter = new RecyclerAdapter<>(
                 requireContext(),
                 new ArrayList<>(),
                 new FileNodeViewHolderFactory(requireContext(), R.layout.layout_list_item)
         );
-        selection.setAdapter(adapter);
-        selection.addSelectedListener((position, node) -> {
+        defaultSelection.setAdapter(adapter);
+        defaultSelection.addSelectedListener((position, node) -> {
             if (node == FileNode.PARENT) {
                 requireActivity()
                         .getSupportFragmentManager()
@@ -161,7 +155,7 @@ public class SharesContentFragment extends Fragment {
                                     List.of(FileNode.CURRENT, FileNode.PARENT),
                                     new FileNodeViewHolderFactory(requireContext(), R.layout.layout_list_item)
                             );
-                            selection.setAdapter(adapter);
+                            defaultSelection.setAdapter(adapter);
                             nodes.swapAdapter(adapter, true);
                         });
                     }
@@ -182,7 +176,7 @@ public class SharesContentFragment extends Fragment {
                                     items,
                                     new FileNodeViewHolderFactory(requireContext(), R.layout.layout_list_item)
                             );
-                            selection.setAdapter(adapter);
+                            defaultSelection.setAdapter(adapter);
                             nodes.swapAdapter(adapter, true);
                         });
                     }

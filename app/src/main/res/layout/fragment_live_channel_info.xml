@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:minWidth="500dp"
     android:minHeight="120dp"
-    android:background="@drawable/layout_background"
+    android:background="@drawable/background_radius_16"
     android:orientation="horizontal"
     android:padding="8dp" >
 

@@ -5,6 +5,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.ArrayMap;
 import android.util.Log;
+import android.util.Pair;
 import android.view.SurfaceView;
 import android.view.TextureView;
 
@@ -29,12 +30,11 @@ import com.google.android.exoplayer2.upstream.DefaultDataSource;
 import com.google.android.exoplayer2.video.VideoSize;
 import com.orion.player.ExtDataSource;
 import com.orion.player.IExtPlayer;
-import com.orion.player.ExtTrackInfo;
+import com.orion.player.ExtTrack;
 import com.orion.player.ExtVideoSize;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import okhttp3.Call;
@@ -268,75 +268,44 @@ public class ExtExoPlayer implements IExtPlayer {
         listeners.remove(listener);
     }
 
-    protected @C.TrackType int getExoTrackType(@ExtTrackInfo.TrackType int type) {
-        int trackType;
-        switch (type) {
-            case ExtTrackInfo.TRACK_TYPE_AUDIO:
-                trackType = C.TRACK_TYPE_AUDIO;
-                break;
-            case ExtTrackInfo.TRACK_TYPE_TEXT:
-                trackType = C.TRACK_TYPE_TEXT;
-                break;
-            case ExtTrackInfo.TRACK_TYPE_VIDEO:
-                trackType = C.TRACK_TYPE_VIDEO;
-                break;
-            default:
-                trackType = C.TRACK_TYPE_UNKNOWN;
-        }
-        return trackType;
-    }
-
-    protected TrackGroup getGroup(Tracks tracks, @C.TrackType int trackType, int trackId) {
-        String id = String.valueOf(trackId);
+    protected Pair<TrackGroup, Integer> getGroup(Tracks tracks, ExtTrack trackInfo) {
         for (Tracks.Group group : tracks.getGroups()) {
-            if (group.getType() != trackType) {
+            if (group.getType() != trackInfo.trackType) {
                 continue;
             }
-            for (int i=0; i<group.length; i++) {
-                Format format = group.getTrackFormat(i);
-                if (id.equals(format.id)) {
-                    return group.getMediaTrackGroup();
-                }
+            TrackGroup trackGroup = group.getMediaTrackGroup();
+            int index = trackGroup.indexOf(trackInfo.format);
+            if (index != C.INDEX_UNSET) {
+                return Pair.create(trackGroup, index);
             }
         }
         return null;
     }
 
     @Override
-    public void selectTrack(@ExtTrackInfo.TrackType int type, int trackId, int trackIndex) {
-        Log.i(TAG, "select track: " + trackId + ":" + trackIndex);
-        @C.TrackType int exoTrackType = getExoTrackType(type);
-        if (exoTrackType == C.TRACK_TYPE_UNKNOWN) {
-            return;
-        }
+    public void selectTrack(ExtTrack track) {
+        Log.i(TAG, "select track: " + track.trackType + ":" + track.format.id);
         post(()->{
             Tracks tracks = innerPlayer.getCurrentTracks();
-            TrackGroup group = getGroup(tracks, exoTrackType, trackId);
+            Pair<TrackGroup, Integer> group = getGroup(tracks, track);
             if (group == null) {
                 return;
             }
             innerPlayer.setTrackSelectionParameters(innerPlayer.getTrackSelectionParameters()
                     .buildUpon()
-                    .setTrackTypeDisabled(exoTrackType, false)
-                    .setOverrideForType(new TrackSelectionOverride(
-                            group,
-                            trackIndex
-                    ))
+                    .setTrackTypeDisabled(track.trackType, false)
+                    .setOverrideForType(new TrackSelectionOverride(group.first, group.second))
                     .build());
         });
     }
 
     @Override
-    public void deselectTrack(@ExtTrackInfo.TrackType int type, int trackId, int trackIndex) {
-        Log.i(TAG, "deselect track: " + trackId + ":" + trackIndex);
-        @C.TrackType int exoTrackType = getExoTrackType(type);
-        if (exoTrackType == C.TRACK_TYPE_UNKNOWN) {
-            return;
-        }
+    public void deselectTrack(ExtTrack track) {
+        Log.i(TAG, "deselect track: " + track.trackType + ":" + track.format.id);
         post(()->{
             innerPlayer.setTrackSelectionParameters(innerPlayer.getTrackSelectionParameters()
                     .buildUpon()
-                    .setTrackTypeDisabled(type, true)
+                    .setTrackTypeDisabled(track.trackType, true)
                     .build());
         });
     }
@@ -344,22 +313,30 @@ public class ExtExoPlayer implements IExtPlayer {
     private class SimpleListener implements com.google.android.exoplayer2.Player.Listener {
         @Override
         public void onPlaybackStateChanged(int playbackState) {
-            listeners.forEach(listener -> listener.onPlaybackStateChanged(playbackState));
+            for (Listener listener : listeners) {
+                listener.onPlaybackStateChanged(playbackState);
+            }
         }
 
         @Override
         public void onIsPlayingChanged(boolean isPlaying) {
-            listeners.forEach(listener -> listener.onIsPlayingChanged(isPlaying));
+            for (Listener listener : listeners) {
+                listener.onIsPlayingChanged(isPlaying);
+            }
         }
 
         @Override
         public void onPlayerError(@NonNull PlaybackException error) {
-            listeners.forEach(listener -> listener.onPlayerError(error));
+            for (Listener listener : listeners) {
+                listener.onPlayerError(error);
+            }
         }
 
         @Override
         public void onVideoSizeChanged(@NonNull VideoSize videoSize) {
-            listeners.forEach(listener -> listener.onVideoSizeChanged(ExtVideoSize.of(videoSize)));
+            for (Listener listener : listeners) {
+                listener.onVideoSizeChanged(ExtVideoSize.of(videoSize));
+            }
         }
 
         @Override
@@ -367,53 +344,25 @@ public class ExtExoPlayer implements IExtPlayer {
             if (mediaItem == null || !mediaItem.mediaId.equals(dataSource.getUri())) {
                 return;
             }
-            listeners.forEach(listener -> listener.onDataSourceUsed(dataSource));
+            for (Listener listener : listeners) {
+                listener.onDataSourceUsed(dataSource);
+            }
         }
 
         @Override
         public void onCues(@NonNull CueGroup cueGroup) {
-            listeners.forEach(listener -> listener.onCues(cueGroup));
-        }
-
-        @NonNull
-        private String makeDesc(@ExtTrackInfo.TrackType int type, int index, Format format) {
-            switch (type) {
-                case ExtTrackInfo.TRACK_TYPE_VIDEO:
-                    return String.format(Locale.getDefault(), "%s:%d %dx%d, %dbps", format.id, index, format.width, format.height, format.bitrate);
-                case ExtTrackInfo.TRACK_TYPE_AUDIO:
-                    return String.format(Locale.getDefault(), "%s:%d %s, %s, %dbps, %dHz", format.id, index, format.language, format.label, format.bitrate, format.sampleRate);
-                case ExtTrackInfo.TRACK_TYPE_TEXT:
-                default:
-                    return String.format(Locale.getDefault(), "%s:%d %s, %s, %s", format.id, index, format.sampleMimeType, format.language, format.label);
+            for (Listener listener : listeners) {
+                listener.onCues(cueGroup);
             }
         }
 
         @NonNull
-        private List<ExtTrackInfo> getSelectedTrackInfo(Tracks tracks) {
-            List<ExtTrackInfo> tracksInfo = new ArrayList<>();
+        private List<ExtTrack> getSelectedTrackInfo(Tracks tracks) {
+            List<ExtTrack> tracksInfo = new ArrayList<>();
             for (Tracks.Group group : tracks.getGroups()) {
                 for (int i = 0; i < group.length; i++) {
                     Format format = group.getTrackFormat(i);
-                    int trackId = -1;
-                    try {
-                        trackId = Integer.parseInt(format.id != null ? format.id : "-1");
-                    } catch (NumberFormatException ignored) {
-                    }
-                    if (trackId < 0) {
-                        continue;
-                    }
-                    tracksInfo.add(new ExtTrackInfo(
-                            trackId,
-                            i,
-                            group.getType(),
-                            format.width,
-                            format.height,
-                            format.codecs,
-                            format.bitrate,
-                            format.sampleRate,
-                            makeDesc(group.getType(), i, format),
-                            group.isTrackSelected(i)
-                    ));
+                    tracksInfo.add(new ExtTrack(group.getType(), format, group.isTrackSelected(i)));
                 }
             }
             return tracksInfo;
@@ -421,21 +370,27 @@ public class ExtExoPlayer implements IExtPlayer {
 
         @Override
         public void onTracksChanged(@NonNull Tracks tracks) {
-            List<ExtTrackInfo> tracksInfo = getSelectedTrackInfo(tracks);
+            List<ExtTrack> tracksInfo = getSelectedTrackInfo(tracks);
             if (tracksInfo.size() == 0) {
                 return;
             }
-            listeners.forEach(listener -> listener.onTracksChanged(tracksInfo));
+            for (Listener listener : listeners) {
+                listener.onTracksChanged(tracksInfo);
+            }
         }
 
         @Override
         public void onTimelineChanged(@NonNull Timeline timeline, int reason) {
-            listeners.forEach(listener -> listener.onDurationChanged(innerPlayer.getCurrentPosition(), innerPlayer.getDuration()));
+            for (Listener listener : listeners) {
+                listener.onDurationChanged(innerPlayer.getCurrentPosition(), innerPlayer.getDuration());
+            }
         }
 
         @Override
         public void onPositionDiscontinuity(@NonNull Player.PositionInfo oldPosition, @NonNull Player.PositionInfo newPosition, int reason) {
-            listeners.forEach(listener -> listener.onDurationChanged(newPosition.positionMs, innerPlayer.getDuration()));
+            for (Listener listener : listeners) {
+                listener.onDurationChanged(newPosition.positionMs, innerPlayer.getDuration());
+            }
         }
     }
 }

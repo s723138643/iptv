@@ -2,6 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools" >
 
+    <uses-feature
+        android:name="android.software.leanback"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false" />
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
@@ -14,24 +21,20 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
+        android:banner="@drawable/app_banner"
         android:supportsRtl="true"
         android:theme="@style/NoActionBar"
         android:usesCleartextTraffic="true"
-        tools:targetApi="31" >
-        <activity
-            android:name=".ui.video.VideoPlayerSettingsActivity"
-            android:exported="false">
-            <meta-data
-                android:name="android.app.lib_name"
-                android:value="" />
-        </activity>
+        tools:targetApi="33">
         <activity
             android:name=".ui.MainActivity"
-            android:exported="true"
-            android:screenOrientation="landscape" >
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout"
+            android:screenOrientation="sensorLandscape"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
 
             <meta-data
@@ -40,9 +43,9 @@
         </activity>
         <activity
             android:name=".ui.live.LivePlayerActivity"
-            android:configChanges="keyboardHidden|orientation|screenSize|screenLayout"
-            android:exported="false"
-            android:screenOrientation="landscape">
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout"
+            android:screenOrientation="sensorLandscape"
+            android:exported="false">
             <meta-data
                 android:name="android.app.lib_name"
                 android:value="" />
@@ -57,7 +60,8 @@
         </activity>
         <activity
             android:name=".ui.video.VideoPlayerActivity"
-            android:configChanges="keyboardHidden|orientation|screenSize|screenLayout"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout"
+            android:screenOrientation="sensorLandscape"
             android:exported="false">
             <meta-data
                 android:name="android.app.lib_name"
@@ -72,7 +76,22 @@
                 android:value="landscape" />
         </activity>
         <activity
+            android:name=".ui.video.VideoPlayerSettingsActivity"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout"
+            android:screenOrientation="sensorLandscape"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.APPLICATION_PREFERENCES" />
+                <category android:name="android.intent.category.PREFERENCE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
+        <activity
             android:name=".ui.shares.SharesActivity"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout"
+            android:screenOrientation="sensorLandscape"
             android:exported="false" >
             <meta-data
                 android:name="android.app.lib_name"

@@ -22,7 +22,7 @@ public class MenuListViewHolderFactory implements ViewHolderFactory<ViewHolder<S
     @Override
     public ViewHolder<SettingMenu> create(ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(context).inflate(layoutId, parent, false);
-        return new ViewHolder<>(v) {
+        return new ViewHolder<>(context, v) {
             private final TextView desc;
 
             {
@@ -31,12 +31,11 @@ public class MenuListViewHolderFactory implements ViewHolderFactory<ViewHolder<S
             }
 
             @Override
-            public void setActivated(boolean isActivated) {
-                if (itemView.isActivated() == isActivated) {
-                    return;
-                }
-                itemView.setActivated(isActivated);
-                desc.setSelected(true);
+            public void changeState(int[] states) {
+                super.changeState(states);
+                int color = getColorForState(states, foreground);
+                desc.setTextColor(color);
+                desc.setSelected(statesContains(states, android.R.attr.state_activated));
             }
 
             @Override

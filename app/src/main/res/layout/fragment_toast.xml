@@ -7,4 +7,4 @@
     android:minWidth="72dp"
     android:maxWidth="480dp"
     android:maxLines="3"
-    android:background="@drawable/layout_background" />
+    android:background="@drawable/background_radius_16" />

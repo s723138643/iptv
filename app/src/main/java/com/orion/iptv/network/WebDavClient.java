@@ -25,6 +25,7 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class WebDavClient {
+    private final static String TAG = "WebDavClient";
     private final Share share;
     private static final String requestBody =
             "<?xml version=\"1.0\" encoding=\"utf-8\" ?>" +
@@ -48,12 +49,12 @@ public class WebDavClient {
         HttpUrl url = HttpUrl.parse(config.getString("server"));
         assert url != null;
         HttpUrl.Builder urlBuilder = url.newBuilder().addPathSegments(path);
-        builder.url(urlBuilder.build());
+        builder = builder.url(urlBuilder.build());
         if (config.has("username")) {
             try {
                 String username = config.getString("username");
                 String password = config.getString("password");
-                builder.addHeader("Authorization", Credentials.basic(username, password));
+                builder = builder.addHeader("Authorization", Credentials.basic(username, password));
             } catch (Exception ignored) {
             }
         }
@@ -69,6 +70,7 @@ public class WebDavClient {
     }
 
     public void list(FileNode path, Callback callback) {
+        Log.w(TAG, "request path: " + path.getAbsolutePath());
         try {
             Call mCall = DownloadHelper.get(makeRequest(path), new okhttp3.Callback() {
                 @Override
@@ -97,7 +99,9 @@ public class WebDavClient {
     }
 
     public void cancel() {
-        calls.forEach(Call::cancel);
+        for (Call call : calls) {
+            call.cancel();
+        }
         calls.clear();
     }
 

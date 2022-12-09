@@ -1,36 +1,43 @@
 package com.orion.iptv.layout.live;
 
+import android.content.Context;
 import android.util.Pair;
 
+import com.orion.iptv.R;
 import com.orion.player.IExtPlayer;
 import com.orion.player.IExtPlayerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class SetPlayerFactory implements SettingMenu {
+    private final Context context;
     private final LivePlayerViewModel viewModel;
     private final List<PlayerFactoryValue> items;
 
-    public SetPlayerFactory(LivePlayerViewModel viewModel) {
+    public SetPlayerFactory(Context context, LivePlayerViewModel viewModel) {
+        this.context = context;
         this.viewModel = viewModel;
         items = new ArrayList<>();
-        items.add(new PlayerFactoryValue("ijkplayer(硬解)", LivePlayerViewModel.IJKPLAYER));
-        items.add(new PlayerFactoryValue("ijkplayer(软解)", LivePlayerViewModel.IJKPLAYER_SW));
-        items.add(new PlayerFactoryValue("exoplayer", LivePlayerViewModel.EXOPLAYER));
+        String[] playerTypes = context.getResources().getStringArray(R.array.player_type_entries);
+        int[] playerValues = context.getResources().getIntArray(R.array.player_type_int_values);
+        for (int i=0; i<playerTypes.length; i++) {
+            items.add(new PlayerFactoryValue(playerTypes[i], playerValues[i]));
+        }
     }
 
     @Override
     public String content() {
-        return "切换播放器";
+        return context.getString(R.string.set_player_type);
     }
 
     @Override
     public List<SettingValue> getValues() {
-        return items.stream()
-                .map(v -> (SettingValue) v)
-                .collect(Collectors.toList());
+        List<SettingValue> values = new ArrayList<>();
+        for (PlayerFactoryValue v : items) {
+            values.add((SettingValue) v);
+        }
+        return values;
     }
 
     @Override
@@ -46,9 +53,9 @@ public class SetPlayerFactory implements SettingMenu {
 
     private class PlayerFactoryValue implements SettingValue {
         private final String description;
-        private final @LivePlayerViewModel.PlayerType int settingValue;
+        private final int settingValue;
 
-        public PlayerFactoryValue(String description, @LivePlayerViewModel.PlayerType int value) {
+        public PlayerFactoryValue(String description, int value) {
             this.description = description;
             this.settingValue = value;
         }

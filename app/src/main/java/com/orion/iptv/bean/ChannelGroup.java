@@ -1,11 +1,13 @@
 package com.orion.iptv.bean;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.orion.iptv.recycleradapter.ListItem;
 import com.orion.iptv.recycleradapter.ListItemWithStableId;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class ChannelGroup implements ListItem, ListItemWithStableId {
     public final GroupInfo info;
@@ -33,59 +35,81 @@ public class ChannelGroup implements ListItem, ListItemWithStableId {
         ch.append(link);
     }
 
+    @NonNull
     private ChannelItem getOrCreateChannel(String channel) {
-        return getByName(channel).orElseGet(() -> {
-            ChannelItem ch = new ChannelItem(generator.next(), channel, info);
-            channels.add(ch);
-            return ch;
-        });
+        ChannelItem channelItem = getByName(channel);
+        if (channelItem != null) {
+            return channelItem;
+        }
+        ChannelItem ch = new ChannelItem(generator.next(), channel, info);
+        channels.add(ch);
+        return ch;
     }
 
-    private Optional<ChannelItem> getByName(String channel) {
-        return channels.stream().filter((ch) -> channel.equals(ch.info.channelName)).findFirst();
+    @Nullable
+    private ChannelItem getByName(String channel) {
+        for (ChannelItem ch : channels) {
+            if (channel.equals(ch.info.channelName)) {
+                return ch;
+            }
+        }
+        return null;
     }
 
-    private Optional<ChannelItem> getByNumber(int channel) {
-        return channels.stream().filter((ch) -> channel == ch.info.channelNumber).findFirst();
+    @Nullable
+    private ChannelItem getByNumber(int channel) {
+        for (ChannelItem ch : channels) {
+            if (channel == ch.info.channelNumber) {
+                return ch;
+            }
+        }
+        return null;
     }
 
-    protected Optional<ChannelItem> getByIndex(int index) {
-        return (index < channels.size() && index >= 0) ? Optional.of(channels.get(index)) : Optional.empty();
+    @Nullable
+    protected ChannelItem getByIndex(int index) {
+        return (index < channels.size() && index >= 0) ? channels.get(index) : null;
     }
 
     public boolean contains(String channel) {
-        return indexOf(channel).isPresent();
+        return indexOf(channel) >= 0;
     }
 
     public boolean contains(int channel) {
-        return indexOf(channel).isPresent();
+        return indexOf(channel) >= 0;
     }
 
-    public Optional<Integer> indexOf(String channel) {
+    public int indexOf(String channel) {
         for (int i = 0; i < channels.size(); i++) {
             ChannelItem ch = channels.get(i);
             if (channel.equals(ch.info.channelName)) {
-                return Optional.of(i);
+                return i;
             }
         }
-        return Optional.empty();
+        return -1;
     }
 
-    public Optional<Integer> indexOf(int channelNumber) {
+    public int indexOf(int channelNumber) {
         for (int i = 0; i < channels.size(); i++) {
             ChannelItem ch = channels.get(i);
             if (channelNumber == ch.info.channelNumber) {
-                return Optional.of(i);
+                return i;
             }
         }
-        return Optional.empty();
+        return -1;
     }
 
-    public Optional<ChannelItem> getChannel(int channelPos) {
+    @Nullable
+    public ChannelItem getChannel(int channelPos) {
         return getByIndex(channelPos);
     }
 
-    public Optional<List<String>> getSources(int channelPos) {
-        return getByIndex(channelPos).map(ChannelItem::getSources);
+    @Nullable
+    public List<String> getSources(int channelPos) {
+        ChannelItem channel = getByIndex(channelPos);
+        if (channel != null) {
+            return channel.getSources();
+        }
+        return null;
     }
 }

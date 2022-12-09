@@ -1,6 +1,5 @@
 package com.orion.player.ui;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.Configuration;
 
@@ -8,6 +7,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 
+import android.os.Build;
 import android.os.SystemClock;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -22,9 +22,10 @@ import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.google.android.exoplayer2.C;
 import com.orion.iptv.R;
 import com.orion.player.ExtDataSource;
-import com.orion.player.ExtTrackInfo;
+import com.orion.player.ExtTrack;
 import com.orion.player.IExtPlayer;
 
 import java.util.ArrayList;
@@ -44,14 +45,16 @@ public class PlayerController extends FrameLayout {
     private SeekBar seekBar;
     private ImageButton playButton;
     private ImageButton fullscreenButton;
+    ImageButton audioTrackButton;
+    ImageButton subtitleButton;
 
     private @Nullable IExtPlayer player;
     private int orientation;
     private ViewGroup.MarginLayoutParams originMargin;
     private OrientationSwitchCallback orientationSwitchCallback;
     private OnVisibilityChangedListener listener;
-    private Pair<Integer, List<ExtTrackInfo>> audios;
-    private Pair<Integer, List<ExtTrackInfo>> subtitles;
+    private Pair<Integer, List<ExtTrack>> audios;
+    private Pair<Integer, List<ExtTrack>> subtitles;
 
     private final IExtPlayer.Listener componentListener = new ComponentListener();
     private final Runnable updatePosition = new Runnable() {
@@ -82,6 +85,7 @@ public class PlayerController extends FrameLayout {
             }
         }
     };
+    private final String disableSubtitleDesc;
 
     public PlayerController(@NonNull Context context) {
         this(context, null);
@@ -98,10 +102,10 @@ public class PlayerController extends FrameLayout {
     public PlayerController(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
         LayoutInflater.from(context).inflate(R.layout.fragment_player_controller, this, true);
+        disableSubtitleDesc = getResources().getString(R.string.disable_subtitle);
         initView();
     }
 
-    @SuppressLint("SourceLockedOrientationActivity")
     public void initView() {
         position = findViewById(R.id.position);
         duration = findViewById(R.id.media_duration);
@@ -109,15 +113,17 @@ public class PlayerController extends FrameLayout {
         ImageButton seekToPrevButton = findViewById(R.id.prev);
         ImageButton seekToNextButton = findViewById(R.id.next);
         playButton = findViewById(R.id.play_or_pause);
-        ImageButton audioTrackButton = findViewById(R.id.audio_track);
-        ImageButton subtitleButton = findViewById(R.id.subtitle);
+        audioTrackButton = findViewById(R.id.audio_track);
+        subtitleButton = findViewById(R.id.subtitle);
         fullscreenButton = findViewById(R.id.fullscreen);
 
         orientation = getResources().getConfiguration().orientation;
         int resId = orientation == Configuration.ORIENTATION_PORTRAIT ? fullscreenIconRes : fullscreenExitIconRes;
         fullscreenButton.setImageResource(resId);
 
-        seekBar.setMin(0);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            seekBar.setMin(0);
+        }
         playButton.setOnClickListener(button -> {
             if (player == null) {
                 return;
@@ -137,9 +143,8 @@ public class PlayerController extends FrameLayout {
             }
         });
 
-        seekToPrevButton.setOnClickListener(button -> {});
-
-        seekToNextButton.setOnClickListener(button -> {});
+        seekToPrevButton.setVisibility(View.GONE);
+        seekToNextButton.setVisibility(View.GONE);
 
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             private int progress = -1;
@@ -165,43 +170,51 @@ public class PlayerController extends FrameLayout {
             }
         });
 
+        audioTrackButton.setVisibility(View.GONE);
         audioTrackButton.setOnClickListener(button -> {
             if (audios== null || audios.second.isEmpty()) {
                 return;
             }
-            String[] items = audios.second.stream().map(audio -> audio.desc).toArray(String[]::new);
+            List<String> descriptions = new ArrayList<>();
+            for (ExtTrack track : audios.second) {
+                descriptions.add(track.description());
+            }
             AlertDialog alterDialog = new AlertDialog.Builder(getContext())
-                    .setTitle("select audio")
-                    .setSingleChoiceItems(items, audios.first, (dialog, position) -> {
+                    .setTitle(R.string.audiotrack_selection)
+                    .setSingleChoiceItems(descriptions.toArray(new String[0]), audios.first, (dialog, position) -> {
                         if (position < 0 || position >= audios.second.size() || player == null) {
                             dialog.dismiss();
                             return;
                         }
-                        ExtTrackInfo trackInfo = audios.second.get(position);
-                        player.selectTrack(trackInfo.type, trackInfo.trackId, trackInfo.trackIndex);
+                        ExtTrack track = audios.second.get(position);
+                        player.selectTrack(track);
                         dialog.dismiss();
                     })
                     .create();
             alterDialog.show();
         });
 
+        subtitleButton.setVisibility(View.GONE);
         subtitleButton.setOnClickListener(button -> {
             if (subtitles == null || subtitles.second.isEmpty()) {
                 return;
             }
-            String[] items = subtitles.second.stream().map(subtitle -> subtitle.desc).toArray(String[]::new);
+            List<String> descriptions = new ArrayList<>();
+            for (ExtTrack track : subtitles.second) {
+                descriptions.add(track.description());
+            }
             AlertDialog alterDialog = new AlertDialog.Builder(getContext())
-                    .setTitle("select subtitle")
-                    .setSingleChoiceItems(items, subtitles.first, (dialog, position) -> {
+                    .setTitle(R.string.subtitle_selection)
+                    .setSingleChoiceItems(descriptions.toArray(new String[0]), subtitles.first, (dialog, position) -> {
                         if (position < 0 || position >= subtitles.second.size() || player == null) {
                             dialog.dismiss();
                             return;
                         }
-                        ExtTrackInfo trackInfo = subtitles.second.get(position);
-                        if (!trackInfo.selected) {
-                            player.selectTrack(trackInfo.type, trackInfo.trackId, trackInfo.trackIndex);
+                        ExtTrack track = subtitles.second.get(position);
+                        if (!track.selected) {
+                            player.selectTrack(track);
                         } else {
-                            player.deselectTrack(trackInfo.type, trackInfo.trackId, trackInfo.trackIndex);
+                            player.deselectTrack(track);
                         }
                         dialog.dismiss();
                     })
@@ -294,6 +307,7 @@ public class PlayerController extends FrameLayout {
 
     public void show() {
         setVisibility(View.VISIBLE);
+        playButton.requestFocus();
     }
 
     public void hide() {
@@ -361,20 +375,20 @@ public class PlayerController extends FrameLayout {
         }
 
         @Override
-        public void onTracksChanged(List<ExtTrackInfo> tracks) {
+        public void onTracksChanged(List<ExtTrack> tracks) {
             int selectedAudioTrack = -1;
             int selectedSubtitle = -1;
-            List<ExtTrackInfo> tmpAudios = new ArrayList<>();
-            List<ExtTrackInfo> tmpSubtitles = new ArrayList<>();
+            List<ExtTrack> tmpAudios = new ArrayList<>();
+            List<ExtTrack> tmpSubtitles = new ArrayList<>();
 
-            for (ExtTrackInfo track : tracks) {
-                Log.w(TAG, track.type + ", " + track.desc + ", " + track.selected);
-                if (track.type == ExtTrackInfo.TRACK_TYPE_AUDIO) {
+            for (ExtTrack track : tracks) {
+                Log.w(TAG, track.trackType + ", " + track.description() + ", " + track.selected);
+                if (track.trackType == C.TRACK_TYPE_AUDIO) {
                     tmpAudios.add(track);
                     if (track.selected) {
                         selectedAudioTrack = tmpAudios.size() - 1;
                     }
-                } else if (track.type == ExtTrackInfo.TRACK_TYPE_TEXT) {
+                } else if (track.trackType == C.TRACK_TYPE_TEXT) {
                     tmpSubtitles.add(track);
                     if (track.selected) {
                         selectedSubtitle = tmpSubtitles.size() - 1;
@@ -382,26 +396,22 @@ public class PlayerController extends FrameLayout {
                 }
             }
             if (!tmpAudios.isEmpty()) {
+                audioTrackButton.setVisibility(View.VISIBLE);
                 audios = Pair.create(selectedAudioTrack, tmpAudios);
             }
             if (!tmpSubtitles.isEmpty()) {
+                subtitleButton.setVisibility(View.VISIBLE);
                 if (selectedSubtitle >= 0) {
-                    ExtTrackInfo trackInfo = tmpSubtitles.get(selectedSubtitle);
-                    tmpSubtitles.add(new ExtTrackInfo(
-                            trackInfo.trackId,
-                            trackInfo.trackIndex,
-                            ExtTrackInfo.TRACK_TYPE_TEXT,
-                            0,
-                            0,
-                            "null",
-                            0,
-                            0,
-                            "disable subtitle track",
-                            true));
+                    ExtTrack track = tmpSubtitles.get(selectedSubtitle);
+                    tmpSubtitles.add(new ExtTrack(track, disableSubtitleDesc));
                 }
                 subtitles = Pair.create(selectedSubtitle, tmpSubtitles);
             }
         }
+    }
+
+    public boolean isVisible() {
+        return getVisibility() == View.VISIBLE;
     }
 
     public interface OrientationSwitchCallback {

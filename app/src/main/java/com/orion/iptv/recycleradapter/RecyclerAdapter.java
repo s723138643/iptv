@@ -30,7 +30,7 @@ public class RecyclerAdapter<U> extends RecyclerView.Adapter<ViewHolder<U>> {
     @Override
     public void onBindViewHolder(@NonNull ViewHolder<U> holder, int position) {
         if (selection != null) {
-            holder.setActivated(selection.isSelected(position));
+            holder.changeState(selection.getState(position));
         }
         holder.setContent(position, items.get(position));
     }
@@ -39,11 +39,11 @@ public class RecyclerAdapter<U> extends RecyclerView.Adapter<ViewHolder<U>> {
     public void onBindViewHolder(@NonNull ViewHolder<U> holder, int position, @NonNull List<Object> payloads) {
         super.onBindViewHolder(holder, position, payloads);
         if (payloads.size() > 0) {
-            payloads.forEach(payload -> {
-                if (payload.equals(Selection.TAG)) {
-                    holder.setActivated(selection.isSelected(position));
+            for (Object payload : payloads) {
+                if (payload.equals(DefaultSelection.TAG)) {
+                    holder.changeState(selection.getState(position));
                 }
-            });
+            }
         }
     }
 

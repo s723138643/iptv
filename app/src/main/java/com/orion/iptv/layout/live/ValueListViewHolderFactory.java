@@ -22,7 +22,7 @@ public class ValueListViewHolderFactory implements ViewHolderFactory<ViewHolder<
     @Override
     public ViewHolder<SettingValue> create(ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(context).inflate(layoutId, parent, false);
-        return new ViewHolder<>(v) {
+        return new ViewHolder<>(context, v) {
             private final TextView desc;
             {
                 desc = v.findViewById(R.id.list_item_content);
@@ -30,12 +30,11 @@ public class ValueListViewHolderFactory implements ViewHolderFactory<ViewHolder<
             }
 
             @Override
-            public void setActivated(boolean isActivated) {
-                if (itemView.isActivated() == isActivated) {
-                    return;
-                }
-                itemView.setActivated(isActivated);
-                desc.setSelected(true);
+            public void changeState(int[] states) {
+                super.changeState(states);
+                int color = getColorForState(states, foreground);
+                desc.setTextColor(color);
+                desc.setSelected(statesContains(states, android.R.attr.state_activated));
             }
 
             @Override

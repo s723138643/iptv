@@ -23,7 +23,7 @@ public class ChannelListViewHolderFactory implements ViewHolderFactory<ViewHolde
     @Override
     public ViewHolder<ChannelItem> create(ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(context).inflate(layoutId, parent, false);
-        return new ViewHolder<>(v) {
+        return new ViewHolder<>(context, v) {
             private final TextView number;
             private final TextView content;
 
@@ -35,11 +35,12 @@ public class ChannelListViewHolderFactory implements ViewHolderFactory<ViewHolde
             }
 
             @Override
-            public void setActivated(boolean isActivated) {
-                if (itemView.isActivated() == isActivated) {
-                    return;
-                }
-                itemView.setActivated(isActivated);
+            public void changeState(int[] states) {
+                super.changeState(states);
+                int color = getColorForState(states, foreground);
+                number.setTextColor(color);
+                content.setTextColor(color);
+                boolean isActivated = statesContains(states, android.R.attr.state_activated);
                 number.setSelected(isActivated);
                 content.setSelected(isActivated);
             }

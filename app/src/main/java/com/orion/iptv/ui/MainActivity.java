@@ -12,6 +12,7 @@ import com.orion.iptv.misc.PreferenceStore;
 import com.orion.iptv.network.DownloadHelper;
 import com.orion.iptv.ui.live.LivePlayerActivity;
 import com.orion.iptv.ui.shares.SharesActivity;
+import com.orion.iptv.ui.video.VideoPlayerSettingsActivity;
 
 import java.util.concurrent.TimeUnit;
 
@@ -40,6 +41,12 @@ public class MainActivity extends AppCompatActivity {
         Button shares_page = findViewById(R.id.shares_page);
         shares_page.setOnClickListener((view) -> {
             Intent intent = new Intent(this, SharesActivity.class);
+            startActivity(intent);
+        });
+
+        Button settings_page = findViewById(R.id.settings_page);
+        settings_page.setOnClickListener((view) -> {
+            Intent intent = new Intent(this, VideoPlayerSettingsActivity.class);
             startActivity(intent);
         });
     }

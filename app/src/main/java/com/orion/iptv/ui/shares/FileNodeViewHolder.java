@@ -1,5 +1,6 @@
 package com.orion.iptv.ui.shares;
 
+import android.content.Context;
 import android.view.View;
 import android.widget.TextView;
 
@@ -10,15 +11,18 @@ import com.orion.iptv.recycleradapter.ViewHolder;
 
 public class FileNodeViewHolder extends ViewHolder<FileNode> {
     private final TextView content;
-    public FileNodeViewHolder(@NonNull View itemView) {
-        super(itemView);
+
+    public FileNodeViewHolder(@NonNull Context context, @NonNull View itemView) {
+        super(context, itemView);
         content = itemView.findViewById(R.id.list_item_content);
-        content.setSelected(true);
     }
 
     @Override
-    public void setActivated(boolean isActivated) {
-        itemView.setActivated(isActivated);
+    public void changeState(int[] states) {
+        super.changeState(states);
+        int color = getColorForState(states, foreground);
+        content.setTextColor(color);
+        content.setSelected(statesContains(states, android.R.attr.state_activated));
     }
 
     @Override

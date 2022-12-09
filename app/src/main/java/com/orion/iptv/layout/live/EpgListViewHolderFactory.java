@@ -23,7 +23,7 @@ public class EpgListViewHolderFactory implements ViewHolderFactory<ViewHolder<Ep
     @Override
     public ViewHolder<EpgProgram> create(ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(context).inflate(layoutId, parent, false);
-        return new ViewHolder<>(v) {
+        return new ViewHolder<>(context, v) {
             private final TextView content;
 
             {
@@ -32,12 +32,11 @@ public class EpgListViewHolderFactory implements ViewHolderFactory<ViewHolder<Ep
             }
 
             @Override
-            public void setActivated(boolean isActivated) {
-                if (itemView.isActivated() == isActivated) {
-                    return;
-                }
-                itemView.setActivated(isActivated);
-                content.setSelected(isActivated);
+            public void changeState(int[] states) {
+                super.changeState(states);
+                int color = getColorForState(states, foreground);
+                content.setTextColor(color);
+                content.setSelected(statesContains(states, android.R.attr.state_activated));
             }
 
             @Override

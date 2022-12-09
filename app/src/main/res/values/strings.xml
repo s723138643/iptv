@@ -1,86 +1,68 @@
 <resources>
-    <string name="app_name">iptv</string>
-    <string name="channel_number_default">001</string>
-    <string name="channel_name_default">测试</string>
-    <string name="codec_info_default">未知</string>
-    <string name="media_info_default">未知</string>
-    <string name="bitrate_info_default">未知</string>
-    <string name="link_info">线路 [1/1]</string>
-    <string name="current_link_number">1</string>
-    <string name="total_link_number">1</string>
-    <string name="current_epg_program_default">暂无相关信息</string>
-    <string name="next_epg_program_default">暂无相关信息</string>
-    <string name="list_item_index_placeholder">001</string>
-    <string name="list_item_desc_placeholder">测试字符串</string>
-    <string name="show_epg">》</string>
-    <string name="hide_epg">《</string>
-    <string name="default_group_name">默认分组</string>
-    <!--
-    <string name="channel_list_url">https://download.kstore.space/download/2863/live.txt</string>
-    -->
-    <string name="channel_source_hint">请输入频道源地址</string>
-    <string name="modify_share">修改共享设置</string>
-    <string name="add_share">添加共享存储</string>
-    <string name="cancel_delete">取消删除</string>
-    <string name="confirm_delete">确认删除</string>
-    <string name="share_home_banner">存储空间</string>
-    <string name="sort">排序</string>
-    <string name="goto_root">返回根目录</string>
-    <string name="root_path">/</string>
-    <string name="home_page">主页</string>
-    <string name="live_page">直播</string>
-    <string name="share_page">共享存储</string>
-    <string name="webdav_input_name_hint">设置WebDAV服务名称</string>
-    <string name="webdav_input_address_hint">WebDAV服务器地址，如（http://example.com）</string>
-    <string name="webdav_input_root_path_hint">设置根目录（可选）</string>
-    <string name="webdav_input_username_hint">用户名（可选）</string>
-    <string name="webdav_input_password_hint">用户密码（可选）</string>
-    <string name="controls_prev_description">seek to prev media</string>
-    <string name="controls_play_description">play this media</string>
-    <string name="controls_pause_description">control player pause</string>
-    <string name="controls_next_description">seek to next media</string>
-    <string name="default_position">0:00:00</string>
-    <string name="default_media_duration">0:00:00</string>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
-    <string name="gesture_direction_indicator">indicator of gestuer direction</string>
-    <string name="default_gesture_position">0:00:00/0:00:00</string>
-    <string name="enter_fullscreen">enter or exit fullscreen mode</string>
-    <string name="player_setting">player setting</string>
-    <string name="ijkplayer">IjkPlayer(硬解)</string>
-    <string name="ijkplayer_sw">IjkPlayer(软解)</string>
-    <string name="exoplayer">Exoplayer</string>
-    <string name="surface_view">SurfaceView</string>
-    <string name="texture_view">TextureView</string>
-    <string name="set_player_type">设置播放器</string>
-    <string name="set_surface_type">设置surface</string>
-    <!-- Preference Titles -->
-    <string name="messages_header">Messages</string>
-    <string name="sync_header">Sync</string>
-
-    <!-- Messages Preferences -->
-    <string name="signature_title">Your signature</string>
-    <string name="reply_title">Default reply action</string>
-
-    <!-- Sync Preferences -->
-    <string name="sync_title">Sync email periodically</string>
-    <string name="attachment_title">Download incoming attachments</string>
-    <string name="attachment_summary_on">Automatically download attachments for incoming emails
-    </string>
-    <string name="attachment_summary_off">Only download attachments when manually requested</string>
-    <string name="player_type_header">set player type</string>
-    <string name="surface_type_header">Set Surface Type</string>
-    <string name="player_setting_header">Player Settings</string>
-    <string name="title_activity_player_settings">PlayerSettingsActivity</string>
-    <string name="title_activity_video_player_settings">VideoPlayerSettingsActivity</string>
-    <!-- Strings used for fragments for navigation -->
-    <string name="first_fragment_label">First Fragment</string>
-    <string name="second_fragment_label">Second Fragment</string>
-    <string name="next">Next</string>
-    <string name="previous">Previous</string>
-
-    <string name="hello_first_fragment">Hello first fragment</string>
-    <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
-    <string name="audiotrack_selection">select audio track</string>
-    <string name="subtitle_selection">select subtitle</string>
+    <string name="app_name" translatable="false">iptv</string>
+    <string name="channel_number_default" translatable="false">001</string>
+    <string name="channel_name_default" translatable="false">test</string>
+    <string name="codec_info_default" translatable="false">unknown</string>
+    <string name="media_info_default" translatable="false">unknown</string>
+    <string name="bitrate_info_default" translatable="false">unknown</string>
+    <string name="link_info" translatable="false">link [1/1]</string>
+    <string name="current_link_number" translatable="false">1</string>
+    <string name="total_link_number" translatable="false">1</string>
+    <string name="current_epg_program_default" translatable="false">unknown</string>
+    <string name="next_epg_program_default" translatable="false">unknown</string>
+    <string name="list_item_index_placeholder" translatable="false">001</string>
+    <string name="list_item_desc_placeholder" translatable="false">test string</string>
+    <string name="show_epg" translatable="false">》</string>
+    <string name="hide_epg" translatable="false">《</string>
+    <string name="default_group_name" translatable="false">Default Group</string>
+    <string name="channel_source_hint" translatable="false">Please input source url</string>
+    <string name="modify_share" translatable="false">Modify storage settings</string>
+    <string name="add_share" translatable="false">Add share storage</string>
+    <string name="cancel_delete" translatable="false">Cancel delete</string>
+    <string name="confirm_delete" translatable="false">Confirm delete</string>
+    <string name="share_home_banner" translatable="false">Storage</string>
+    <string name="sort" translatable="false">Sort</string>
+    <string name="goto_root" translatable="false">Goto root path</string>
+    <string name="root_path" translatable="false">/</string>
+    <string name="home_page" translatable="false">Home</string>
+    <string name="live_page" translatable="false">Live</string>
+    <string name="share_page" translatable="false">Shares</string>
+    <string name="settings_page" translatable="false">Settings</string>
+    <string name="webdav_input_name_hint" translatable="false">Set WebDAV Service Name</string>
+    <string name="webdav_input_address_hint" translatable="false">WebDAV Service Address，ie. (http://example.com)</string>
+    <string name="webdav_input_root_path_hint" translatable="false">Set Root Path (optional)</string>
+    <string name="webdav_input_username_hint" translatable="false">Username (optional)</string>
+    <string name="webdav_input_password_hint" translatable="false">Password (optional)</string>
+    <string name="controls_prev_description" translatable="false">Seek to prev media</string>
+    <string name="controls_play_description" translatable="false">Play this media</string>
+    <string name="controls_pause_description" translatable="false">Pause playing</string>
+    <string name="controls_next_description" translatable="false">Seek to next media</string>
+    <string name="default_position" translatable="false">0:00:00</string>
+    <string name="default_media_duration" translatable="false">0:00:00</string>
+    <string name="gesture_direction_indicator" translatable="false">Indicator of gesture direction</string>
+    <string name="default_gesture_position" translatable="false">0:00:00/0:00:00</string>
+    <string name="enter_fullscreen" translatable="false">Enter or exit fullscreen mode</string>
+    <string name="player_setting" translatable="false">Player settings</string>
+    <string name="ijkplayer" translatable="false">IjkPlayer(hardware)</string>
+    <string name="ijkplayer_sw" translatable="false">IjkPlayer(software)</string>
+    <string name="exoplayer" translatable="false">Exoplayer</string>
+    <string name="surface_view" translatable="false">SurfaceView</string>
+    <string name="texture_view" translatable="false">TextureView</string>
+    <string name="set_player_type" translatable="false">Set player type</string>
+    <string name="set_surface_type" translatable="false">Set surface type</string>
+    <string name="player_setting_header" translatable="false">Player Settings</string>
+    <string name="player_type_header" translatable="false">Set Player Type</string>
+    <string name="surface_type_header" translatable="false">Set Surface Type</string>
+    <string name="next" translatable="false">Next</string>
+    <string name="previous" translatable="false">Previous</string>
+    <string name="audiotrack_selection" translatable="false">Select audio track</string>
+    <string name="subtitle_selection" translatable="false">Select subtitle track</string>
+    <string name="add_webdav_storage" translatable="false">Add WebDAV storage</string>
+    <string name="add" translatable="false">Add</string>
+    <string name="ok" translatable="false">OK</string>
+    <string name="live_channel_web_setting_hint_template" formatted="false" translatable="false">You can set it via http://%s:%d</string>
+    <string name="set_live_channel_source" translatable="false">Set live channel source</string>
+    <string name="set_live_sources_title" translatable="false">Set live sources</string>
+    <string name="disable_subtitle" translatable="false">Disable Subtitle Track</string>
+    <string name="back_press_hint" translatable="false">press again to quiet</string>
 </resources>

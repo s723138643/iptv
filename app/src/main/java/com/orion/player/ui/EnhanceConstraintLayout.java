@@ -43,20 +43,26 @@ public class EnhanceConstraintLayout extends ConstraintLayout {
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
-        listeners.forEach(listener -> listener.onMotionEvent(ev));
+        for (EventListener listener : listeners) {
+            listener.onMotionEvent(ev);
+        }
         return super.dispatchTouchEvent(ev);
     }
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        listeners.forEach(listener -> listener.onKeyEvent(event));
+        for (EventListener listener : listeners) {
+            listener.onKeyEvent(event);
+        }
         return super.dispatchKeyEvent(event);
     }
 
     @Override
     protected void onVisibilityChanged(@NonNull View changedView, int visibility) {
         super.onVisibilityChanged(changedView, visibility);
-        listeners.forEach(listeners -> listeners.onVisibilityChanged(changedView, visibility));
+        for (EventListener listener : listeners) {
+            listener.onVisibilityChanged(changedView, visibility);
+        }
     }
 
     public interface EventListener {

@@ -1,16 +1,9 @@
 package com.orion.iptv.layout.live;
 
-import static java.lang.annotation.ElementType.FIELD;
-import static java.lang.annotation.ElementType.LOCAL_VARIABLE;
-import static java.lang.annotation.ElementType.METHOD;
-import static java.lang.annotation.ElementType.PARAMETER;
-import static java.lang.annotation.ElementType.TYPE_USE;
-
 import android.util.Log;
 import android.util.Pair;
 
-import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
@@ -29,27 +22,13 @@ import com.orion.player.exo.ExtExoPlayerFactory;
 import com.orion.player.ijk.ExtHWIjkPlayerFactory;
 import com.orion.player.ijk.ExtSWIjkPlayerFactory;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 public class LivePlayerViewModel extends ViewModel {
     private final static String TAG = "LiveChannelListViewModel";
-
-    @Documented
-    @Retention(RetentionPolicy.SOURCE)
-    @Target({FIELD, METHOD, PARAMETER, LOCAL_VARIABLE, TYPE_USE})
-    @IntDef({IJKPLAYER, IJKPLAYER_SW, EXOPLAYER})
-    public @interface PlayerType{}
-    public static final int IJKPLAYER = 0;
-    public static final int IJKPLAYER_SW = 1;
-    public static final int EXOPLAYER = 2;
 
     public final static String GroupPosKey = "live_player_group_position";
     public final static String ChannelPosKey = "live_player_channel_position";
@@ -81,7 +60,7 @@ public class LivePlayerViewModel extends ViewModel {
         playerFactory = new MutableLiveData<>();
         settingUrl = new MutableLiveData<>();
 
-        int playerFactoryType = PreferenceStore.getInt(PlayerFactoryKey, IJKPLAYER);
+        int playerFactoryType = PreferenceStore.getInt(PlayerFactoryKey, 0);
         playerFactory.setValue(Pair.create(playerFactoryType, newPlayerFactory(playerFactoryType)));
         String url = PreferenceStore.getString(SettingUrlKey, "");
         if (!url.isEmpty()) {
@@ -89,22 +68,19 @@ public class LivePlayerViewModel extends ViewModel {
         }
     }
 
-    @NonNull
-    public Optional<Pair<Integer,List<ChannelItem>>> getChannels() {
-        Pair<Integer, List<ChannelItem>> list = channels.getValue();
-        return list != null ? Optional.of(list) : Optional.empty();
+    @Nullable
+    public Pair<Integer,List<ChannelItem>> getChannels() {
+        return channels.getValue();
     }
 
-    @NonNull
-    public Optional<List<ChannelGroup>> getGroups() {
-        List<ChannelGroup> list = groups.getValue();
-        return list != null ? Optional.of(list) : Optional.empty();
+    @Nullable
+    public List<ChannelGroup> getGroups() {
+        return groups.getValue();
     }
 
-    @NonNull
-    public Optional<Pair<ChannelInfo, EpgProgram[]>> getEpgPrograms() {
-        Pair<ChannelInfo, EpgProgram[]> list = epgs.getValue();
-        return list != null ? Optional.of(list) : Optional.empty();
+    @Nullable
+    public Pair<ChannelInfo, EpgProgram[]> getEpgPrograms() {
+        return epgs.getValue();
     }
 
     public void observeGroups(LifecycleOwner owner, Observer<List<ChannelGroup>> observer) {
@@ -156,11 +132,12 @@ public class LivePlayerViewModel extends ViewModel {
         PreferenceStore.setInt(ChannelPosKey, position);
         PreferenceStore.setString(ChannelNameKey, item.info.channelName);
 
-        List<DataSource> sources = item.getSources()
-                .stream()
-                .filter(link -> link != null && !link.isEmpty())
-                .map(link -> new DataSource(new ExtDataSource(link), item.info))
-                .collect(Collectors.toList());
+        List<DataSource> sources = new ArrayList<>();
+        for (String link : item.getSources()) {
+            if (link != null && !link.isEmpty()) {
+                sources.add(new DataSource(new ExtDataSource(link), item.info));
+            }
+        }
         sourceManager = new DataSourceManager(sources);
         liveSource.setValue(sourceManager.getCurrentDataSource());
 
@@ -171,9 +148,9 @@ public class LivePlayerViewModel extends ViewModel {
     }
 
     public int getSelectedGroup() {
-        Pair<Pair<Integer, Integer>, ChannelInfo> channelItemPair = currentChannel.getValue();
-        if (channelItemPair != null) {
-            return channelItemPair.first.second;
+        Pair<Integer, List<ChannelItem>> channelsPair = channels.getValue();
+        if (channelsPair != null) {
+            return channelsPair.first;
         }
         return PreferenceStore.getInt(GroupPosKey, 0);
     }
@@ -228,23 +205,47 @@ public class LivePlayerViewModel extends ViewModel {
         }
     }
 
+    public void seekToPrevChannel() {
+        Pair<Pair<Integer, Integer>, ChannelInfo> channel = currentChannel.getValue();
+        Pair<Integer, List<ChannelItem>> mChannels = channels.getValue();
+        if (channel != null && mChannels != null) {
+            int pos = channel.first.first + 1;
+            if (pos >= mChannels.second.size()) {
+                pos = 0;
+            }
+            selectChannel(pos, mChannels.second.get(pos));
+        }
+    }
+
+    public void seekToNextChannel() {
+        Pair<Pair<Integer, Integer>, ChannelInfo> channel = currentChannel.getValue();
+        Pair<Integer, List<ChannelItem>> mChannels = channels.getValue();
+        if (channel != null && mChannels != null) {
+            int pos = channel.first.first - 1;
+            if (pos < 0) {
+                pos = mChannels.second.size() - 1;
+            }
+            selectChannel(pos, mChannels.second.get(pos));
+        }
+    }
+
     public int getSourceCount() {
         return (sourceManager != null) ? sourceManager.getDataSourceCount() : 0;
     }
 
-    public IExtPlayerFactory<? extends IExtPlayer> newPlayerFactory(@PlayerType int playerType) {
+    public IExtPlayerFactory<? extends IExtPlayer> newPlayerFactory(int playerType) {
         switch (playerType) {
-            case IJKPLAYER:
+            case 0:
                 return new ExtHWIjkPlayerFactory();
-            case IJKPLAYER_SW:
+            case 1:
                 return new ExtSWIjkPlayerFactory();
-            case EXOPLAYER:
+            case 2:
                 return new ExtExoPlayerFactory();
         }
         return new ExtHWIjkPlayerFactory();
     }
 
-    public void setPlayerFactoryType(@PlayerType int playerFactoryType) {
+    public void setPlayerFactoryType(int playerFactoryType) {
         PreferenceStore.setInt(PlayerFactoryKey, playerFactoryType);
         playerFactory.setValue(Pair.create(playerFactoryType, newPlayerFactory(playerFactoryType)));
     }
@@ -291,21 +292,20 @@ public class LivePlayerViewModel extends ViewModel {
         Log.i(TAG, String.format(Locale.getDefault(), "has groups: %d", source.groups.size()));
         groups.setValue(source.groups);
 
-        Optional<ChannelItem> channel = source.getChannel(selectedGroup, selectedChannel);
-        if (channel.isPresent()) {
-            ChannelItem item = channel.get();
-            if (selectedChannelName.equals(item.info.channelName)) {
+        ChannelItem channel = source.getChannel(selectedGroup, selectedChannel);
+        if (channel != null) {
+            if (selectedChannelName.equals(channel.info.channelName)) {
                 Log.i(TAG, String.format(Locale.getDefault(), "use saved group: %d, channel: %d", selectedGroup, selectedChannel));
                 selectGroup(selectedGroup, source.groups.get(selectedGroup));
-                selectChannel(selectedChannel, item);
+                selectChannel(selectedChannel, channel);
                 return;
             }
         }
         channel = source.getChannel(0, 0);
-        if (channel.isPresent()) {
+        if (channel != null) {
             Log.i(TAG, String.format(Locale.getDefault(), "use default group: %d, channel: %d", 0, 0));
             selectGroup(0, source.groups.get(0));
-            selectChannel(0, channel.get());
+            selectChannel(0, channel);
         }
     }
 

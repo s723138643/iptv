@@ -8,6 +8,7 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.GestureDetector;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.RoundedCorner;
@@ -176,6 +177,21 @@ public class VideoPlayerView extends FrameLayout {
                 if (gestureListener.isScrolling()) {
                     gestureListener.stopScrolling();
                 }
+            }
+            return handled;
+        });
+        setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_DOWN || controller.isVisible()) {
+                return false;
+            }
+            boolean handled = false;
+            switch (keyCode) {
+                case KeyEvent.KEYCODE_DPAD_CENTER:
+                case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
+                case KeyEvent.KEYCODE_ENTER:
+                    controller.show();
+                    handled = true;
+                    break;
             }
             return handled;
         });

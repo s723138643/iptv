@@ -16,10 +16,11 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.google.android.exoplayer2.C;
 import com.orion.iptv.R;
 import com.orion.iptv.bean.ChannelInfo;
 import com.orion.iptv.bean.EpgProgram;
-import com.orion.player.ExtTrackInfo;
+import com.orion.player.ExtTrack;
 import com.orion.player.IExtPlayer;
 import com.orion.player.ui.EnhanceConstraintLayout;
 
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class LiveChannelInfo extends Fragment {
+    private final static String TAG = "LiveChannelInfo";
     private final String[] units = {"bps", "kbps", "Mbps", "Gbps"};
     protected LivePlayerViewModel viewModel;
     protected EnhanceConstraintLayout container;
@@ -240,13 +242,15 @@ public class LiveChannelInfo extends Fragment {
 
     private class PlayerEventListener implements IExtPlayer.Listener {
         @Override
-        public void onTracksChanged(List<ExtTrackInfo> tracks) {
-            for (int i=0; i<tracks.size(); i++) {
-                ExtTrackInfo track = tracks.get(i);
-                if (track.type == ExtTrackInfo.TRACK_TYPE_VIDEO && track.selected) {
-                    setMediaInfo(track.width + "x" + track.height);
-                    setCodecInfo(track.codecs);
-                    setBitrateInfo(track.bitrate);
+        public void onTracksChanged(List<ExtTrack> tracks) {
+            for (ExtTrack track: tracks) {
+                if (track.trackType == C.TRACK_TYPE_VIDEO && track.selected) {
+                    if (track.format.width > 0 && track.format.height > 0) {
+                        setMediaInfo(track.format.width + "x" + track.format.height);
+                    }
+                    setCodecInfo(track.format.codecs);
+                    setBitrateInfo(track.format.bitrate);
+                    break;
                 }
             }
         }

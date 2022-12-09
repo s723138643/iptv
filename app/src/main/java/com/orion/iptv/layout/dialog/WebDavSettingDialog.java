@@ -6,6 +6,7 @@ import android.util.Pair;
 import android.widget.EditText;
 import android.util.Log;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 
 import com.orion.iptv.R;
@@ -17,11 +18,7 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import okhttp3.HttpUrl;
 
@@ -34,9 +31,9 @@ public class WebDavSettingDialog {
 
     public WebDavSettingDialog(Context context) {
         this.builder = new AlertDialog.Builder(context);
-        this.builder.setTitle("添加WebDav");
+        this.builder.setTitle(R.string.add_webdav_storage);
         this.builder.setView(R.layout.dialog_webdav_setting);
-        this.builder.setPositiveButton("ok", new OnClickListener());
+        this.builder.setPositiveButton(R.string.add, new OnClickListener());
     }
 
     public WebDavSettingDialog setDefaultValue(Share share) {
@@ -73,9 +70,10 @@ public class WebDavSettingDialog {
         }
     }
 
-    private Optional<String> getValue(AlertDialog dialog, int resId) {
+    @Nullable
+    private String getValue(AlertDialog dialog, int resId) {
         EditText text = dialog.findViewById(resId);
-        return text != null ? Optional.of(text.getText().toString()) : Optional.empty();
+        return text != null ? text.getText().toString() : null;
     }
 
     public WebDavSettingDialog setOnSubmitListener(OnSubmitListener listener) {
@@ -88,45 +86,61 @@ public class WebDavSettingDialog {
     }
 
     private class OnClickListener implements DialogInterface.OnClickListener {
+        private List<String> concat(List<String> first, List<String> second) {
+            List<String> path = new ArrayList<>();
+            for (String p : first) {
+                if (!p.isEmpty()) {
+                    path.add(p);
+                }
+            }
+            for (String p : second) {
+                if (!p.isEmpty()) {
+                    path.add(p);
+                }
+            }
+            return path;
+        }
+
         @Override
         public void onClick(DialogInterface dialog, int which) {
             AlertDialog alertDialog = (AlertDialog) dialog;
-            String webdavName = getValue(alertDialog, R.id.webdav_name).orElse("");
+            String webdavName = getValue(alertDialog, R.id.webdav_name);
+            webdavName = webdavName != null ? webdavName : "";
             // parse server address
-            Pair<String, List<String>> webdavServer = getValue(alertDialog, R.id.webdav_server).map(address -> {
+            String address = getValue(alertDialog, R.id.webdav_server);
+            Pair<String, List<String>> webdavServer = null;
+            if (address != null) {
                 HttpUrl uri = HttpUrl.parse(address);
-                if (uri == null) {
-                    return null;
+                if (uri != null) {
+                    List<String> path = uri.pathSegments();
+                    HttpUrl.Builder builder = new HttpUrl.Builder();
+                    builder.scheme(uri.scheme());
+                    if (uri.scheme().equalsIgnoreCase("webdav")) {
+                        builder.scheme("http");
+                    }
+                    builder.host(uri.host());
+                    builder.port(uri.port());
+                    webdavServer = Pair.create(builder.build().toString(), path);
                 }
-                List<String> path = uri.pathSegments();
-                HttpUrl.Builder builder = new HttpUrl.Builder();
-                builder.scheme(uri.scheme());
-                if (uri.scheme().equalsIgnoreCase("webdav")) {
-                    builder.scheme("http");
-                }
-                builder.host(uri.host());
-                builder.port(uri.port());
-                return Pair.create(builder.build().toString(), path);
-            }).orElse(Pair.create("", new ArrayList<>()));
+            }
+            if (webdavServer == null) {
+                webdavServer = Pair.create("", new ArrayList<>());
+            }
 
             // parse initial path
-            List<String> initPath = getValue(alertDialog, R.id.webdav_path)
-                    .map(path -> Arrays.asList(path.split("/")))
-                    .orElse(new ArrayList<>());
-
+            String path = getValue(alertDialog, R.id.webdav_path);
+            List<String> initPath = path != null ? Arrays.asList(path.split("/")) : new ArrayList<>();
             // join all path, remove empty segment
-            List<String> path = Stream.of(webdavServer.second, initPath)
-                    .flatMap(Collection::stream)
-                    .filter(p -> !p.isEmpty())
-                    .collect(Collectors.toList());
-
+            List<String> finalPath = concat(webdavServer.second, initPath);
             // make relative path
-            String webdavPath = String.join("/", path);
+            String webdavPath = String.join("/", finalPath);
             // translate to absolute path
             webdavPath = webdavPath.isEmpty() ? "/" : "/" + webdavPath + "/";
 
-            String webdavUsername = getValue(alertDialog, R.id.webdav_username).orElse("");
-            String webdavPassword = getValue(alertDialog, R.id.webdav_password).orElse("");
+            String webdavUsername = getValue(alertDialog, R.id.webdav_username);
+            webdavUsername = webdavUsername != null ? webdavUsername : "";
+            String webdavPassword = getValue(alertDialog, R.id.webdav_password);
+            webdavPassword = webdavPassword != null ? webdavPassword : "";
 
             JSONObject config = new JSONObject();
             try {

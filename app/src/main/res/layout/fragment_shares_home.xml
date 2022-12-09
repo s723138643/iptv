@@ -33,7 +33,7 @@
             android:layout_height="wrap_content"
             android:src="@drawable/icon_add"
             android:contentDescription="@string/add_share"
-            android:background="@color/transparent"
+            android:background="@drawable/focusable_item_background"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
@@ -68,7 +68,7 @@
             android:layout_height="wrap_content"
             android:contentDescription="@string/cancel_delete"
             android:src="@drawable/icon_cancel"
-            android:background="@color/transparent"
+            android:background="@android:color/transparent"
             app:layout_constraintStart_toStartOf="@+id/delete_confirm"
             app:layout_constraintEnd_toStartOf="@+id/delete_confirm"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -80,7 +80,7 @@
             android:layout_height="wrap_content"
             android:contentDescription="@string/confirm_delete"
             android:src="@drawable/icon_confirm"
-            android:background="@color/transparent"
+            android:background="@drawable/focusable_item_background"
             android:layout_marginStart="8dp"
             app:layout_constraintStart_toEndOf="@+id/delete_cancel"
             app:layout_constraintEnd_toEndOf="parent"

@@ -3,11 +3,13 @@ package com.orion.iptv.ui.live;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.SystemClock;
 import android.util.DisplayMetrics;
 import android.util.Pair;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.GestureDetector;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.RoundedCorner;
 import android.view.WindowInsets;
@@ -94,6 +96,7 @@ public class LivePlayerActivity extends AppCompatActivity {
 
     private final PlayerEventListener listener = new PlayerEventListener();
     private List<Call> pendingCalls;
+    private long lastPressed = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -221,7 +224,7 @@ public class LivePlayerActivity extends AppCompatActivity {
             return;
         }
         ChannelSourceDialog dialog = new ChannelSourceDialog(this);
-        dialog.setTitle("设置频道源");
+        dialog.setTitle(getString(R.string.set_live_channel_source));
         dialog.setOnChannelSourceSubmitListener(url -> {
             Log.i(TAG, String.format(Locale.getDefault(), "got setting url: %s", url));
             mViewModel.updateSettingUrl(url);
@@ -281,6 +284,68 @@ public class LivePlayerActivity extends AppCompatActivity {
     }
 
     @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        boolean handled = false;
+        switch (event.getKeyCode()) {
+            case KeyEvent.KEYCODE_ENTER:
+            case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+                if (!playerSetting.isViewVisible()) {
+                    channelList.toggleVisibility(true);
+                    handled = true;
+                }
+                break;
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+                if (!channelList.isViewVisible() && !playerSetting.isViewVisible()) {
+                    postPlayerAction(0, mViewModel::seekToPrevSource);
+                    handled = true;
+                }
+                break;
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+                if (!channelList.isViewVisible() && !playerSetting.isViewVisible()) {
+                    postPlayerAction(0, mViewModel::seekToNextSource);
+                    handled = true;
+                }
+                break;
+            case KeyEvent.KEYCODE_DPAD_UP:
+                if (!channelList.isViewVisible() && !playerSetting.isViewVisible()) {
+                    postPlayerAction(0, channelList::seekToNextChannel);
+                    handled = true;
+                }
+                break;
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+                if (!channelList.isViewVisible() && !playerSetting.isViewVisible()) {
+                    postPlayerAction(0, channelList::seekToPrevChannel);
+                    handled = true;
+                }
+                break;
+            case KeyEvent.KEYCODE_MENU:
+                if (!channelList.isViewVisible()) {
+                    playerSetting.toggleVisibility(true);
+                    handled = true;
+                }
+                break;
+            case KeyEvent.KEYCODE_BACK:
+                if (channelList.isViewVisible()) {
+                    channelList.hide();
+                    handled = true;
+                } else if (playerSetting.isViewVisible()) {
+                    playerSetting.hide();
+                    handled = true;
+                } else {
+                    long now = SystemClock.uptimeMillis();
+                    if (now - lastPressed > 1000) {
+                        lastPressed = now;
+                        toast.setMessage(getString(R.string.back_press_hint), 1000);
+                        handled = true;
+                    }
+                }
+                break;
+        }
+        return handled || super.onKeyDown(keyCode, event);
+    }
+
+    @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
     }
@@ -310,7 +375,9 @@ public class LivePlayerActivity extends AppCompatActivity {
     @Override
     public void onStop() {
         super.onStop();
-        pendingCalls.forEach(Call::cancel);
+        for (Call call : pendingCalls) {
+            call.cancel();
+        }
         pendingCalls.clear();
         mPlayerHandler.removeCallbacksAndMessages(null);
         mHandler.removeCallbacksAndMessages(null);
@@ -329,7 +396,7 @@ public class LivePlayerActivity extends AppCompatActivity {
     }
 
     private void processChannelList(String response) {
-        ChannelSource source = ChannelSource.from("默认分组", response);
+        ChannelSource source = ChannelSource.from(getString(R.string.default_group_name), response);
         mHandler.post(() -> {
             buffering.hide();
             mViewModel.updateChannelSource(source);
@@ -425,7 +492,7 @@ public class LivePlayerActivity extends AppCompatActivity {
             if (!inTouchArea(e)) {
                 return false;
             }
-            if (!playerSetting.isViewHidden()) {
+            if (playerSetting.isViewVisible()) {
                 playerSetting.hide();
             } else {
                 channelList.toggleVisibility();
@@ -438,7 +505,7 @@ public class LivePlayerActivity extends AppCompatActivity {
             if (!inTouchArea(e)) {
                 return;
             }
-            if (!channelList.isViewHidden()) {
+            if (channelList.isViewVisible()) {
                 channelList.hide();
             } else {
                 playerSetting.toggleVisibility();

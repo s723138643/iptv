@@ -1,8 +1,8 @@
 <resources>
     <string-array name="player_type_entries">
-        <item>IjkPlayer(硬解)</item>
-        <item>IjkPlayer(软解)</item>
-        <item>Exoplayer</item>
+        <item>@string/ijkplayer</item>
+        <item>@string/ijkplayer_sw</item>
+        <item>@string/exoplayer</item>
     </string-array>
 
     <string-array name="player_type_values">
@@ -10,6 +10,12 @@
         <item>ijkplayer_sw</item>
         <item>exoplayer</item>
     </string-array>
+
+    <integer-array name="player_type_int_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </integer-array>
 
     <string-array name="surface_type_entries">
         <item>SurfaceView</item>

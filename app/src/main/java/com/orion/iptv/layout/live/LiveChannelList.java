@@ -24,7 +24,9 @@ import com.orion.iptv.bean.ChannelGroup;
 import com.orion.iptv.bean.ChannelItem;
 import com.orion.iptv.bean.EpgProgram;
 import com.orion.iptv.recycleradapter.RecyclerAdapter;
+import com.orion.iptv.recycleradapter.DefaultSelection;
 import com.orion.iptv.recycleradapter.Selection;
+import com.orion.iptv.recycleradapter.SelectionWithFocus;
 import com.orion.player.ui.EnhanceConstraintLayout;
 
 import java.util.ArrayList;
@@ -41,6 +43,7 @@ public class LiveChannelList extends Fragment {
     private RecyclerView groupList;
     private RecyclerView channelList;
     private RecyclerView epgList;
+    private Selection<ChannelItem> selection;
     private View channelSpacer1;
     private View channelSpacer3;
     private ToggleButton showEpgButton;
@@ -96,6 +99,9 @@ public class LiveChannelList extends Fragment {
                 if (changedView != enhanceConstraintLayout) {
                     return;
                 }
+                if (visibility == View.VISIBLE) {
+                    channelList.requestFocus();
+                }
                 enhanceConstraintLayout.removeCallbacks(hideMyself);
                 if (visibility == View.VISIBLE && hideMyselfAt > 0) {
                     enhanceConstraintLayout.postDelayed(hideMyself, Math.max(hideMyselfAt-SystemClock.uptimeMillis(), 1));
@@ -122,7 +128,7 @@ public class LiveChannelList extends Fragment {
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         // layoutManager.setMeasurementCacheEnabled(false);
         epgList.setLayoutManager(layoutManager);
-        Selection<EpgProgram> epgProgramSelection = new Selection<>(epgList);
+        Selection<EpgProgram> epgProgramSelection = new SelectionWithFocus<>(epgList);
         mViewModel.observeEpgs(requireActivity(), epgs -> {
             List<EpgProgram> items = epgs != null ? Arrays.asList(epgs.second) : new ArrayList<>();
             RecyclerAdapter<EpgProgram> epgListViewAdapter = new RecyclerAdapter<>(
@@ -139,7 +145,7 @@ public class LiveChannelList extends Fragment {
                 epgList.scrollToPosition(pair.first);
             }
         });
-        epgList.setHasFixedSize(true);
+        // epgList.setHasFixedSize(true);
     }
 
     protected void initChannelList() {
@@ -148,7 +154,7 @@ public class LiveChannelList extends Fragment {
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         // layoutManager.setMeasurementCacheEnabled(false);
         channelList.setLayoutManager(layoutManager);
-        Selection<ChannelItem> selection = new Selection<>(channelList);
+        selection = new SelectionWithFocus<>(channelList);
         mViewModel.observeChannels(requireActivity(), channels -> {
             List<ChannelItem> items = channels != null ? channels.second : new ArrayList<>();
             int position = channels != null ? mViewModel.getSelectedChannelInGroup(channels.first) : RecyclerView.NO_POSITION;
@@ -165,7 +171,7 @@ public class LiveChannelList extends Fragment {
             Log.i(TAG, String.format(Locale.ENGLISH, "channel item %d::%s selected", position, item.info.channelName));
             mViewModel.selectChannel(position, item);
         });
-        channelList.setHasFixedSize(true);
+        // channelList.setHasFixedSize(true);
     }
 
     protected void initGroupList() {
@@ -174,7 +180,7 @@ public class LiveChannelList extends Fragment {
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         // layoutManager.setMeasurementCacheEnabled(false);
         groupList.setLayoutManager(layoutManager);
-        Selection<ChannelGroup> selection = new Selection<>(groupList);
+        DefaultSelection<ChannelGroup> defaultSelection = new DefaultSelection<>(groupList);
         mViewModel.observeGroups(requireActivity(), groups -> {
             int visibility = (groups == null || groups.size() < 2) ? View.GONE : View.VISIBLE;
             channelSpacer1.setVisibility(visibility);
@@ -184,18 +190,26 @@ public class LiveChannelList extends Fragment {
                     groups != null ? groups : new ArrayList<>(),
                     new GroupListViewHolderFactory(requireActivity(), R.layout.layout_list_item)
             );
-            groupListViewAdapter.setSelection(selection);
+            groupListViewAdapter.setSelection(defaultSelection);
             int selectedGroup = mViewModel.getSelectedGroup();
-            selection.setAdapter(groupListViewAdapter, selectedGroup);
+            defaultSelection.setAdapter(groupListViewAdapter, selectedGroup);
             groupList.swapAdapter(groupListViewAdapter, true);
             groupList.scrollToPosition(selectedGroup);
         });
-        selection.addSelectedListener((position, item) -> mViewModel.selectGroup(position, item));
-        groupList.setHasFixedSize(true);
+        defaultSelection.addSelectedListener((position, item) -> mViewModel.selectGroup(position, item));
+        // groupList.setHasFixedSize(true);
     }
 
-    public boolean isViewHidden() {
-        return enhanceConstraintLayout.getVisibility() == View.GONE;
+    public boolean isViewVisible() {
+        return enhanceConstraintLayout.getVisibility() == View.VISIBLE;
+    }
+
+    public void seekToPrevChannel() {
+        selection.selectPrev();
+    }
+
+    public void seekToNextChannel() {
+        selection.selectNext();
     }
 
     public void toggleVisibility() {
@@ -203,6 +217,21 @@ public class LiveChannelList extends Fragment {
             show();
         } else {
             hide();
+        }
+    }
+
+    public void toggleVisibility(boolean needFocus) {
+        if (enhanceConstraintLayout.getVisibility() == View.GONE) {
+            show(needFocus);
+        } else {
+            hide();
+        }
+    }
+
+    public void show(boolean needFocus) {
+        show();
+        if (needFocus && !enhanceConstraintLayout.hasFocus()) {
+            channelList.requestFocus();
         }
     }
 

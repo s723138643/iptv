@@ -3,19 +3,20 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="wrap_content"
     android:layout_height="match_parent"
-    android:background="@drawable/layout_background"
+    android:background="@drawable/background_radius_16"
     android:orientation="horizontal" >
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/livePlayerValue"
+        android:id="@+id/livePlayerMenu"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:gravity="center"
+        android:nextFocusLeft="@id/livePlayerValue"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/livePlayerSettingSpacer"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintStart_toEndOf="@+id/livePlayerSettingSpacer"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
     <View
         android:id="@+id/livePlayerSettingSpacer"
@@ -23,20 +24,22 @@
         android:layout_height="match_parent"
         android:background="@color/gray_600"
         android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/livePlayerMenu"
+        android:focusable="false"
         app:layout_constraintStart_toEndOf="@+id/livePlayerValue"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/livePlayerMenu"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/livePlayerMenu"
+        android:id="@+id/livePlayerValue"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:gravity="center"
+        android:nextFocusRight="@id/livePlayerMenu"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/livePlayerSettingSpacer"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/livePlayerSettingSpacer"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
 </com.orion.player.ui.EnhanceConstraintLayout>

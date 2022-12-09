@@ -2,6 +2,7 @@ package com.orion.iptv.layout.live;
 
 import android.content.Context;
 
+import com.orion.iptv.R;
 import com.orion.iptv.layout.dialog.ChannelSourceDialog;
 
 import java.util.List;
@@ -18,7 +19,7 @@ public class SetChannelSourceUrl implements SettingMenu {
 
     @Override
     public String content() {
-        return "设置源";
+        return context.getString(R.string.set_live_sources_title);
     }
 
     @Override
@@ -29,7 +30,7 @@ public class SetChannelSourceUrl implements SettingMenu {
     private class SourceUrlValue implements SettingValue {
         @Override
         public String content() {
-            return "设置频道源";
+            return context.getString(R.string.set_live_channel_source);
         }
 
         @Override

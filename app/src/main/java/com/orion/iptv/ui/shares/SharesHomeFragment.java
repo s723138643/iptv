@@ -27,7 +27,6 @@ import com.orion.iptv.layout.dialog.WebDavSettingDialog;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class SharesHomeFragment extends Fragment {
     public static final String TAG = "SharesHome";
@@ -75,11 +74,12 @@ public class SharesHomeFragment extends Fragment {
             adapter.notifyDataSetChanged();
         });
         adapter.setItemClickListener(itemView -> {
-            getBindingAdapterPosition(itemView).map(position -> {
+            int position = getBindingAdapterPosition(itemView);
+            if (position >= 0) {
                 mViewModel.setSelectedShare(position);
                 Share share = mViewModel.getSelectedShare();
                 if (share == null) {
-                    return null;
+                    return;
                 }
                 FileNode root = share.getRoot();
                 Log.i("SharesHomeFragment", "share " + root.getName() + " selected");
@@ -92,20 +92,19 @@ public class SharesHomeFragment extends Fragment {
                         .replace(R.id.shares_container_view, SharesContentFragment.class, bundle)
                         .addToBackStack(TAG)
                         .commit();
-                return null;
-            });
+            }
         });
         adapter.setButtonClickListener(buttonView -> {
-            getBindingAdapterPosition(buttonView).map(position ->{
-                mViewModel.getShare(position).map(share -> {
+            int position = getBindingAdapterPosition(buttonView);
+            if (position >= 0) {
+                Share share = mViewModel.getShare(position);
+                if (share != null) {
                     new WebDavSettingDialog(requireContext())
                             .setDefaultValue(share)
                             .setOnSubmitListener(modified -> mViewModel.setShare(position, modified))
                             .show();
-                    return null;
-                });
-                return null;
-            });
+                }
+            }
         });
         sharesView.setAdapter(adapter);
         SelectionTracker<Long> tracker = new SelectionTracker.Builder<>(
@@ -143,12 +142,11 @@ public class SharesHomeFragment extends Fragment {
         });
     }
 
-    private Optional<Integer> getBindingAdapterPosition(View view) {
+    private int getBindingAdapterPosition(View view) {
         RecyclerView.ViewHolder viewHolder = sharesView.findContainingViewHolder(view);
-        if (viewHolder == null) {
-            return Optional.empty();
+        if (viewHolder != null) {
+            return viewHolder.getBindingAdapterPosition();
         }
-        int position = viewHolder.getBindingAdapterPosition();
-        return position >= 0 ? Optional.of(position) : Optional.empty();
+        return -1;
     }
 }

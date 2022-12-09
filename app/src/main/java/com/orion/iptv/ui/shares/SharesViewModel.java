@@ -7,7 +7,6 @@ import androidx.lifecycle.ViewModel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 public class SharesViewModel extends ViewModel {
     private final MutableLiveData<List<Share>> shares;
@@ -35,12 +34,13 @@ public class SharesViewModel extends ViewModel {
         }
     }
 
-    public Optional<Share> getShare(int position) {
+    @Nullable
+    public Share getShare(int position) {
         List<Share> mShares = shares.getValue();
         if (mShares == null || position < 0 || position >= mShares.size()) {
-            return Optional.empty();
+            return null;
         }
-        return Optional.of(mShares.get(position));
+        return mShares.get(position);
     }
 
     public void addShare(Share share) {

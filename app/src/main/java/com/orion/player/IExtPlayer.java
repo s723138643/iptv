@@ -28,7 +28,7 @@ public interface IExtPlayer {
         default void onPlayerError(Exception error) {}
         default void onVideoSizeChanged(ExtVideoSize videoSize) {}
         default void onDataSourceUsed(ExtDataSource dataSource) {}
-        default void onTracksChanged(List<ExtTrackInfo> tracks) {}
+        default void onTracksChanged(List<ExtTrack> tracks) {}
         default void onIsPlayingChanged(boolean isPlaying) {}
         default void onCues(CueGroup cues) {}
     }
@@ -90,7 +90,7 @@ public interface IExtPlayer {
     void addListener(Listener listener);
     void removeListener(Listener listener);
 
-    void selectTrack(@ExtTrackInfo.TrackType int trackType, int trackId, int trackIndex);
-    void deselectTrack(@ExtTrackInfo.TrackType int trackType, int trackId, int trackIndex);
+    void selectTrack(ExtTrack track);
+    void deselectTrack(ExtTrack track);
 }
 

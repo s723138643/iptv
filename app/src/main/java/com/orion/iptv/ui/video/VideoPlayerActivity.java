@@ -66,7 +66,9 @@ public class VideoPlayerActivity extends AppCompatActivity {
         if (intent.hasExtra("headers")) {
             Bundle bundle = intent.getBundleExtra("headers");
             Map<String, String> headers = new ArrayMap<>();
-            headers.keySet().forEach(key -> headers.put(key, bundle.getString(key)));
+            for (String key : headers.keySet()) {
+                headers.put(key, bundle.getString(key));
+            }
             dataSource.setHeaders(headers);
         }
         if (intent.hasExtra("auth")) {

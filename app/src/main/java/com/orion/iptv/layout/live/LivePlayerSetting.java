@@ -20,7 +20,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.orion.iptv.R;
 import com.orion.iptv.recycleradapter.RecyclerAdapter;
+import com.orion.iptv.recycleradapter.DefaultSelection;
 import com.orion.iptv.recycleradapter.Selection;
+import com.orion.iptv.recycleradapter.SelectionWithFocus;
 import com.orion.player.ui.EnhanceConstraintLayout;
 
 import java.util.ArrayList;
@@ -31,7 +33,6 @@ public class LivePlayerSetting extends Fragment {
     private RecyclerView settingMenuView;
     private RecyclerView settingValueView;
     private Selection<SettingValue> valueSelection;
-    private Selection<SettingMenu> menuSelection;
     private List<SettingMenu> menus;
     EnhanceConstraintLayout enhanceConstraintLayout;
     private static final long AutoHideAfterMillis = 5 * 1000;
@@ -66,7 +67,7 @@ public class LivePlayerSetting extends Fragment {
 
         menus = new ArrayList<>();
         menus.add(new SetChannelSourceUrl(requireActivity(), viewModel));
-        menus.add(new SetPlayerFactory(viewModel));
+        menus.add(new SetPlayerFactory(requireActivity(), viewModel));
         enhanceConstraintLayout.addEventListener(new EnhanceConstraintLayout.EventListener() {
             @Override
             public void onMotionEvent(MotionEvent ev) {
@@ -98,7 +99,7 @@ public class LivePlayerSetting extends Fragment {
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         layoutManager.setMeasurementCacheEnabled(false);
         settingValueView.setLayoutManager(layoutManager);
-        valueSelection = new Selection<>(settingValueView);
+        valueSelection = new SelectionWithFocus<>(settingValueView);
         RecyclerAdapter<SettingValue> valueViewAdapter = new RecyclerAdapter<>(
                 requireActivity(),
                 menus.get(0).getValues(),
@@ -114,15 +115,15 @@ public class LivePlayerSetting extends Fragment {
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         layoutManager.setMeasurementCacheEnabled(false);
         settingMenuView.setLayoutManager(layoutManager);
-        Selection<SettingMenu> selection = new Selection<>(settingMenuView);
+        DefaultSelection<SettingMenu> defaultSelection = new DefaultSelection<>(settingMenuView);
         RecyclerAdapter<SettingMenu> menuViewAdapter = new RecyclerAdapter<>(
                 requireActivity(),
                 menus,
                 new MenuListViewHolderFactory(requireActivity(), R.layout.layout_list_item)
         );
-        selection.setAdapter(menuViewAdapter, 0);
+        defaultSelection.setAdapter(menuViewAdapter, 0);
         settingMenuView.setAdapter(menuViewAdapter);
-        selection.addSelectedListener(this::onMenuSelected);
+        defaultSelection.addSelectedListener(this::onMenuSelected);
     }
 
     private void onValueSelected(int position, SettingValue value) {
@@ -145,8 +146,16 @@ public class LivePlayerSetting extends Fragment {
         settingValueView.swapAdapter(valueAdapter, true);
     }
 
-    public boolean isViewHidden() {
-        return enhanceConstraintLayout.getVisibility() == View.GONE;
+    public boolean isViewVisible() {
+        return enhanceConstraintLayout.getVisibility() == View.VISIBLE;
+    }
+
+    public void toggleVisibility(boolean needFocus) {
+        if (enhanceConstraintLayout.getVisibility() == View.GONE) {
+            show(needFocus);
+        } else {
+            hide();
+        }
     }
 
     public void toggleVisibility() {
@@ -154,6 +163,13 @@ public class LivePlayerSetting extends Fragment {
             show();
         } else {
             hide();
+        }
+    }
+
+    public void show(boolean needFocus) {
+        show();
+        if (needFocus && !enhanceConstraintLayout.hasFocus()) {
+            settingMenuView.requestFocus();
         }
     }
 

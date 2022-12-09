@@ -13,8 +13,8 @@ import com.orion.iptv.network.HostIP;
 import com.orion.iptv.webserver.WebServer;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 
 import fi.iki.elonen.NanoHTTPD;
 
@@ -26,12 +26,15 @@ public class ChannelSourceDialog {
     private final WebServer server;
     private OnChannelSourceSubmitListener listener;
     private String defaultValue;
+    private final Context context;
+
     public ChannelSourceDialog(Context context) {
+        this.context = context;
         mHandler = new Handler(context.getMainLooper());
 
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder = builder.setView(R.layout.dialog_live_channel_source);
-        builder = builder.setPositiveButton("ok", (dialog, which) -> {
+        builder = builder.setPositiveButton(R.string.ok, (dialog, which) -> {
             AlertDialog alertDialog = (AlertDialog) dialog;
             EditText text = alertDialog.findViewById(R.id.channel_source_url);
             String input = text.getText().toString();
@@ -68,17 +71,20 @@ public class ChannelSourceDialog {
             EditText view = dialog.findViewById(R.id.channel_source_url);
             view.setText(url);
         }));
-        Optional<String> address = HostIP.getHostIP().stream().findFirst();
+        List<String> addresses = HostIP.getHostIP();
+        String address = addresses.size() > 0 ? addresses.get(0) : null;
         try {
             server.start(NanoHTTPD.SOCKET_READ_TIMEOUT);
-            Log.i(TAG, String.format(Locale.ENGLISH, "start http server at: %s:%d", address.orElse("0.0.0.0"), server.getListeningPort()));
+            String displayAddress = address != null ? address : "0.0.0.0";
+            Log.i(TAG, String.format(Locale.ENGLISH, "start http server at: %s:%d", displayAddress, server.getListeningPort()));
         } catch (IOException eio) {
             Log.i(TAG, String.format(Locale.ENGLISH, "start http server failed, %s", eio));
         }
         dialog.show();
-        if (address.isPresent() && server.getListeningPort() > 0) {
+        if (address != null && server.getListeningPort() > 0) {
             TextView v = dialog.findViewById(R.id.ip_address);
-            v.setText(String.format(Locale.ENGLISH, "通过访问 http://%s:%d 设置", address.get(), server.getListeningPort()));
+            String template = context.getString(R.string.live_channel_web_setting_hint_template);
+            v.setText(String.format(Locale.getDefault(), template, address, server.getListeningPort()));
         }
         @SuppressLint("CutPasteId") EditText v = dialog.findViewById(R.id.channel_source_url);
         if (defaultValue != null && !defaultValue.isEmpty()) {

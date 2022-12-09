@@ -20,6 +20,6 @@ public class FileNodeViewHolderFactory implements ViewHolderFactory<ViewHolder<F
     @Override
     public FileNodeViewHolder create(ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(context).inflate(layout, parent, false);
-        return new FileNodeViewHolder(v);
+        return new FileNodeViewHolder(context, v);
     }
 }

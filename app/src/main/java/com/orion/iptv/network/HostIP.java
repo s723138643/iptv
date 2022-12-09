@@ -9,7 +9,6 @@ import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.Optional;
 
 public class HostIP {
     private static final String TAG = "HostIP";
@@ -27,14 +26,17 @@ public class HostIP {
         ArrayList<String> ips = new ArrayList<>();
         Enumeration<NetworkInterface> nis = NetworkInterface.getNetworkInterfaces();
         while (nis.hasMoreElements()) {
-            getAddress(nis.nextElement()).map(ips::add);
+            String address = getAddress(nis.nextElement());
+            if (address != null) {
+                ips.add(address);
+            }
         }
         return ips;
     }
 
-    private static Optional<String> getAddress(NetworkInterface inf) throws SocketException {
+    private static String getAddress(NetworkInterface inf) throws SocketException {
         if (inf.isLoopback() || inf.isVirtual() || inf.isPointToPoint() || !inf.isUp()) {
-            return Optional.empty();
+            return null;
         }
         Enumeration<InetAddress> addresses = inf.getInetAddresses();
         while (addresses.hasMoreElements()) {
@@ -50,8 +52,8 @@ public class HostIP {
                 continue;
             }
             Log.i(TAG, String.format("got address: %s", hostAddress));
-            return Optional.of(hostAddress);
+            return hostAddress;
         }
-        return Optional.empty();
+        return null;
     }
 }
