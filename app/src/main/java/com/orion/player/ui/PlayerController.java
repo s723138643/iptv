@@ -16,7 +16,6 @@ import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.SeekBar;
@@ -39,7 +38,6 @@ public class PlayerController extends FrameLayout {
     private static final int fullscreenIconRes = com.google.android.exoplayer2.ui.R.drawable.exo_ic_fullscreen_enter;
     private static final int fullscreenExitIconRes = com.google.android.exoplayer2.ui.R.drawable.exo_ic_fullscreen_exit;
 
-    private TextView title;
     private TextView position;
     private TextView duration;
     private SeekBar seekBar;
@@ -151,7 +149,7 @@ public class PlayerController extends FrameLayout {
                 return false;
             }
             boolean handled = true;
-            int pos = 0;
+            int pos;
             switch (keyCode) {
                 case KeyEvent.KEYCODE_DPAD_LEFT:
                     if (!isSeeking) {
