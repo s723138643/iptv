@@ -65,4 +65,6 @@
     <string name="set_live_sources_title" translatable="false">Set live sources</string>
     <string name="disable_subtitle" translatable="false">Disable Subtitle Track</string>
     <string name="back_press_hint" translatable="false">press again to quiet</string>
+    <string name="modify" translatable="false">Modify</string>
+    <string name="delete" translatable="false">Delete</string>
 </resources>

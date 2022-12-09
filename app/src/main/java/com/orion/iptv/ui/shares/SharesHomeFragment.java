@@ -1,5 +1,6 @@
 package com.orion.iptv.ui.shares;
 
+import androidx.appcompat.widget.PopupMenu;
 import androidx.lifecycle.ViewModelProvider;
 
 import android.annotation.SuppressLint;
@@ -44,7 +45,7 @@ public class SharesHomeFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_shares_home, container, false);
     }
 
-    @SuppressLint("NotifyDataSetChanged")
+    @SuppressLint({"NotifyDataSetChanged", "NonConstantResourceId"})
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
@@ -96,15 +97,39 @@ public class SharesHomeFragment extends Fragment {
         });
         adapter.setButtonClickListener(buttonView -> {
             int position = getBindingAdapterPosition(buttonView);
-            if (position >= 0) {
-                Share share = mViewModel.getShare(position);
-                if (share != null) {
-                    new WebDavSettingDialog(requireContext())
-                            .setDefaultValue(share)
-                            .setOnSubmitListener(modified -> mViewModel.setShare(position, modified))
-                            .show();
-                }
+            if (position < 0) {
+                return;
             }
+            Share share = mViewModel.getShare(position);
+            if (share == null) {
+                return;
+            }
+
+            PopupMenu popupMenu = new PopupMenu(requireContext(), buttonView);
+            popupMenu.setOnMenuItemClickListener(item -> {
+                switch (item.getItemId()) {
+                    case R.id.modify:
+                        new WebDavSettingDialog(requireContext())
+                                .setDefaultValue(share)
+                                .setOnSubmitListener(modified -> mViewModel.setShare(position, modified))
+                                .show();
+                        break;
+                    case R.id.delete:
+                        List<Share> newShares = new ArrayList<>();
+                        List<Share> oldShares = mViewModel.getShares().getValue();
+                        assert oldShares != null;
+                        for (Share s : oldShares) {
+                            if (s != share) {
+                                newShares.add(s);
+                            }
+                        }
+                        mViewModel.getShares().setValue(newShares);
+                        break;
+                }
+                return true;
+            });
+            popupMenu.inflate(R.menu.share_action);
+            popupMenu.show();
         });
         sharesView.setAdapter(adapter);
         SelectionTracker<Long> tracker = new SelectionTracker.Builder<>(

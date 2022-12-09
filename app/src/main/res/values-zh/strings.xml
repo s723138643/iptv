@@ -66,4 +66,6 @@
     <string name="set_live_channel_source">设置频道源地址</string>
     <string name="disable_subtitle">禁用字幕</string>
     <string name="back_press_hint" translatable="false">再按一次退出</string>
+    <string name="modify" translatable="false">修改配置</string>
+    <string name="delete" translatable="false">删除</string>
 </resources>

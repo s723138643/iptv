@@ -50,7 +50,6 @@ public class PlayerController extends FrameLayout {
 
     private @Nullable IExtPlayer player;
     private int orientation;
-    private ViewGroup.MarginLayoutParams originMargin;
     private OrientationSwitchCallback orientationSwitchCallback;
     private OnVisibilityChangedListener listener;
     private Pair<Integer, List<ExtTrack>> audios;
@@ -86,6 +85,7 @@ public class PlayerController extends FrameLayout {
         }
     };
     private final String disableSubtitleDesc;
+    private boolean isSeeking = false;
 
     public PlayerController(@NonNull Context context) {
         this(context, null);
@@ -146,6 +146,48 @@ public class PlayerController extends FrameLayout {
         seekToPrevButton.setVisibility(View.GONE);
         seekToNextButton.setVisibility(View.GONE);
 
+        seekBar.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_DOWN || player == null) {
+                return false;
+            }
+            boolean handled = true;
+            int pos = 0;
+            switch (keyCode) {
+                case KeyEvent.KEYCODE_DPAD_LEFT:
+                    if (!isSeeking) {
+                        isSeeking = true;
+                        removeCallbacks(updatePosition);
+                    }
+                    seekBar.incrementProgressBy(-5);
+                    pos = seekBar.getProgress();
+                    position.setText(formatDuration((long) pos * 1000));
+                    break;
+                case KeyEvent.KEYCODE_DPAD_RIGHT:
+                    if (!isSeeking) {
+                        isSeeking = true;
+                        removeCallbacks(updatePosition);
+                    }
+                    seekBar.incrementProgressBy(5);
+                    pos = seekBar.getProgress();
+                    position.setText(formatDuration((long) pos * 1000));
+                    break;
+                case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
+                case KeyEvent.KEYCODE_DPAD_CENTER:
+                case KeyEvent.KEYCODE_ENTER:
+                    if (isSeeking) {
+                        isSeeking = false;
+                        pos = seekBar.getProgress();
+                        player.seekTo((long) pos * 1000);
+                        post(updatePosition);
+                    } else {
+                        handled = false;
+                    }
+                    break;
+                default:
+                    handled = false;
+            }
+            return handled;
+        });
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             private int progress = -1;
             @Override

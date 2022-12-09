@@ -12,14 +12,18 @@
     <color name="gray_200">#FFEEEEEE</color>
     <color name="gray_400">#FFBDBDBD</color>
     <color name="gray_600">#FF757575</color>
+    <color name="gray_800">#FF424242</color>
     <color name="green_50">#FFE8F5E9</color>
     <color name="green_100">#FFC8E6C9</color>
     <color name="orange_800">#FFE65100</color>
 
-    <color name="bg_gray_100">#72EEEEEE</color>
+    <color name="bg_gray_100">#33EEEEEE</color>
+    <color name="bg_gray_150">#80EEEEEE</color>
     <color name="bg_gray_600">#C0757575</color>
+    <color name="bg_gray_800">#C0424242</color>
     <color name="bg_green_100">#C0C8E6C9</color>
 
-    <color name="layout_background">@color/bg_gray_600</color>
-    <color name="item_background">@color/bg_green_100</color>
+    <color name="layout_background">@color/bg_gray_800</color>
+    <color name="item_background">@color/bg_gray_100</color>
+    <color name="button_background">@color/bg_gray_150</color>
 </resources>

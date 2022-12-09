@@ -96,6 +96,7 @@ public class LivePlayerActivity extends AppCompatActivity {
 
     private final PlayerEventListener listener = new PlayerEventListener();
     private List<Call> pendingCalls;
+    private boolean needResume = false;
     private long lastPressed = 0;
 
     @Override
@@ -237,6 +238,12 @@ public class LivePlayerActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onRestart() {
+        super.onRestart();
+        needResume = true;
+   }
+
+    @Override
     public void onStart() {
         super.onStart();
 
@@ -361,6 +368,11 @@ public class LivePlayerActivity extends AppCompatActivity {
         hideSystemBars();
         if (player != null) {
             player.play();
+        } else if (needResume) {
+            Pair<Integer, DataSource> dataSource = mViewModel.getCurrentSource();
+            if (dataSource != null) {
+                switchDataSource(dataSource);
+            }
         }
     }
 
@@ -383,6 +395,7 @@ public class LivePlayerActivity extends AppCompatActivity {
         mHandler.removeCallbacksAndMessages(null);
         if (player != null) {
             player.release();
+            player = null;
         }
     }
 
