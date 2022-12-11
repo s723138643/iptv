@@ -5,7 +5,8 @@
     android:layout_height="wrap_content"
     android:minHeight="40dp"
     android:paddingStart="8dp"
-    android:paddingEnd="8dp">
+    android:paddingEnd="8dp"
+    style="@style/ListItem">
 
     <TextView
         android:id="@+id/list_item_number"

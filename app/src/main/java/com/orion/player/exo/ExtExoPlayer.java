@@ -157,7 +157,13 @@ public class ExtExoPlayer implements IExtPlayer {
 
     @Override
     public void seekTo(long positionMs) {
-        post(()-> innerPlayer.seekTo(positionMs));
+        post(()-> {
+            if (positionMs < 0) {
+                innerPlayer.seekToDefaultPosition();
+            } else {
+                innerPlayer.seekTo(positionMs);
+            }
+        });
     }
 
     @Override

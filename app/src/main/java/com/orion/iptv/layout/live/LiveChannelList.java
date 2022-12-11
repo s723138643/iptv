@@ -116,13 +116,8 @@ public class LiveChannelList extends Fragment {
     protected void initEpgList() {
         epgList.setItemAnimator(null);
         showEpgButton.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isChecked) {
-                channelSpacer3.setVisibility(View.VISIBLE);
-                epgList.setVisibility(View.VISIBLE);
-            } else {
-                channelSpacer3.setVisibility(View.GONE);
-                epgList.setVisibility(View.GONE);
-            }
+            int visibility = isChecked ? View.VISIBLE : View.GONE;
+            epgList.setVisibility(visibility);
         });
         LinearLayoutManager layoutManager = new LinearLayoutManager(requireActivity());
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);

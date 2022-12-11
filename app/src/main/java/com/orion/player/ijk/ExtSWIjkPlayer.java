@@ -200,6 +200,7 @@ public class ExtSWIjkPlayer implements IExtPlayer,
 
     @Override
     public void seekTo(long positionMs) {
+        positionMs = positionMs >= 0 ? positionMs : 0;
         try {
             if (playbackState == STATE_IDLE) {
                 seekToPositionMsWhenReady = positionMs;

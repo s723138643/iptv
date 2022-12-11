@@ -18,6 +18,7 @@
             android:layout_marginTop="8dp"
             android:drawableStart="@drawable/icon_home"
             android:text="@string/home_page"
+            style="@style/TVButton"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toStartOf="@id/live_page"
             app:layout_constraintTop_toTopOf="parent" />
@@ -30,6 +31,7 @@
             android:layout_marginTop="8dp"
             android:drawableStart="@drawable/icon_live"
             android:text="@string/live_page"
+            style="@style/TVButton"
             app:layout_constraintStart_toEndOf="@+id/home_page"
             app:layout_constraintEnd_toStartOf="@id/shares_page"
             app:layout_constraintTop_toTopOf="parent" />
@@ -42,6 +44,7 @@
             android:layout_marginTop="8dp"
             android:drawableStart="@drawable/icon_storage"
             android:text="@string/share_page"
+            style="@style/TVButton"
             app:layout_constraintStart_toEndOf="@id/live_page"
             app:layout_constraintTop_toTopOf="parent" />
 
@@ -53,6 +56,7 @@
             android:layout_marginTop="8dp"
             android:drawableStart="@drawable/icon_setting_middle"
             android:text="@string/settings_page"
+            style="@style/TVButton"
             app:layout_constraintStart_toEndOf="@+id/shares_page"
             app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>

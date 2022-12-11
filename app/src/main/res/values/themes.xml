@@ -13,4 +13,19 @@
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->
     </style>
+    <style name="TVButton" parent="Widget.AppCompat.Button.Borderless">
+        <item name="android:background">@drawable/btn_borderless</item>
+    </style>
+    <style name="PlayerButton">
+        <item name="android:background">@drawable/btn_borderless_player</item>
+    </style>
+    <style name="LiveButton">
+        <item name="android:background">@drawable/btn_borderless_live</item>
+    </style>
+    <style name="SeekBar" parent="Widget.AppCompat.SeekBar">
+        <item name="android:background">@drawable/bg_seekbar</item>
+    </style>
+    <style name="ListItem">
+        <item name="android:background">@drawable/bg_list_item</item>
+    </style>
 </resources>

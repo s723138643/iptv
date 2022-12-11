@@ -19,9 +19,9 @@
 
     <color name="bg_gray_100">#33EEEEEE</color>
     <color name="bg_gray_150">#80EEEEEE</color>
-    <color name="bg_gray_600">#C0757575</color>
-    <color name="bg_gray_800">#C0424242</color>
-    <color name="bg_green_100">#C0C8E6C9</color>
+    <color name="bg_gray_600">#80757575</color>
+    <color name="bg_gray_800">#80424242</color>
+    <color name="bg_green_100">#80C8E6C9</color>
 
     <color name="layout_background">@color/bg_gray_800</color>
     <color name="item_background">@color/bg_gray_100</color>
