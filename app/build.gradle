@@ -19,8 +19,14 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
+            // shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+
+        debug {
+            applicationIdSuffix ".debug"
+            debuggable true
         }
     }
 
@@ -50,7 +56,7 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.5.1'
     implementation 'androidx.recyclerview:recyclerview:1.2.1'
     implementation 'androidx.recyclerview:recyclerview-selection:1.1.0'
-    implementation 'androidx.fragment:fragment:1.5.4'
+    implementation 'androidx.fragment:fragment:1.5.5'
     implementation 'com.google.android.material:material:1.7.0'
     implementation 'com.squareup.okhttp3:okhttp:4.10.0'
     implementation 'org.nanohttpd:nanohttpd:2.3.1'
@@ -74,5 +80,4 @@ dependencies {
     implementation project(':ijkplayer-java')
     implementation project(':ijkplayer-armv7a')
     implementation project(':ijkplayer-arm64')
-
 }

@@ -14,6 +14,14 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- Custom permissions for our content provider -->
+    <permission
+        android:name="${applicationId}.MEDIA"
+        android:protectionLevel="signature" />
+
+    <!-- Declare permissions used by our app -->
+    <uses-permission android:name="${applicationId}.MEDIA" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -25,6 +33,8 @@
         android:supportsRtl="true"
         android:theme="@style/NoActionBar"
         android:usesCleartextTraffic="true"
+        android:hardwareAccelerated="true"
+        android:largeHeap="true"
         tools:targetApi="33">
         <activity
             android:name=".ui.MainActivity"
@@ -45,7 +55,9 @@
             android:name=".ui.live.LivePlayerActivity"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout"
             android:screenOrientation="sensorLandscape"
-            android:exported="false">
+            android:resizeableActivity="true"
+            android:supportsPictureInPicture="true"
+            android:exported="true">
             <meta-data
                 android:name="android.app.lib_name"
                 android:value="" />
@@ -62,7 +74,9 @@
             android:name=".ui.video.VideoPlayerActivity"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout"
             android:screenOrientation="sensorLandscape"
-            android:exported="false">
+            android:resizeableActivity="true"
+            android:supportsPictureInPicture="true"
+            android:exported="true">
             <meta-data
                 android:name="android.app.lib_name"
                 android:value="" />

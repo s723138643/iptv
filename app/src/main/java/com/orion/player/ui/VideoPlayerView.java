@@ -50,14 +50,13 @@ public class VideoPlayerView extends FrameLayout {
     private Buffering buffering;
     private Toast toast;
     private TextView title;
+    private NetworkSpeed networkSpeed;
 
     private final Rect gestureArea = new Rect(0, 0);
     private Rect gesturePadding = new Rect(0, 0, 0, 0);
     private Rect overlayPadding = new Rect(0, 0, 0, 0);
     private final int[] overlayLocation = new int[2];
     private ConstraintLayout.LayoutParams original;
-
-    private int orientation;
 
     IExtPlayer iExtPlayer;
 
@@ -89,6 +88,7 @@ public class VideoPlayerView extends FrameLayout {
         ViewGroup header = findViewById(R.id.header);
         title = findViewById(R.id.title);
         ImageButton settings = findViewById(R.id.settings);
+        networkSpeed = findViewById(R.id.network_speed);
 
         header.setVisibility(View.GONE);
         toast.hide();
@@ -155,7 +155,7 @@ public class VideoPlayerView extends FrameLayout {
             Log.w(TAG, String.format(Locale.getDefault(), "overlay location: (%d, %d)", overlayLocation[0], overlayLocation[1]));
             gestureArea.reset(left, top, right, bottom);
             gestureArea.inset(gesturePadding);
-            gestureArea.inset(dp2px(48), dp2px(48));
+            gestureArea.inset(dp2px(GestureInsetXdp), dp2px(GestureInsetYdp));
             Log.w(TAG, String.format(Locale.getDefault(), "gesture area: (%d, %d, %d, %d)", gestureArea.left, gestureArea.top, gestureArea.right, gestureArea.bottom));
 
             if (overlayLocation[0] <= overlayPadding.left || overlayLocation[1] <= overlayPadding.top) {
@@ -222,6 +222,7 @@ public class VideoPlayerView extends FrameLayout {
     public void setPlayer(@NonNull IExtPlayer iExtPlayer) {
         videoView.setPlayer(iExtPlayer);
         controller.setPlayer(iExtPlayer);
+        networkSpeed.setPlayer(iExtPlayer);
         if (this.iExtPlayer != null) {
             this.iExtPlayer.removeListener(componentListener);
         }
@@ -235,6 +236,11 @@ public class VideoPlayerView extends FrameLayout {
 
     public void setSettingsCallback(SettingsButtonCallback callback) {
         settingsCallback = callback;
+    }
+
+    public void showNetworkSpeed(boolean isVisible) {
+        int visibility = isVisible ? View.VISIBLE : View.GONE;
+        networkSpeed.setVisibility(visibility);
     }
 
     private void updateAspectRatio(ExtVideoSize videoSize) {

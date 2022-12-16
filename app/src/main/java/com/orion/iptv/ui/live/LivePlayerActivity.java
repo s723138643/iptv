@@ -42,7 +42,7 @@ import com.orion.iptv.layout.live.LivePlayerSetting;
 import com.orion.iptv.layout.live.LivePlayerViewModel;
 import com.orion.iptv.misc.SourceTypeDetector;
 import com.orion.iptv.network.DownloadHelper;
-import com.orion.iptv.layout.NetworkSpeed;
+import com.orion.player.ui.NetworkSpeed;
 import com.orion.player.ui.Rect;
 import com.orion.player.ui.VideoView;
 import com.orion.iptv.misc.PreferenceStore;
@@ -67,6 +67,8 @@ import okhttp3.Response;
 
 public class LivePlayerActivity extends AppCompatActivity {
     private static final String TAG = "LivePlayer";
+    private static final int GestureInsetXdp = 48;
+    private static final int GestureInsetYdp = 48;
 
     protected LivePlayerViewModel mViewModel;
 
@@ -80,6 +82,7 @@ public class LivePlayerActivity extends AppCompatActivity {
     protected Buffering buffering;
 
     protected IExtPlayerFactory<? extends IExtPlayer> playerFactory;
+    protected int surfaceType;
     protected IExtPlayer player;
 
     private Handler mHandler;
@@ -93,6 +96,7 @@ public class LivePlayerActivity extends AppCompatActivity {
     private Rect overlayPadding = new Rect(0, 0, 0, 0);
     private final int[] overlayLocation = new int[2];
 
+    private String epgUrl;
     private final EpgRefresher epgRefresher = new EpgRefresher();
 
     private final PlayerEventListener listener = new PlayerEventListener();
@@ -189,7 +193,7 @@ public class LivePlayerActivity extends AppCompatActivity {
             Log.w(TAG, String.format(Locale.getDefault(), "overlay location: (%d, %d)", overlayLocation[0], overlayLocation[1]));
             gestureArea.reset(left, top, right, bottom);
             gestureArea.inset(gesturePadding);
-            gestureArea.inset(dp2px(48), dp2px(48));
+            gestureArea.inset(dp2px(GestureInsetXdp), dp2px(GestureInsetYdp));
             Log.w(TAG, String.format(Locale.getDefault(), "gesture area: (%d, %d, %d, %d)", gestureArea.left, gestureArea.top, gestureArea.right, gestureArea.bottom));
 
             if (overlayLocation[0] <= overlayPadding.left || overlayLocation[1] <= overlayPadding.top) {
@@ -202,7 +206,10 @@ public class LivePlayerActivity extends AppCompatActivity {
             }
         });
 
+        playerFactory = mViewModel.getPlayerFactory().second;
         mViewModel.observePlayerFactory(this, this::switchPlayer);
+        surfaceType = mViewModel.getSurfaceType();
+        mViewModel.observeSurfaceType(this, this::switchSurfaceType);
         mViewModel.observeLiveSource(this, this::switchDataSource);
         mViewModel.observeNextEpgProgram(this, nextEpgProgram -> {
             epgRefresher.stop();
@@ -212,6 +219,8 @@ public class LivePlayerActivity extends AppCompatActivity {
             epgRefresher.start(nextEpgProgram);
         });
         mViewModel.observeSettingUrl(this, this::onSettingUrl);
+        epgUrl = mViewModel.getEpgUrl();
+        mViewModel.observeEpgUrl(this, url -> epgUrl = url);
         mViewModel.observeCurrentChannel(this, this::onCurrentChannel);
     }
 
@@ -223,6 +232,7 @@ public class LivePlayerActivity extends AppCompatActivity {
     protected void maybeShowSettingUrlDialog() {
         String settingUrl = PreferenceStore.getString(LivePlayerViewModel.SettingUrlKey, "");
         if (!settingUrl.equals("")) {
+            mViewModel.initSettingUrl(settingUrl);
             return;
         }
         ChannelSourceDialog dialog = new ChannelSourceDialog(this);
@@ -267,13 +277,23 @@ public class LivePlayerActivity extends AppCompatActivity {
         }
     }
 
+    private void switchSurfaceType(Integer surfaceType) {
+        this.surfaceType = surfaceType;
+        Pair<Integer, DataSource> dataSource = mViewModel.getCurrentSource();
+        if (dataSource != null) {
+            switchDataSource(dataSource);
+        }
+    }
+
     private void switchDataSource(Pair<Integer, DataSource> dataSource) {
         mPlayerHandler.removeCallbacksAndMessages(null);
         if (player != null) {
             player.release();
+            videoView.setPlayer(null);
         }
         player = playerFactory.create(this);
         player.addListener(listener);
+        videoView.setSurfaceType(surfaceType);
         videoView.setPlayer(player);
         networkSpeed.setPlayer(player);
         channelInfo.setPlayer(player);
@@ -400,6 +420,7 @@ public class LivePlayerActivity extends AppCompatActivity {
         }
     }
 
+    @SuppressWarnings("deprecation")
     protected void hideSystemBars() {
         WindowInsetsControllerCompat windowInsetsController = ViewCompat.getWindowInsetsController(getWindow().getDecorView());
         if (windowInsetsController == null) {
@@ -466,13 +487,14 @@ public class LivePlayerActivity extends AppCompatActivity {
         fetchSetting(url, 1);
     }
 
-    protected void onCurrentChannel(Pair<Pair<Integer, Integer>, ChannelInfo> currentChannel) {
-        if (currentChannel == null) {
+    protected void onCurrentChannel(LivePlayerViewModel.Channel currentChannel) {
+        if (currentChannel == null || epgUrl == null || epgUrl.isEmpty()) {
             return;
         }
-        ChannelInfo info = currentChannel.second;
+        ChannelInfo info = currentChannel.channelInfo;
         Date today = new Date();
         Call call = M51ZMT.get(
+                epgUrl,
                 info.channelName,
                 today,
                 new M51ZMT.Callback() {
@@ -595,7 +617,7 @@ public class LivePlayerActivity extends AppCompatActivity {
                 case IExtPlayer.STATE_BUFFERING:
                     Log.w(TAG, "IExtPlayer change state to STATE_BUFFERING");
                     buffering.show();
-                    postPlayerAction(15*1000, mViewModel::seekToNextSource);
+                    postPlayerAction(mViewModel.getSourceTimeout(), mViewModel::seekToNextSource);
                     break;
                 case IExtPlayer.STATE_ENDED:
                     Log.w(TAG, "IExtPlayer change state to STATE_ENDED");

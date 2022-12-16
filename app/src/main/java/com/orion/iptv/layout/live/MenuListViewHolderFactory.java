@@ -27,7 +27,7 @@ public class MenuListViewHolderFactory implements ViewHolderFactory<ViewHolder<S
 
             {
                 desc = v.findViewById(R.id.list_item_content);
-                desc.setEms(6);
+                desc.setEms(10);
             }
 
             @Override
@@ -35,7 +35,7 @@ public class MenuListViewHolderFactory implements ViewHolderFactory<ViewHolder<S
                 super.changeState(states);
                 int color = getColorForState(states, foreground);
                 desc.setTextColor(color);
-                desc.setSelected(statesContains(states, android.R.attr.state_activated));
+                desc.setSelected(statesContains(states, android.R.attr.state_activated, android.R.attr.state_focused));
             }
 
             @Override

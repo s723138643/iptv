@@ -16,5 +16,11 @@
             app:key="surface_type"
             app:title="@string/set_surface_type"
             app:useSimpleSummaryProvider="true" />
+
+        <SwitchPreference
+            app:defaultValue="true"
+            app:key="show_network_speed"
+            app:title="@string/show_network_speed"
+            app:useSimpleSummaryProvider="true" />
     </PreferenceCategory>
 </PreferenceScreen>

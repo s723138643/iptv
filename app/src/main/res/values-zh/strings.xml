@@ -1,71 +1,74 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">iptv</string>
-    <string name="channel_number_default">001</string>
-    <string name="channel_name_default">测试</string>
-    <string name="codec_info_default">未知</string>
-    <string name="media_info_default">未知</string>
-    <string name="bitrate_info_default">未知</string>
-    <string name="link_info">线路 [1/1]</string>
-    <string name="current_link_number">1</string>
-    <string name="total_link_number">1</string>
-    <string name="current_epg_program_default">暂无相关信息</string>
-    <string name="next_epg_program_default">暂无相关信息</string>
-    <string name="list_item_index_placeholder">001</string>
-    <string name="list_item_desc_placeholder">测试字符串</string>
-    <string name="show_epg">》</string>
-    <string name="hide_epg">《</string>
-    <string name="default_group_name">默认分组</string>
-    <string name="channel_source_hint">请输入频道源地址</string>
-    <string name="modify_share">修改共享设置</string>
-    <string name="add_share">添加共享存储</string>
-    <string name="cancel_delete">取消删除</string>
-    <string name="confirm_delete">确认删除</string>
-    <string name="share_home_banner">存储空间</string>
-    <string name="sort">排序</string>
-    <string name="goto_root">返回根目录</string>
-    <string name="root_path">/</string>
-    <string name="home_page">主页</string>
-    <string name="live_page">直播</string>
-    <string name="share_page">共享存储</string>
-    <string name="settings_page">设置</string>
-    <string name="webdav_input_name_hint">设置WebDAV服务名称</string>
-    <string name="webdav_input_address_hint">WebDAV服务器地址，如（http://example.com）</string>
-    <string name="webdav_input_root_path_hint">设置根目录（可选）</string>
-    <string name="webdav_input_username_hint">用户名（可选）</string>
-    <string name="webdav_input_password_hint">用户密码（可选）</string>
-    <string name="controls_prev_description">切换至上一个媒体</string>
-    <string name="controls_play_description">播放当前媒体</string>
-    <string name="controls_pause_description">暂停播放</string>
-    <string name="controls_next_description">切换至下一个媒体</string>
-    <string name="default_position">0:00:00</string>
-    <string name="default_media_duration">0:00:00</string>
-    <string name="gesture_direction_indicator">滑动快进方向指示器</string>
-    <string name="default_gesture_position">0:00:00/0:00:00</string>
-    <string name="enter_fullscreen">进入或退出全屏</string>
-    <string name="player_setting">播放器设置</string>
-    <string name="ijkplayer">IjkPlayer(硬解)</string>
-    <string name="ijkplayer_sw">IjkPlayer(软解)</string>
-    <string name="exoplayer">Exoplayer</string>
-    <string name="surface_view">SurfaceView</string>
-    <string name="texture_view">TextureView</string>
-    <string name="set_player_type">设置播放器类型</string>
-    <string name="set_surface_type">设置surface类型</string>
-    <string name="audiotrack_selection">选择音轨</string>
-    <string name="subtitle_selection">选择字幕</string>
-    <string name="player_setting_header">播放器设置</string>
-    <string name="player_type_header">设置播放器类型</string>
-    <string name="surface_type_header">设置surface类型</string>
-    <string name="next">下一个</string>
-    <string name="previous">上一个</string>
-    <string name="add_webdav_storage">添加WebDAV存储</string>
-    <string name="add">添加</string>
-    <string name="ok">确认</string>
-    <string name="live_channel_web_setting_hint_template">通过访问 http://%s:%d 设置</string>
-    <string name="set_live_sources_title">设置源地址</string>
-    <string name="set_live_channel_source">设置频道源地址</string>
-    <string name="disable_subtitle">禁用字幕</string>
+    <string name="app_name" translatable="false">iptv</string>
+    <string name="channel_number_default" translatable="false">001</string>
+    <string name="channel_name_default" translatable="false">测试</string>
+    <string name="codec_info_default" translatable="false">未知</string>
+    <string name="media_info_default" translatable="false">未知</string>
+    <string name="bitrate_info_default" translatable="false">未知</string>
+    <string name="link_info" translatable="false">线路 [1/1]</string>
+    <string name="current_link_number" translatable="false">1</string>
+    <string name="total_link_number" translatable="false">1</string>
+    <string name="current_epg_program_default" translatable="false">暂无相关信息</string>
+    <string name="next_epg_program_default" translatable="false">暂无相关信息</string>
+    <string name="list_item_index_placeholder" translatable="false">001</string>
+    <string name="list_item_desc_placeholder" translatable="false">测试字符串</string>
+    <string name="show_epg" translatable="false">》</string>
+    <string name="hide_epg" translatable="false">《</string>
+    <string name="default_group_name" translatable="false">默认分组</string>
+    <string name="channel_source_hint" translatable="false">请输入频道源地址</string>
+    <string name="modify_share" translatable="false">修改共享设置</string>
+    <string name="add_share" translatable="false">添加共享存储</string>
+    <string name="cancel_delete" translatable="false">取消删除</string>
+    <string name="confirm_delete" translatable="false">确认删除</string>
+    <string name="share_home_banner" translatable="false">存储空间</string>
+    <string name="sort" translatable="false">排序</string>
+    <string name="goto_root" translatable="false">返回根目录</string>
+    <string name="root_path" translatable="false">/</string>
+    <string name="home_page" translatable="false">主页</string>
+    <string name="live_page" translatable="false">直播</string>
+    <string name="share_page" translatable="false">共享存储</string>
+    <string name="settings_page" translatable="false">设置</string>
+    <string name="webdav_input_name_hint" translatable="false">设置WebDAV服务名称</string>
+    <string name="webdav_input_address_hint" translatable="false">WebDAV服务器地址，如（http://example.com）</string>
+    <string name="webdav_input_root_path_hint" translatable="false">设置根目录（可选）</string>
+    <string name="webdav_input_username_hint" translatable="false">用户名（可选）</string>
+    <string name="webdav_input_password_hint" translatable="false">用户密码（可选）</string>
+    <string name="controls_prev_description" translatable="false">切换至上一个媒体</string>
+    <string name="controls_play_description" translatable="false">播放当前媒体</string>
+    <string name="controls_pause_description" translatable="false">暂停播放</string>
+    <string name="controls_next_description" translatable="false">切换至下一个媒体</string>
+    <string name="default_position" translatable="false">0:00:00</string>
+    <string name="default_media_duration" translatable="false">0:00:00</string>
+    <string name="gesture_direction_indicator" translatable="false">滑动快进方向指示器</string>
+    <string name="default_gesture_position" translatable="false">0:00:00/0:00:00</string>
+    <string name="enter_fullscreen" translatable="false">进入或退出全屏</string>
+    <string name="player_setting" translatable="false">播放器设置</string>
+    <string name="ijkplayer" translatable="false">IjkPlayer(硬解)</string>
+    <string name="ijkplayer_sw" translatable="false">IjkPlayer(软解)</string>
+    <string name="exoplayer" translatable="false">Exoplayer</string>
+    <string name="surface_view" translatable="false">SurfaceView</string>
+    <string name="texture_view" translatable="false">TextureView</string>
+    <string name="set_player_type" translatable="false">设置播放器类型</string>
+    <string name="set_surface_type" translatable="false">设置surface类型</string>
+    <string name="audiotrack_selection" translatable="false">选择音轨</string>
+    <string name="subtitle_selection" translatable="false">选择字幕</string>
+    <string name="player_setting_header" translatable="false">播放器设置</string>
+    <string name="player_type_header" translatable="false">设置播放器类型</string>
+    <string name="surface_type_header" translatable="false">设置surface类型</string>
+    <string name="next" translatable="false">下一个</string>
+    <string name="previous" translatable="false">上一个</string>
+    <string name="add_webdav_storage" translatable="false">添加WebDAV存储</string>
+    <string name="add" translatable="false">添加</string>
+    <string name="ok" translatable="false">确认</string>
+    <string name="live_channel_web_setting_hint_template" translatable="false">通过访问 http://%s:%d 设置</string>
+    <string name="set_live_sources_title" translatable="false">设置源地址</string>
+    <string name="set_live_channel_source" translatable="false">设置频道源地址</string>
+    <string name="set_live_epg_source" translatable="false">设置节目单源地址</string>
+    <string name="disable_subtitle" translatable="false">禁用字幕</string>
     <string name="back_press_hint" translatable="false">再按一次退出</string>
     <string name="modify" translatable="false">修改配置</string>
     <string name="delete" translatable="false">删除</string>
+    <string name="set_source_timeout" translatable="false">超时换源</string>
+    <string name="show_network_speed" translatable="false">显示网速</string>
 </resources>

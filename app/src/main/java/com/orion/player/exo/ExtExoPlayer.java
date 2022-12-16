@@ -6,6 +6,7 @@ import android.os.Looper;
 import android.util.ArrayMap;
 import android.util.Log;
 import android.util.Pair;
+import android.view.Surface;
 import android.view.SurfaceView;
 import android.view.TextureView;
 
@@ -32,6 +33,7 @@ import com.orion.player.ExtDataSource;
 import com.orion.player.IExtPlayer;
 import com.orion.player.ExtTrack;
 import com.orion.player.ExtVideoSize;
+import com.orion.player.render.VideoGLSurfaceView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,6 +55,12 @@ public class ExtExoPlayer implements IExtPlayer {
     private ExoPlayer innerPlayer;
     private float playbackSpeed = 0.0f;
     private ExtDataSource dataSource;
+    private VideoGLSurfaceView videoGLSurfaceView;
+    private final VideoGLSurfaceView.Callback callback = surface -> {
+        post(() -> {
+            innerPlayer.setVideoSurface(surface);
+        });
+    };
 
     public ExtExoPlayer(Context context) {
         this.context = context;
@@ -262,6 +270,33 @@ public class ExtExoPlayer implements IExtPlayer {
     @Override
     public void clearVideoTextureView(TextureView textureView) {
         post(()-> innerPlayer.clearVideoTextureView(textureView));
+    }
+
+    @Override
+    public void setVideoGLSurfaceView(VideoGLSurfaceView surfaceView) {
+        post(() -> {
+            if (surfaceView == videoGLSurfaceView) {
+                return;
+            }
+            surfaceView.addCallback(callback);
+            Surface surface = surfaceView.getSurface();
+            if (surface != null && surface.isValid()) {
+                innerPlayer.setVideoSurface(surfaceView.getSurface());
+            } else {
+                innerPlayer.setVideoSurface(null);
+            }
+        });
+    }
+
+    @Override
+    public void clearVideoGLSurfaceView(VideoGLSurfaceView surfaceView) {
+        if (surfaceView != null && surfaceView == videoGLSurfaceView) {
+            post(() -> {
+                videoGLSurfaceView.removeCallback(callback);
+                videoGLSurfaceView = null;
+                innerPlayer.clearVideoSurface(surfaceView.getSurface());
+            });
+        }
     }
 
     @Override

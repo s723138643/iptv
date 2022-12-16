@@ -20,10 +20,37 @@
     <string-array name="surface_type_entries">
         <item>SurfaceView</item>
         <item>TextureView</item>
+        <item>GLSurfaceView</item>
     </string-array>
 
     <string-array name="surface_type_values">
         <item>surface_view</item>
         <item>texture_view</item>
+        <item>gl_surface_view</item>
     </string-array>
+
+
+    <integer-array name="surface_type_int_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </integer-array>
+
+    <string-array name="source_timeout_entries">
+        <item>5s</item>
+        <item>10s</item>
+        <item>15s</item>
+        <item>20s</item>
+        <item>25s</item>
+        <item>30s</item>
+    </string-array>
+
+    <integer-array name="source_timeout_values">
+        <item>5000</item>
+        <item>10000</item>
+        <item>15000</item>
+        <item>20000</item>
+        <item>25000</item>
+        <item>30000</item>
+    </integer-array>
 </resources>

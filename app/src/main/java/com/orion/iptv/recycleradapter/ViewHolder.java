@@ -24,10 +24,12 @@ public abstract class ViewHolder<T> extends RecyclerView.ViewHolder {
         return colorStateList.getColorForState(states, colorStateList.getDefaultColor());
     }
 
-    protected boolean statesContains(int[] states, int state) {
+    protected boolean statesContains(int[] states, int... state) {
         for (int s : states) {
-            if (s == state) {
-                return true;
+            for (int t : state) {
+                if (t == s) {
+                    return true;
+                }
             }
         }
         return false;

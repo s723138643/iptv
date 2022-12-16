@@ -10,9 +10,6 @@ public interface Selection<T> {
     void setCanRepeatSelect(boolean canRepeatSelect);
     int[] getState(int position);
 
-    void selectPrev();
-    void selectNext();
-
     void addSelectedListener(OnSelectedListener<T> listener);
     void removeSelectedListener(OnSelectedListener<T> listener);
 

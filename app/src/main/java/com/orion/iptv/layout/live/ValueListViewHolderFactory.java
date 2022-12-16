@@ -26,7 +26,7 @@ public class ValueListViewHolderFactory implements ViewHolderFactory<ViewHolder<
             private final TextView desc;
             {
                 desc = v.findViewById(R.id.list_item_content);
-                desc.setEms(6);
+                desc.setEms(10);
             }
 
             @Override
@@ -34,7 +34,7 @@ public class ValueListViewHolderFactory implements ViewHolderFactory<ViewHolder<
                 super.changeState(states);
                 int color = getColorForState(states, foreground);
                 desc.setTextColor(color);
-                desc.setSelected(statesContains(states, android.R.attr.state_activated));
+                desc.setSelected(statesContains(states, android.R.attr.state_activated, android.R.attr.state_focused));
             }
 
             @Override

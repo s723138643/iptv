@@ -13,6 +13,7 @@ import android.view.TextureView;
 import androidx.annotation.IntDef;
 
 import com.google.android.exoplayer2.text.CueGroup;
+import com.orion.player.render.VideoGLSurfaceView;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
@@ -86,6 +87,8 @@ public interface IExtPlayer {
     void clearVideoSurfaceView(SurfaceView surfaceView);
     void setVideoTextureView(TextureView textureView);
     void clearVideoTextureView(TextureView textureView);
+    void setVideoGLSurfaceView(VideoGLSurfaceView surfaceView);
+    void clearVideoGLSurfaceView(VideoGLSurfaceView surfaceView);
 
     void addListener(Listener listener);
     void removeListener(Listener listener);

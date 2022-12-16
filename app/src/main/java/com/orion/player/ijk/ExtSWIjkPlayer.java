@@ -19,6 +19,7 @@ import com.orion.player.ExtDataSource;
 import com.orion.player.IExtPlayer;
 import com.orion.player.ExtTrack;
 import com.orion.player.ExtVideoSize;
+import com.orion.player.render.VideoGLSurfaceView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,6 +57,7 @@ public class ExtSWIjkPlayer implements IExtPlayer,
 
     protected SurfaceHolder surfaceHolder;
     protected TextureView textureView;
+    protected VideoGLSurfaceView videoGLSurfaceView;
     protected Surface ownedSurface;
     protected Surface videoOutput;
 
@@ -332,6 +334,10 @@ public class ExtSWIjkPlayer implements IExtPlayer,
             }
             textureView = null;
         }
+        if (videoGLSurfaceView != null) {
+            videoGLSurfaceView.removeCallback(componentListener);
+            videoGLSurfaceView = null;
+        }
     }
 
     @Override
@@ -355,6 +361,30 @@ public class ExtSWIjkPlayer implements IExtPlayer,
     @Override
     public void clearVideoTextureView(TextureView textureView) {
         if (textureView != null && this.textureView == textureView) {
+            clearVideoSurface();
+        }
+    }
+
+    @Override
+    public void setVideoGLSurfaceView(VideoGLSurfaceView surfaceView) {
+        if (surfaceView == null) {
+            clearVideoSurface();
+            return;
+        }
+        removeSurfaceCallbacks();
+        this.videoGLSurfaceView = surfaceView;
+        surfaceView.addCallback(componentListener);
+        Surface surface = surfaceView.getSurface();
+        if (surface != null && surface.isValid()) {
+            setVideoSurface(surface);
+        } else {
+            setVideoSurface(null);
+        }
+    }
+
+    @Override
+    public void clearVideoGLSurfaceView(VideoGLSurfaceView surfaceView) {
+        if (surfaceView != null && videoGLSurfaceView == surfaceView) {
             clearVideoSurface();
         }
     }
@@ -547,10 +577,15 @@ public class ExtSWIjkPlayer implements IExtPlayer,
     }
 
     private class ComponentListener implements SurfaceHolder.Callback,
-            TextureView.SurfaceTextureListener{
+            TextureView.SurfaceTextureListener, VideoGLSurfaceView.Callback {
         @Override
         public void surfaceCreated(@NonNull SurfaceHolder holder) {
             setVideoSurface(holder.getSurface());
+        }
+
+        @Override
+        public void surfaceCreated(@NonNull Surface surface) {
+            setVideoSurface(surface);
         }
 
         @Override

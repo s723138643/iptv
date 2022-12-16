@@ -12,6 +12,7 @@ import android.animation.AnimatorListenerAdapter;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.util.Log;
+import android.util.Pair;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -45,7 +46,6 @@ public class LiveChannelList extends Fragment {
     private RecyclerView epgList;
     private Selection<ChannelItem> selection;
     private View channelSpacer1;
-    private View channelSpacer3;
     private ToggleButton showEpgButton;
 
     private static final long AutoHideAfterMillis = 5*1000;
@@ -79,7 +79,6 @@ public class LiveChannelList extends Fragment {
         epgList = view.findViewById(R.id.channelEpgList);
         epgList.setVisibility(View.GONE);
         channelSpacer1 = view.findViewById(R.id.channelSpacer1);
-        channelSpacer3 = view.findViewById(R.id.channelSpacer3);
         showEpgButton = view.findViewById(R.id.showEpgButton);
 
         mViewModel = new ViewModelProvider(requireActivity()).get(LivePlayerViewModel.class);
@@ -199,12 +198,40 @@ public class LiveChannelList extends Fragment {
         return enhanceConstraintLayout.getVisibility() == View.VISIBLE;
     }
 
+    private int prevPos(int current, int total) {
+        int pos = current - 1;
+        return pos >= 0 ? pos : total - 1;
+    }
+
+    private int nextPos(int current, int total) {
+        int pos = current + 1;
+        return pos < total ? pos : 0;
+    }
+
     public void seekToPrevChannel() {
-        selection.selectPrev();
+        LivePlayerViewModel.Channel channel = mViewModel.getCurrentChannel();
+        if (channel == null) {
+            return;
+        }
+        int pos = prevPos(channel.channelPos, channel.channels.size());
+        mViewModel.selectChannel(pos, channel.channels.get(pos), Pair.create(channel.groupPos, channel.channels));
+        Pair<Integer, List<ChannelItem>> channels = mViewModel.getChannels();
+        if (channels != null && channels.first == channel.groupPos) {
+            selection.selectQuiet(pos);
+        }
     }
 
     public void seekToNextChannel() {
-        selection.selectNext();
+        LivePlayerViewModel.Channel channel = mViewModel.getCurrentChannel();
+        if (channel == null) {
+            return;
+        }
+        int pos = nextPos(channel.channelPos, channel.channels.size());
+        mViewModel.selectChannel(pos, channel.channels.get(pos), Pair.create(channel.groupPos, channel.channels));
+        Pair<Integer, List<ChannelItem>> channels = mViewModel.getChannels();
+        if (channels != null && channels.first == channel.groupPos) {
+            selection.selectQuiet(pos);
+        }
     }
 
     public void toggleVisibility() {

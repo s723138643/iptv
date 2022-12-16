@@ -95,6 +95,8 @@ public class VideoPlayerActivity extends AppCompatActivity {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         String playerType = preferences.getString("player_type", "ijkplayer");
         String surfaceType = preferences.getString("surface_type", "surface_view");
+        boolean showNetworkSpeed = preferences.getBoolean("show_network_speed", true);
+        playerView.showNetworkSpeed(showNetworkSpeed);
 
         playerView.setSurfaceType(toVideoViewSurfaceType(surfaceType));
         player = createPlayer(playerType);
@@ -131,6 +133,9 @@ public class VideoPlayerActivity extends AppCompatActivity {
         switch (surfaceType) {
             case "texture_view":
                 type = VideoView.SURFACE_TYPE_TEXTURE_VIEW;
+                break;
+            case "gl_surface_view":
+                type = VideoView.SURFACE_TYPE_GL_SURFACE_VIEW;
                 break;
             case "surface_view":
             default:
@@ -185,6 +190,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
         }
     }
 
+    @SuppressWarnings({"deprecation"})
     protected void hideSystemBars() {
         WindowInsetsControllerCompat windowInsetsController = ViewCompat.getWindowInsetsController(getWindow().getDecorView());
         if (windowInsetsController == null) {

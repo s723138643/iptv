@@ -38,11 +38,11 @@ import com.google.android.exoplayer2.text.Cue;
 import com.google.android.exoplayer2.text.CueGroup;
 import com.google.android.exoplayer2.ui.CaptionStyleCompat;
 import com.google.android.exoplayer2.ui.SubtitleView;
-import com.google.android.exoplayer2.video.VideoDecoderGLSurfaceView;
 import com.orion.iptv.R;
 import com.orion.player.IExtPlayer;
 import com.orion.player.ExtVideoSize;
 import com.orion.player.exo.ExtExoPlayer;
+import com.orion.player.render.VideoGLSurfaceView;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
@@ -110,7 +110,7 @@ public class VideoView extends FrameLayout {
                 surface = new TextureView(getContext());
                 break;
             case SURFACE_TYPE_GL_SURFACE_VIEW:
-                surface = new VideoDecoderGLSurfaceView(getContext());
+                surface = new VideoGLSurfaceView(getContext());
                 break;
             case SURFACE_TYPE_SURFACE_VIEW:
             default:
@@ -133,7 +133,9 @@ public class VideoView extends FrameLayout {
         if (iExtPlayer == null) {
             return;
         }
-        if (surface instanceof SurfaceView) {
+        if (surface instanceof VideoGLSurfaceView) {
+            iExtPlayer.clearVideoGLSurfaceView((VideoGLSurfaceView) surface);
+        } else if (surface instanceof SurfaceView) {
             iExtPlayer.clearVideoSurfaceView((SurfaceView) surface);
         } else if (surface instanceof TextureView) {
             iExtPlayer.clearVideoTextureView((TextureView) surface);
@@ -144,7 +146,9 @@ public class VideoView extends FrameLayout {
         if (iExtPlayer == null) {
             return;
         }
-        if (surface instanceof SurfaceView) {
+        if (surface instanceof VideoGLSurfaceView) {
+            iExtPlayer.setVideoGLSurfaceView((VideoGLSurfaceView) surface);
+        } else if (surface instanceof SurfaceView) {
             iExtPlayer.setVideoSurfaceView((SurfaceView) surface);
         } else if (surface instanceof TextureView) {
             iExtPlayer.setVideoTextureView((TextureView) surface);
@@ -200,6 +204,8 @@ public class VideoView extends FrameLayout {
             subtitle.setCues(List.of(Cue.EMPTY));
             if (surfaceView instanceof TextureView) {
                 oldIExtPlayer.clearVideoTextureView((TextureView) surfaceView);
+            } else if (surfaceView instanceof VideoGLSurfaceView) {
+                oldIExtPlayer.clearVideoGLSurfaceView((VideoGLSurfaceView) surfaceView);
             } else if (surfaceView instanceof SurfaceView) {
                 oldIExtPlayer.clearVideoSurfaceView((SurfaceView) surfaceView);
             }
@@ -213,6 +219,8 @@ public class VideoView extends FrameLayout {
         if (iExtPlayer != null) {
             if (surfaceView instanceof TextureView) {
                 iExtPlayer.setVideoTextureView((TextureView) surfaceView);
+            } else if (surfaceView instanceof VideoGLSurfaceView) {
+                iExtPlayer.setVideoGLSurfaceView((VideoGLSurfaceView) surfaceView);
             } else if (surfaceView instanceof SurfaceView) {
                 iExtPlayer.setVideoSurfaceView((SurfaceView) surfaceView);
             }

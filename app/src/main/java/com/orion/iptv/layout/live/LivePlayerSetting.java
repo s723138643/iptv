@@ -68,6 +68,8 @@ public class LivePlayerSetting extends Fragment {
         menus = new ArrayList<>();
         menus.add(new SetChannelSourceUrl(requireActivity(), viewModel));
         menus.add(new SetPlayerFactory(requireActivity(), viewModel));
+        menus.add(new SetSurfaceType(requireActivity(), viewModel));
+        menus.add(new SetSourceTimeout(requireActivity(), viewModel));
         enhanceConstraintLayout.addEventListener(new EnhanceConstraintLayout.EventListener() {
             @Override
             public void onMotionEvent(MotionEvent ev) {

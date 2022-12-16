@@ -1,4 +1,4 @@
-package com.orion.iptv.layout;
+package com.orion.player.ui;
 
 import android.content.Context;
 import android.util.AttributeSet;

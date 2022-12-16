@@ -22,7 +22,7 @@ public class FileNodeViewHolder extends ViewHolder<FileNode> {
         super.changeState(states);
         int color = getColorForState(states, foreground);
         content.setTextColor(color);
-        content.setSelected(statesContains(states, android.R.attr.state_activated));
+        content.setSelected(statesContains(states, android.R.attr.state_activated, android.R.attr.state_focused));
     }
 
     @Override

@@ -62,9 +62,12 @@
     <string name="ok" translatable="false">OK</string>
     <string name="live_channel_web_setting_hint_template" formatted="false" translatable="false">You can set it via http://%s:%d</string>
     <string name="set_live_channel_source" translatable="false">Set live channel source</string>
+    <string name="set_live_epg_source" translatable="false">Set live EPG source</string>
     <string name="set_live_sources_title" translatable="false">Set live sources</string>
     <string name="disable_subtitle" translatable="false">Disable Subtitle Track</string>
     <string name="back_press_hint" translatable="false">press again to quiet</string>
     <string name="modify" translatable="false">Modify</string>
     <string name="delete" translatable="false">Delete</string>
+    <string name="set_source_timeout" translatable="false">Set source timeout</string>
+    <string name="show_network_speed" translatable="false">Show network speed</string>
 </resources>

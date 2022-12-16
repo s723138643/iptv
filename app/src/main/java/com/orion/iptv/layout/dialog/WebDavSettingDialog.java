@@ -115,9 +115,6 @@ public class WebDavSettingDialog {
                     List<String> path = uri.pathSegments();
                     HttpUrl.Builder builder = new HttpUrl.Builder();
                     builder.scheme(uri.scheme());
-                    if (uri.scheme().equalsIgnoreCase("webdav")) {
-                        builder.scheme("http");
-                    }
                     builder.host(uri.host());
                     builder.port(uri.port());
                     webdavServer = Pair.create(builder.build().toString(), path);

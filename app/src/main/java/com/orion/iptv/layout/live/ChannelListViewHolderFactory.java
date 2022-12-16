@@ -40,7 +40,7 @@ public class ChannelListViewHolderFactory implements ViewHolderFactory<ViewHolde
                 int color = getColorForState(states, foreground);
                 number.setTextColor(color);
                 content.setTextColor(color);
-                boolean isActivated = statesContains(states, android.R.attr.state_activated);
+                boolean isActivated = statesContains(states, android.R.attr.state_activated, android.R.attr.state_focused);
                 number.setSelected(isActivated);
                 content.setSelected(isActivated);
             }

@@ -24,11 +24,10 @@ import okhttp3.Response;
 
 public class M51ZMT {
     public static final String TAG = "51zmt";
-    public static final String api = "http://epg.51zmt.top:8000/api/diyp/";
     public static final String dateFormat = "yyyy-MM-dd";
     public static final String timeFormat = "yyyy-MM-dd HH:mm";
 
-    public static Request.Builder newRequest(String channelName, Date date) {
+    public static Request.Builder newRequest(String api, String channelName, Date date) {
         SimpleDateFormat format = new SimpleDateFormat(dateFormat, Locale.ENGLISH);
         Uri uri = Uri.parse(api)
                 .buildUpon()
@@ -38,11 +37,11 @@ public class M51ZMT {
         return new Request.Builder().url(uri.toString());
     }
 
-    public static Call get(String channelName, Date date, Callback callback) {
+    public static Call get(String api, String channelName, Date date, Callback callback) {
         CacheControl cacheControl = new CacheControl.Builder()
                 .maxAge(3, TimeUnit.HOURS)
                 .build();
-        Request request = newRequest(channelName, date)
+        Request request = newRequest(api, channelName, date)
                 .cacheControl(cacheControl)
                 .build();
         Log.i(TAG, "request epg url: " + request.url());

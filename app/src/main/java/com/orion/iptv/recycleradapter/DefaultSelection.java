@@ -107,30 +107,6 @@ public class DefaultSelection<T> implements Selection<T> {
     }
 
     @Override
-    public void selectPrev() {
-        if (adapter == null) {
-            return;
-        }
-        int pos = curSelected - 1;
-        if (pos < 0) {
-            pos = adapter.getItemCount() - 1;
-        }
-        select(pos);
-    }
-
-    @Override
-    public void selectNext() {
-        if (adapter == null) {
-            return;
-        }
-        int pos = curSelected + 1;
-        if (pos >= adapter.getItemCount()) {
-            pos = 0;
-        }
-        select(pos);
-    }
-
-    @Override
     public void clearSelection() {
         oldSelected = curSelected;
         curSelected = RecyclerView.NO_POSITION;
