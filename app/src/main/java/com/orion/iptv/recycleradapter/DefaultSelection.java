@@ -173,6 +173,9 @@ public class DefaultSelection<T> implements Selection<T> {
             if (position < 0 || position >= adapter.getItemCount()) {
                 return false;
             }
+            if (!recyclerView.hasFocus()) {
+                recyclerView.requestFocus();
+            }
             select(position);
             return true;
         }

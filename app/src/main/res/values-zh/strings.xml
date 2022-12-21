@@ -13,8 +13,6 @@
     <string name="next_epg_program_default" translatable="false">暂无相关信息</string>
     <string name="list_item_index_placeholder" translatable="false">001</string>
     <string name="list_item_desc_placeholder" translatable="false">测试字符串</string>
-    <string name="show_epg" translatable="false">》</string>
-    <string name="hide_epg" translatable="false">《</string>
     <string name="default_group_name" translatable="false">默认分组</string>
     <string name="channel_source_hint" translatable="false">请输入频道源地址</string>
     <string name="modify_share" translatable="false">修改共享设置</string>

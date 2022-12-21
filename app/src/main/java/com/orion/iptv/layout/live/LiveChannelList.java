@@ -115,6 +115,8 @@ public class LiveChannelList extends Fragment {
     protected void initEpgList() {
         epgList.setItemAnimator(null);
         showEpgButton.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            int img = isChecked ? R.drawable.arrow_left : R.drawable.arrow_right;
+            buttonView.setCompoundDrawablesWithIntrinsicBounds(img, 0, 0, 0);
             int visibility = isChecked ? View.VISIBLE : View.GONE;
             epgList.setVisibility(visibility);
         });

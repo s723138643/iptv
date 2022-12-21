@@ -12,8 +12,6 @@
     <string name="next_epg_program_default" translatable="false">unknown</string>
     <string name="list_item_index_placeholder" translatable="false">001</string>
     <string name="list_item_desc_placeholder" translatable="false">test string</string>
-    <string name="show_epg" translatable="false">》</string>
-    <string name="hide_epg" translatable="false">《</string>
     <string name="default_group_name" translatable="false">Default Group</string>
     <string name="channel_source_hint" translatable="false">Please input source url</string>
     <string name="modify_share" translatable="false">Modify storage settings</string>
