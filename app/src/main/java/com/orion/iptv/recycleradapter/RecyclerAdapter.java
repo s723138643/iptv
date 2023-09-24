@@ -29,10 +29,10 @@ public class RecyclerAdapter<U> extends RecyclerView.Adapter<ViewHolder<U>> {
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder<U> holder, int position) {
+        holder.setContent(position, items.get(position));
         if (selection != null) {
             holder.changeState(selection.getState(position));
         }
-        holder.setContent(position, items.get(position));
     }
 
     @Override

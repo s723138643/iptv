@@ -161,16 +161,12 @@ public class LivePlayerSetting extends Fragment {
     }
 
     public void toggleVisibility() {
-        if (enhanceConstraintLayout.getVisibility() == View.GONE) {
-            show();
-        } else {
-            hide();
-        }
+        toggleVisibility(false);
     }
 
     public void show(boolean needFocus) {
         show();
-        if (needFocus && !enhanceConstraintLayout.hasFocus()) {
+        if (needFocus && !enhanceConstraintLayout.hasFocus() && !settingMenuView.hasFocus()) {
             settingMenuView.requestFocus();
         }
     }

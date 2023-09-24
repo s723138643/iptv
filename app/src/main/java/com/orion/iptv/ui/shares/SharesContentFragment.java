@@ -2,6 +2,7 @@ package com.orion.iptv.ui.shares;
 
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -22,6 +23,7 @@ import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import androidx.media3.common.MimeTypes;
 import com.orion.iptv.R;
 import com.orion.iptv.network.WebDavClient;
 import com.orion.iptv.recycleradapter.RecyclerAdapter;
@@ -32,9 +34,13 @@ import com.orion.iptv.ui.video.VideoPlayerActivity;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import okhttp3.HttpUrl;
 
@@ -43,11 +49,19 @@ public class SharesContentFragment extends Fragment {
     private Share share;
     private FileNode path;
     ImageButton homeButton;
+    private final Subtitle[] suffixes = {
+            new Subtitle(".srt", MimeTypes.APPLICATION_SUBRIP),
+            new Subtitle(".ass", MimeTypes.TEXT_SSA),
+            new Subtitle(".ssa", MimeTypes.TEXT_SSA)
+    };
+    private final Map<String, FileNode> files = new HashMap<>();
+    private List<FileNode> fileList = List.of(FileNode.CURRENT, FileNode.PARENT);
     private RecyclerView nodes;
     DefaultSelection<FileNode> defaultSelection;
     private TextView pathHint;
     private ProgressBar loading;
     private TextView toast;
+    private int selectedPos = -1;
 
     private WebDavClient client;
     private Handler mHandler;
@@ -71,25 +85,31 @@ public class SharesContentFragment extends Fragment {
 
         nodes = view.findViewById(R.id.collections);
         homeButton = view.findViewById(R.id.shares_home);
-
-        SharesViewModel viewModel = new ViewModelProvider(requireActivity()).get(SharesViewModel.class);
-        path = (FileNode) requireArguments().getSerializable("path");
-        mHandler = new Handler(requireContext().getMainLooper());
-
-        share = viewModel.getSelectedShare();
-        if (share == null) {
-            requireActivity()
-                    .getSupportFragmentManager()
-                    .popBackStack();
-            return;
-        }
-        client = new WebDavClient(share);
         homeButton.setOnClickListener(buttonView -> requireActivity()
                 .getSupportFragmentManager()
                 .popBackStack(SharesHomeFragment.TAG, 0));
         initView();
-        refresh();
     }
+
+   @Override
+   public void onStart() {
+       super.onStart();
+       if (mHandler != null) {
+           return;
+       }
+       mHandler = new Handler(requireContext().getMainLooper());
+       SharesViewModel viewModel = new ViewModelProvider(requireActivity()).get(SharesViewModel.class);
+       path = (FileNode) requireArguments().getSerializable("path");
+       share = viewModel.getSelectedShare();
+       if (share == null) {
+           requireActivity()
+                   .getSupportFragmentManager()
+                   .popBackStack();
+           return;
+       }
+       client = new WebDavClient(share);
+       refresh();
+   }
 
     @Override
     public void onStop() {
@@ -102,15 +122,17 @@ public class SharesContentFragment extends Fragment {
         LinearLayoutManager layoutManager = new LinearLayoutManager(requireContext());
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         nodes.setLayoutManager(layoutManager);
+        /*
         DividerItemDecoration itemDecoration = new DividerItemDecoration(requireContext(), DividerItemDecoration.VERTICAL);
         nodes.addItemDecoration(itemDecoration);
+        */
         defaultSelection = new SelectionWithFocus<>(nodes);
         defaultSelection.setCanRepeatSelect(true);
 
         RecyclerAdapter<FileNode> adapter = new RecyclerAdapter<>(
                 requireContext(),
-                new ArrayList<>(),
-                new FileNodeViewHolderFactory(requireContext(), R.layout.layout_list_item)
+                fileList,
+                new FileNodeViewHolderFactory(requireContext(), R.layout.layout_list_filenode_item)
         );
         defaultSelection.setAdapter(adapter);
         defaultSelection.addSelectedListener((position, node) -> {
@@ -121,20 +143,26 @@ public class SharesContentFragment extends Fragment {
             } else if (node == FileNode.CURRENT) {
                 refresh();
             } else if (node.isFile()) {
+                selectedPos = position;
                 play(node);
             } else {
+                selectedPos = position;
                 Bundle args = new Bundle();
                 args.putSerializable("path", node);
                 requireActivity()
                         .getSupportFragmentManager()
                         .beginTransaction()
                         .setReorderingAllowed(true)
-                        .replace(R.id.shares_container_view, SharesContentFragment.class, args)
                         .addToBackStack(null)
+                        .replace(R.id.shares_container_view, SharesContentFragment.class, args)
                         .commit();
             }
         });
         nodes.setAdapter(adapter);
+        if (selectedPos >= 0) {
+            defaultSelection.selectQuiet(selectedPos);
+            nodes.scrollToPosition(selectedPos);
+        }
     }
 
     public void refresh() {
@@ -150,31 +178,40 @@ public class SharesContentFragment extends Fragment {
                         mHandler.post(() -> {
                             setViewVisible(loading, false);
                             showToast(e.toString());
-                            RecyclerAdapter<FileNode> adapter = new RecyclerAdapter<>(
-                                    requireActivity(),
-                                    List.of(FileNode.CURRENT, FileNode.PARENT),
-                                    new FileNodeViewHolderFactory(requireContext(), R.layout.layout_list_item)
-                            );
-                            defaultSelection.setAdapter(adapter);
-                            nodes.swapAdapter(adapter, true);
                         });
                     }
 
                     @Override
-                    public void onResponse(@Nullable List<FileNode> children) {
+                    public void onResponse(@Nullable final List<FileNode> children) {
                         Log.i(TAG, String.format(Locale.ENGLISH, "current path: %s", path.getPath()));
                         List<FileNode> items = new ArrayList<>(children == null ? 2 : children.size() + 2);
                         items.add(0, FileNode.PARENT);
                         items.add(0, FileNode.CURRENT);
                         if (children != null) {
-                            items.addAll(children);
+                            List<FileNode> tmp = children;
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                                tmp.sort(new FileNode.CompareByName());
+                            } else {
+                                FileNode[] fileNodes = children.toArray(new FileNode[0]);
+                                Arrays.sort(fileNodes, new FileNode.CompareByName());
+                                tmp = Arrays.asList(fileNodes);
+                            }
+                            items.addAll(tmp);
                         }
                         mHandler.post(() -> {
+                            files.clear();
+                            if (children != null) {
+                                for (int i = 0; i < children.size(); i++) {
+                                    FileNode f = children.get(i);
+                                    files.put(f.getName(), f);
+                                }
+                            }
+                            fileList = items;
                             setViewVisible(loading, false);
                             RecyclerAdapter<FileNode> adapter = new RecyclerAdapter<>(
                                     requireActivity(),
                                     items,
-                                    new FileNodeViewHolderFactory(requireContext(), R.layout.layout_list_item)
+                                    new FileNodeViewHolderFactory(requireContext(), R.layout.layout_list_filenode_item)
                             );
                             defaultSelection.setAdapter(adapter);
                             nodes.swapAdapter(adapter, true);
@@ -213,6 +250,14 @@ public class SharesContentFragment extends Fragment {
         }
     }
 
+    private String getPrefix(String name) {
+        int e = name.lastIndexOf(".");
+        if (e < 0) {
+            return name;
+        }
+        return name.substring(0, e);
+    }
+
     public void play(FileNode node) {
         Intent intent = new Intent(requireContext(), VideoPlayerActivity.class);
         intent.setData(makeUri(node));
@@ -223,8 +268,25 @@ public class SharesContentFragment extends Fragment {
                 bundle.putString("username", config.getString("username"));
                 bundle.putString("password", config.getString("password"));
                 intent.putExtra("auth", bundle);
-            } catch (JSONException ignored){
+            } catch (JSONException ignored) {
             }
+        }
+        String prefix = getPrefix(node.getName());
+        ArrayList<Bundle> subtitles = new ArrayList<Bundle>();
+        for (Subtitle suffix : suffixes) {
+            String name = prefix + suffix.suffix;
+            FileNode f = files.get(name);
+            if (f == null) {
+                continue;
+            }
+            Log.i("Play", "found subtitle: " + name);
+            Bundle subtitle = new Bundle();
+            subtitle.putParcelable("uri", makeUri(f));
+            subtitle.putString("mimeType", suffix.mimeType);
+            subtitles.add(subtitle);
+        }
+        if (subtitles.size() > 0) {
+            intent.putParcelableArrayListExtra("subtitles", subtitles);
         }
         startActivity(intent);
     }
@@ -252,6 +314,16 @@ public class SharesContentFragment extends Fragment {
                 engaged = true;
                 mHandler.postAtTime(this, toastHideAt);
             }
+        }
+    }
+
+    private static class Subtitle {
+        public String suffix;
+        public String mimeType;
+
+        public Subtitle(String suffix, String mimeType) {
+            this.suffix = suffix;
+            this.mimeType = mimeType;
         }
     }
 }

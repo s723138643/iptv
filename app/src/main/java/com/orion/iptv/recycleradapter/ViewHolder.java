@@ -11,8 +11,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.orion.iptv.R;
 
 public abstract class ViewHolder<T> extends RecyclerView.ViewHolder {
-    protected final ColorStateList background;
-    protected final ColorStateList foreground;
+    protected ColorStateList background;
+    protected ColorStateList foreground;
 
     public ViewHolder(@NonNull Context context, @NonNull View itemView) {
         super(itemView);

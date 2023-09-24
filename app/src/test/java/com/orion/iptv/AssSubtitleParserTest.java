@@ -2,8 +2,8 @@ package com.orion.iptv;
 
 import android.util.Log;
 
-import com.google.android.exoplayer2.text.Cue;
-import com.google.android.exoplayer2.text.CueGroup;
+import androidx.media3.common.text.Cue;
+import androidx.media3.common.text.CueGroup;
 import com.orion.player.ijk.AssSubtitleParser;
 
 import org.junit.Test;

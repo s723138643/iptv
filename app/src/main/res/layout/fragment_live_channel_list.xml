@@ -63,6 +63,8 @@
         android:drawableStart="@drawable/arrow_right"
         android:paddingStart="9dp"
         android:paddingEnd="9dp"
+        android:textOn=""
+        android:textOff=""
         style="@style/LiveButton"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/channelSpacer3"

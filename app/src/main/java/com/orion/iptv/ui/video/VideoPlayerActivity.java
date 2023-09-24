@@ -28,6 +28,8 @@ import com.orion.player.ijk.ExtSWIjkPlayerFactory;
 import com.orion.player.ui.VideoPlayerView;
 import com.orion.player.ui.VideoView;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class VideoPlayerActivity extends AppCompatActivity {
@@ -79,6 +81,26 @@ public class VideoPlayerActivity extends AppCompatActivity {
             );
             dataSource.setAuth(auth);
         }
+        if (intent.hasExtra("subtitles")) {
+            ArrayList<Bundle> subtitles;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                subtitles = intent.getParcelableArrayListExtra("subtitles", Bundle.class);
+            } else {
+                subtitles = intent.getParcelableArrayListExtra("subtitles");
+            }
+            List<ExtDataSource.Subtitle> subs = new ArrayList<>();
+            for (Bundle b: subtitles) {
+                Uri u;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    u = b.getParcelable("uri", Uri.class);
+                } else {
+                    u = b.getParcelable("uri");
+                }
+                Log.i(TAG, "subtitle: "+ u.toString());
+                subs.add(new ExtDataSource.Subtitle(u, b.getString("mimeType")));
+            }
+            dataSource.setSubtitles(subs);
+        }
         return dataSource;
     }
 
@@ -101,6 +123,20 @@ public class VideoPlayerActivity extends AppCompatActivity {
         playerView.setSurfaceType(toVideoViewSurfaceType(surfaceType));
         player = createPlayer(playerType);
         playerView.setPlayer(player);
+        player.addListener(new IExtPlayer.Listener() {
+            Runnable f;
+            @Override
+            public void onPlaybackStateChanged(int state) {
+                if (state == IExtPlayer.STATE_ENDED) {
+                    f = () -> finish();
+                    playerView.postDelayed(f, 1500);
+                } else {
+                    if (f != null) {
+                        playerView.removeCallbacks(f);
+                    }
+                }
+            }
+        });
         player.setDataSource(dataSource);
         player.prepare();
     }

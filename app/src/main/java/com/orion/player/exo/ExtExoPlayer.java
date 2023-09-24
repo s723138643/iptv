@@ -13,22 +13,22 @@ import android.view.TextureView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.DefaultRenderersFactory;
-import com.google.android.exoplayer2.ExoPlayer;
-import com.google.android.exoplayer2.Format;
-import com.google.android.exoplayer2.MediaItem;
-import com.google.android.exoplayer2.PlaybackException;
-import com.google.android.exoplayer2.Player;
-import com.google.android.exoplayer2.Timeline;
-import com.google.android.exoplayer2.Tracks;
-import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource;
-import com.google.android.exoplayer2.source.DefaultMediaSourceFactory;
-import com.google.android.exoplayer2.source.TrackGroup;
-import com.google.android.exoplayer2.text.CueGroup;
-import com.google.android.exoplayer2.trackselection.TrackSelectionOverride;
-import com.google.android.exoplayer2.upstream.DefaultDataSource;
-import com.google.android.exoplayer2.video.VideoSize;
+import androidx.media3.common.C;
+import androidx.media3.exoplayer.DefaultRenderersFactory;
+import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.common.Format;
+import androidx.media3.common.MediaItem;
+import androidx.media3.common.PlaybackException;
+import androidx.media3.common.Player;
+import androidx.media3.common.Timeline;
+import androidx.media3.common.Tracks;
+import androidx.media3.datasource.okhttp.OkHttpDataSource;
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
+import androidx.media3.common.TrackGroup;
+import androidx.media3.common.text.CueGroup;
+import androidx.media3.common.TrackSelectionOverride;
+import androidx.media3.datasource.DefaultDataSource;
+import androidx.media3.common.VideoSize;
 import com.orion.player.ExtDataSource;
 import com.orion.player.IExtPlayer;
 import com.orion.player.ExtTrack;
@@ -109,12 +109,23 @@ public class ExtExoPlayer implements IExtPlayer {
     @Override
     public void setDataSource(ExtDataSource dataSource) {
         this.dataSource = dataSource;
-        MediaItem item = new MediaItem.Builder()
+        MediaItem.Builder builder = new MediaItem.Builder()
                 .setMediaId(dataSource.getUri())
                 .setUri(dataSource.getUri())
-                .setRequestMetadata(MediaItem.RequestMetadata.EMPTY)
-                .build();
-        post(() -> innerPlayer.setMediaItem(item));
+                .setRequestMetadata(MediaItem.RequestMetadata.EMPTY);
+        if (dataSource.getSubtitles().size() > 0) {
+            List<MediaItem.SubtitleConfiguration> subtitles = new ArrayList<>();
+            for (ExtDataSource.Subtitle sub: dataSource.getSubtitles()) {
+                // Log.i(TAG, "set subtitle: " + sub.uri.toString());
+                subtitles.add(new MediaItem.SubtitleConfiguration.Builder(sub.uri)
+                        .setMimeType(sub.mimeType)
+                        .setLanguage("unknown")
+                        .setLabel("Extra")
+                        .build());
+            }
+            builder.setSubtitleConfigurations(subtitles);
+        }
+        post(() -> innerPlayer.setMediaItem(builder.build()));
     }
 
     protected void post(Runnable op) {
@@ -351,7 +362,7 @@ public class ExtExoPlayer implements IExtPlayer {
         });
     }
 
-    private class SimpleListener implements com.google.android.exoplayer2.Player.Listener {
+    private class SimpleListener implements androidx.media3.common.Player.Listener {
         @Override
         public void onPlaybackStateChanged(int playbackState) {
             for (Listener listener : listeners) {

@@ -18,6 +18,6 @@ public class Share {
     }
 
     public FileNode getRoot() {
-        return new FileNode(name, path, false);
+        return new FileNode(name, path, false, 0, null);
     }
 }

@@ -1,6 +1,7 @@
 package com.orion.iptv.network;
 
 import android.net.Uri;
+import android.util.Log;
 
 import com.orion.iptv.ui.shares.FileNode;
 import org.xml.sax.Attributes;
@@ -10,8 +11,15 @@ import org.xml.sax.helpers.DefaultHandler;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.text.DateFormat;
+import java.text.Format;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Stack;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -70,7 +78,7 @@ public class PropfindParser extends DefaultHandler {
         switch (qName) {
             case "D:response":
                 if (!node.path.equals(parent.getAbsolutePath())) {
-                    children.add(new FileNode(node.name, node.path, node.isFile));
+                    children.add(new FileNode(node.name, node.path, node.isFile, node.length, node.lastModified));
                 }
                 node = null;
                 break;
@@ -84,11 +92,24 @@ public class PropfindParser extends DefaultHandler {
                 builder = null;
                 break;
             case "D:getlastmodified":
-                node.lastModified = builder.toString().trim();
+                String tmp = builder.toString().trim();
+                Date date = null;
+                try {
+                    DateFormat f = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH);
+                    date = f.parse(tmp);
+                } catch (ParseException e) {
+                    Log.e("PropfindParser", e.toString());
+                }
+                node.lastModified = date;
                 builder = null;
                 break;
             case "D:getcontentlength":
-                node.length = builder.toString().trim();
+                String length = builder.toString().trim();
+                try {
+                    node.length = Long.parseLong(length);
+                } catch (NumberFormatException ignored) {
+                    node.length = 0;
+                }
                 builder = null;
                 break;
             case "D:collection":
@@ -117,8 +138,8 @@ public class PropfindParser extends DefaultHandler {
     private static class Node {
         private String name;
         private String path;
-        private String lastModified;
-        private String length;
+        private Date lastModified;
+        private long length;
         private boolean isFile = true;
     }
 }

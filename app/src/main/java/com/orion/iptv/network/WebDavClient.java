@@ -33,6 +33,7 @@ public class WebDavClient {
                     "<D:prop>" +
                     "<D:resourcetype />" +
                     "<D:displayname />" +
+                    "<D:getcontentlength />" +
                     "<D:getlastmodified />" +
                     "</D:prop>" +
                     "</D:propfind>";

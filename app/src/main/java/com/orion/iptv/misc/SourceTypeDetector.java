@@ -1,6 +1,5 @@
 package com.orion.iptv.misc;
 
-import android.net.Uri;
 import android.util.Base64;
 import android.util.Log;
 
@@ -59,6 +58,21 @@ public class SourceTypeDetector {
         return "";
     }
 
+    static String getExt(String params) {
+        while (!params.isEmpty()) {
+            String[] pair = params.split("&", 2);
+            if (pair[0].startsWith("ext")) {
+                String[] kv = pair[0].split("=", 2);
+                if (kv.length == 2) {
+                    return kv[1];
+                }
+                return "";
+            }
+            params = pair[1];
+        }
+        return "";
+    }
+
     public static String getLiveUrl(String data) {
         Matcher matcher = liveUrlPattern.matcher(data);
         if (!matcher.find()) {
@@ -68,13 +82,17 @@ public class SourceTypeDetector {
         if (liveUrl == null || liveUrl.trim().isEmpty()) {
             return "";
         }
-        liveUrl = liveUrl.replace("proxy://", "http://orion.com?");
-        Uri uri = Uri.parse(liveUrl);
-        String ext = uri.getQueryParameter("ext");
+        Log.i(TAG, "original url: " + liveUrl);
+        liveUrl = liveUrl.replace("proxy://", "");
+        String ext = getExt(liveUrl);
         if (ext == null || ext.trim().isEmpty()) {
             return "";
         }
-        String realUrl = new String(Base64.decode(ext, Base64.DEFAULT));
+        String realUrl = ext;
+        try {
+            realUrl = new String(Base64.decode(ext, Base64.DEFAULT));
+        } catch (IllegalArgumentException ignored) {
+        }
         return !realUrl.isEmpty() ? realUrl : "";
     }
 }

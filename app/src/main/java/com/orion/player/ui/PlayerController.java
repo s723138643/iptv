@@ -21,7 +21,7 @@ import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
-import com.google.android.exoplayer2.C;
+import androidx.media3.common.C;
 import com.orion.iptv.R;
 import com.orion.player.ExtDataSource;
 import com.orion.player.ExtTrack;
@@ -33,10 +33,10 @@ import java.util.Locale;
 
 public class PlayerController extends FrameLayout {
     private static final String TAG = "PlayerController";
-    private static final int playIconRes = com.google.android.exoplayer2.ui.R.drawable.exo_icon_play;
-    private static final int pauseIconRes = com.google.android.exoplayer2.ui.R.drawable.exo_icon_pause;
-    private static final int fullscreenIconRes = com.google.android.exoplayer2.ui.R.drawable.exo_ic_fullscreen_enter;
-    private static final int fullscreenExitIconRes = com.google.android.exoplayer2.ui.R.drawable.exo_ic_fullscreen_exit;
+    private static final int playIconRes = androidx.media3.ui.R.drawable.exo_icon_play;
+    private static final int pauseIconRes = androidx.media3.ui.R.drawable.exo_icon_pause;
+    private static final int fullscreenIconRes = androidx.media3.ui.R.drawable.exo_ic_fullscreen_enter;
+    private static final int fullscreenExitIconRes = androidx.media3.ui.R.drawable.exo_ic_fullscreen_exit;
 
     private TextView position;
     private TextView duration;

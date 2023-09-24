@@ -21,7 +21,20 @@ public class NetworkSpeed extends FrameLayout {
     private TextView view;
     private IExtPlayer iExtPlayer;
     private long updateInterval = 500;
-    private Runnable updater ;
+    private Runnable updater = new Runnable() {
+            private double speed = -0.01f;
+
+            @Override
+            public void run() {
+                // unit: Byte/s
+                double newSpeed = iExtPlayer.getNetworkSpeed();
+                if (speed != newSpeed) {
+                    speed = newSpeed;
+                    view.setText(NetworkSpeed.format(newSpeed));
+                }
+                postDelayed(this, updateInterval);
+            }
+        };;
 
     public NetworkSpeed(@NonNull Context context) {
         this(context, null);
@@ -38,25 +51,7 @@ public class NetworkSpeed extends FrameLayout {
     public NetworkSpeed(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
         LayoutInflater.from(context).inflate(R.layout.fragment_network_speed, this, true);
-        initView();
-    }
-
-    public void initView() {
         view = findViewById(R.id.network_text);
-        updater = new Runnable() {
-            private double speed = -0.01f;
-
-            @Override
-            public void run() {
-                // unit: Byte/s
-                double newSpeed = iExtPlayer.getNetworkSpeed();
-                if (speed != newSpeed) {
-                    speed = newSpeed;
-                    view.setText(NetworkSpeed.format(newSpeed));
-                }
-                postDelayed(this, updateInterval);
-            }
-        };
     }
 
     public static String format(double speed) {

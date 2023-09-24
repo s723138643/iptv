@@ -27,12 +27,12 @@ public class SetChannelSourceUrl implements SettingMenu {
         return List.of(
                 new SourceUrlValue(
                         context.getString(R.string.set_live_channel_source),
-                        viewModel.getSettingUrl(),
+                        viewModel::getSettingUrl,
                         viewModel::updateSettingUrl
                 ),
                 new SourceUrlValue(
                         context.getString(R.string.set_live_epg_source),
-                        viewModel.getEpgUrl(),
+                        viewModel::getEpgUrl,
                         viewModel::updateEpgUrl
                 )
         );
@@ -40,12 +40,12 @@ public class SetChannelSourceUrl implements SettingMenu {
 
     private class SourceUrlValue implements SettingValue {
         private final String content;
-        private final String oldValue;
+        private final ValueGetter valueGetter;
         private final ChannelSourceDialog.OnChannelSourceSubmitListener listener;
 
-        public SourceUrlValue(String content, String oldValue, ChannelSourceDialog.OnChannelSourceSubmitListener listener) {
+        public SourceUrlValue(String content, ValueGetter valueGetter, ChannelSourceDialog.OnChannelSourceSubmitListener listener) {
             this.content = content;
-            this.oldValue = oldValue;
+            this.valueGetter = valueGetter;
             this.listener = listener;
         }
 
@@ -64,8 +64,12 @@ public class SetChannelSourceUrl implements SettingMenu {
             ChannelSourceDialog dialog = new ChannelSourceDialog(context);
             dialog.setOnChannelSourceSubmitListener(listener);
             dialog.setTitle(content);
-            dialog.setDefaultValue(oldValue);
+            dialog.setDefaultValue(valueGetter.getValue());
             dialog.show();
         }
+    }
+
+    private interface ValueGetter {
+        String getValue();
     }
 }

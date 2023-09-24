@@ -1,7 +1,7 @@
 package com.orion.player.ijk;
 
-import com.google.android.exoplayer2.text.Cue;
-import com.google.android.exoplayer2.text.CueGroup;
+import androidx.media3.common.text.Cue;
+import androidx.media3.common.text.CueGroup;
 
 import java.util.List;
 import java.util.regex.Matcher;
@@ -15,6 +15,6 @@ public class AssSubtitleParser implements SubtitleParser {
         Matcher m = delete.matcher(text);
         String clean = m.replaceAll("");
         Cue cue = new Cue.Builder().setText(clean).build();
-        return new CueGroup(List.of(cue));
+        return new CueGroup(List.of(cue), 0L);
     }
 }

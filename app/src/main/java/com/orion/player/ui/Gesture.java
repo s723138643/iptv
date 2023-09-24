@@ -20,8 +20,8 @@ import java.util.Locale;
 public class Gesture extends FrameLayout {
 
 
-    private final int fastForwardIconRes = com.google.android.exoplayer2.ui.R.drawable.exo_icon_fastforward;
-    private final int rewindIconRes = com.google.android.exoplayer2.ui.R.drawable.exo_icon_rewind;
+    private final int fastForwardIconRes = androidx.media3.ui.R.drawable.exo_icon_fastforward;
+    private final int rewindIconRes = androidx.media3.ui.R.drawable.exo_icon_rewind;
     private ImageView indicator;
     private TextView position;
 

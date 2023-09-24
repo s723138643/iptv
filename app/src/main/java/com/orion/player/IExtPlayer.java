@@ -12,7 +12,7 @@ import android.view.TextureView;
 
 import androidx.annotation.IntDef;
 
-import com.google.android.exoplayer2.text.CueGroup;
+import androidx.media3.common.text.CueGroup;
 import com.orion.player.render.VideoGLSurfaceView;
 
 import java.lang.annotation.Documented;

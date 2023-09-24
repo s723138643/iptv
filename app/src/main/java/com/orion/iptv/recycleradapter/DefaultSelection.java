@@ -72,6 +72,16 @@ public class DefaultSelection<T> implements Selection<T> {
     }
 
     @Override
+    public boolean hasSelectedItem() {
+        return curSelected != RecyclerView.NO_POSITION;
+    }
+
+    @Override
+    public boolean hasFocusedItem() {
+        return hasSelectedItem();
+    }
+
+    @Override
     public void select(int position) {
         if (_select(position)) {
             maybeNotifySelectChanged();
@@ -172,9 +182,6 @@ public class DefaultSelection<T> implements Selection<T> {
             int position = viewHolder.getBindingAdapterPosition();
             if (position < 0 || position >= adapter.getItemCount()) {
                 return false;
-            }
-            if (!recyclerView.hasFocus()) {
-                recyclerView.requestFocus();
             }
             select(position);
             return true;

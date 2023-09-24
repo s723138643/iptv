@@ -14,15 +14,3 @@ dependencyResolutionManagement {
 }
 rootProject.name = "iptv"
 include ':app'
-
-gradle.ext.exoplayerModulePrefix = 'exoplayer-'
-apply from: file("/media/Projects/ExoPlayer/core_settings.gradle")
-
-def ijkRootDir = file("/media/Projects/ijkplayer/android/ijkplayer")
-
-include ':ijkplayer-arm64'
-project(':ijkplayer-arm64').projectDir = new File(ijkRootDir, "ijkplayer-arm64")
-include ':ijkplayer-armv7a'
-project(':ijkplayer-armv7a').projectDir = new File(ijkRootDir, "ijkplayer-armv7a")
-include ':ijkplayer-java'
-project(':ijkplayer-java').projectDir = new File(ijkRootDir, "ijkplayer-java")

@@ -42,14 +42,17 @@ public class SelectionWithFocus<T> extends DefaultSelection<T> {
     }
 
     @Override
+    public boolean hasFocusedItem() {
+        return curFocused != RecyclerView.NO_POSITION;
+    }
+
+    @Override
     public void select(int position) {
-        focus(position);
         super.select(position);
     }
 
     @Override
     public void selectQuiet(int position) {
-        focus(position);
         super.selectQuiet(position);
     }
 
@@ -62,7 +65,7 @@ public class SelectionWithFocus<T> extends DefaultSelection<T> {
         return true;
     }
 
-    protected void focus(int position) {
+    public void focus(int position) {
         if (_focus(position)) {
             maybeNotifyFocusChanged();
         }

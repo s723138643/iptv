@@ -12,9 +12,9 @@ import android.view.TextureView;
 
 import androidx.annotation.NonNull;
 
-import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.Format;
-import com.google.android.exoplayer2.text.CueGroup;
+import androidx.media3.common.C;
+import androidx.media3.common.Format;
+import androidx.media3.common.text.CueGroup;
 import com.orion.player.ExtDataSource;
 import com.orion.player.IExtPlayer;
 import com.orion.player.ExtTrack;

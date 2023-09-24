@@ -44,7 +44,8 @@ public class LiveChannelList extends Fragment {
     private RecyclerView groupList;
     private RecyclerView channelList;
     private RecyclerView epgList;
-    private Selection<ChannelItem> selection;
+    private View focusedView = null;
+    private SelectionWithFocus<ChannelItem> selection;
     private View channelSpacer1;
     private ToggleButton showEpgButton;
 
@@ -97,9 +98,6 @@ public class LiveChannelList extends Fragment {
             public void onVisibilityChanged(@NonNull View changedView, int visibility) {
                 if (changedView != enhanceConstraintLayout) {
                     return;
-                }
-                if (visibility == View.VISIBLE) {
-                    channelList.requestFocus();
                 }
                 enhanceConstraintLayout.removeCallbacks(hideMyself);
                 if (visibility == View.VISIBLE && hideMyselfAt > 0) {
@@ -219,6 +217,7 @@ public class LiveChannelList extends Fragment {
         mViewModel.selectChannel(pos, channel.channels.get(pos), Pair.create(channel.groupPos, channel.channels));
         Pair<Integer, List<ChannelItem>> channels = mViewModel.getChannels();
         if (channels != null && channels.first == channel.groupPos) {
+            selection.focus(pos);
             selection.selectQuiet(pos);
         }
     }
@@ -232,16 +231,13 @@ public class LiveChannelList extends Fragment {
         mViewModel.selectChannel(pos, channel.channels.get(pos), Pair.create(channel.groupPos, channel.channels));
         Pair<Integer, List<ChannelItem>> channels = mViewModel.getChannels();
         if (channels != null && channels.first == channel.groupPos) {
+            selection.focus(pos);
             selection.selectQuiet(pos);
         }
     }
 
     public void toggleVisibility() {
-        if (enhanceConstraintLayout.getVisibility() == View.GONE) {
-            show();
-        } else {
-            hide();
-        }
+        toggleVisibility(false);
     }
 
     public void toggleVisibility(boolean needFocus) {
@@ -254,8 +250,12 @@ public class LiveChannelList extends Fragment {
 
     public void show(boolean needFocus) {
         show();
-        if (needFocus && !enhanceConstraintLayout.hasFocus()) {
-            channelList.requestFocus();
+        if (needFocus) {
+            if (focusedView != null) {
+                focusedView.requestFocus();
+            } else {
+                channelList.requestFocus();
+            }
         }
     }
 
@@ -276,6 +276,15 @@ public class LiveChannelList extends Fragment {
     }
 
     public void hide() {
+        if (groupList.hasFocus()) {
+            focusedView = groupList;
+        } else if (channelList.hasFocus()) {
+            focusedView = channelList;
+        } else if (epgList.hasFocus()) {
+            focusedView = epgList;
+        } else if (showEpgButton.isFocused()) {
+            focusedView = showEpgButton;
+        }
         enhanceConstraintLayout.animate()
                 .alpha(0f)
                 .setDuration(200)

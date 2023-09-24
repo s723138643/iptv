@@ -1,7 +1,7 @@
 package com.orion.player.ijk;
 
-import com.google.android.exoplayer2.text.Cue;
-import com.google.android.exoplayer2.text.CueGroup;
+import androidx.media3.common.text.Cue;
+import androidx.media3.common.text.CueGroup;
 
 import java.util.List;
 
@@ -12,6 +12,6 @@ public class DefaultSubtitleParser implements SubtitleParser {
         Cue cue = new Cue.Builder()
                 .setText(text)
                 .build();
-        return new CueGroup(List.of(cue));
+        return new CueGroup(List.of(cue), 0L);
     }
 }

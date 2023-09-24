@@ -34,10 +34,12 @@ import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.google.android.exoplayer2.text.Cue;
-import com.google.android.exoplayer2.text.CueGroup;
-import com.google.android.exoplayer2.ui.CaptionStyleCompat;
-import com.google.android.exoplayer2.ui.SubtitleView;
+import androidx.annotation.OptIn;
+import androidx.media3.common.text.Cue;
+import androidx.media3.common.text.CueGroup;
+import androidx.media3.common.util.UnstableApi;
+import androidx.media3.ui.CaptionStyleCompat;
+import androidx.media3.ui.SubtitleView;
 import com.orion.iptv.R;
 import com.orion.player.IExtPlayer;
 import com.orion.player.ExtVideoSize;
@@ -82,6 +84,7 @@ public class VideoView extends FrameLayout {
         this(context, attrs, defStyleAttr, 0);
     }
 
+    @OptIn(markerClass = UnstableApi.class)
     public VideoView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
         LayoutInflater.from(context).inflate(R.layout.fragment_video_view, this, true);
@@ -194,6 +197,7 @@ public class VideoView extends FrameLayout {
     /**
      * Sets the {@link IExtPlayer} to use.
      */
+    @OptIn(markerClass = UnstableApi.class)
     public void setPlayer(@Nullable IExtPlayer iExtPlayer) {
         if (this.iExtPlayer == iExtPlayer) {
             return;
@@ -251,7 +255,7 @@ public class VideoView extends FrameLayout {
     }
 
     private final class ComponentListener implements IExtPlayer.Listener {
-
+        @OptIn(markerClass = UnstableApi.class)
         @Override
         public void onCues(CueGroup cueGroup) {
             subtitle.setCues(cueGroup.cues);

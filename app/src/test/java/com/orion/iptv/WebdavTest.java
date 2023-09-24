@@ -26,7 +26,7 @@ import okhttp3.Response;
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
  */
-public class ExampleUnitTest {
+public class WebdavTest {
     @Test
     public void request_isCorrect() {
         DownloadHelper.setClient(new OkHttpClient.Builder().build());

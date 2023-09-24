@@ -1,7 +1,7 @@
 package com.orion.player;
 
-import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.Format;
+import androidx.media3.common.C;
+import androidx.media3.common.Format;
 
 public class ExtTrack {
     public final @C.TrackType int trackType;

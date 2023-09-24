@@ -25,7 +25,7 @@ public class ExtVideoSize {
         this.unAppliedRotationDegrees = unAppliedRotationDegrees;
     }
 
-    public static ExtVideoSize of(com.google.android.exoplayer2.video.VideoSize videoSize) {
+    public static ExtVideoSize of(androidx.media3.common.VideoSize videoSize) {
         if (videoSize.width == 0 || videoSize.height == 0) {
             return ExtVideoSize.UNKNOWN;
         }

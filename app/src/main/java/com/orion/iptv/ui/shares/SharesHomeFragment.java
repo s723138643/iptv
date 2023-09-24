@@ -13,7 +13,7 @@ import androidx.recyclerview.selection.ItemKeyProvider;
 import androidx.recyclerview.selection.SelectionPredicates;
 import androidx.recyclerview.selection.SelectionTracker;
 import androidx.recyclerview.selection.StorageStrategy;
-import androidx.recyclerview.widget.DividerItemDecoration;
+//import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -66,8 +66,10 @@ public class SharesHomeFragment extends Fragment {
         LinearLayoutManager layoutManager = new LinearLayoutManager(requireContext());
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         sharesView.setLayoutManager(layoutManager);
+        /*
         DividerItemDecoration itemDecoration = new DividerItemDecoration(requireContext(), DividerItemDecoration.VERTICAL);
         sharesView.addItemDecoration(itemDecoration);
+        */
         adapter = new SharesViewAdapter(requireContext(), mViewModel.getShares().getValue());
         mViewModel.getShares().observe(getViewLifecycleOwner(), shares -> {
             Log.i("SharesHomeFragment", "shares changed, size: " + shares.size());
@@ -90,8 +92,8 @@ public class SharesHomeFragment extends Fragment {
                         .getSupportFragmentManager()
                         .beginTransaction()
                         .setReorderingAllowed(true)
-                        .replace(R.id.shares_container_view, SharesContentFragment.class, bundle)
                         .addToBackStack(TAG)
+                        .replace(R.id.shares_container_view, SharesContentFragment.class, bundle)
                         .commit();
             }
         });

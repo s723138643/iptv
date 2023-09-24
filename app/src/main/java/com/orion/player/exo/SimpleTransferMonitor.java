@@ -4,9 +4,9 @@ import android.os.SystemClock;
 
 import androidx.annotation.NonNull;
 
-import com.google.android.exoplayer2.upstream.DataSpec;
-import com.google.android.exoplayer2.upstream.TransferListener;
-import com.google.android.exoplayer2.upstream.DataSource;
+import androidx.media3.datasource.DataSpec;
+import androidx.media3.datasource.TransferListener;
+import androidx.media3.datasource.DataSource;
 
 public class SimpleTransferMonitor implements TransferListener {
     private final Object lock = new Object();

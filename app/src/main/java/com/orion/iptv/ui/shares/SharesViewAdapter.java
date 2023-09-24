@@ -35,14 +35,14 @@ public class SharesViewAdapter extends RecyclerView.Adapter<SharesViewHolder> {
     @Override
     public SharesViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(context).inflate(R.layout.layout_list_item_with_button, parent, false);
-        return new SharesViewHolder(v);
+        return new SharesViewHolder(context, v);
     }
 
     @Override
     public void onBindViewHolder(@NonNull SharesViewHolder holder, int position) {
         Log.i("Adapter", "binding view " + position);
         Share share = shares.get(position);
-        holder.setContent(share.getRoot());
+        holder.setContent(share.getRoot(), position);
         if (tracker != null) {
             holder.setSelected(tracker.isSelected((long) position));
         }
