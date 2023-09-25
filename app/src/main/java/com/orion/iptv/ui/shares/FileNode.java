@@ -14,8 +14,8 @@ import java.util.Locale;
 public class FileNode implements Serializable {
     static final long serialVersionUID = 27835L;
 
-    public static final FileNode PARENT = new FileNode("..", "", false, 0, null);
-    public static final FileNode CURRENT = new FileNode(".", "", false, 0, null);
+    public static final FileNode PARENT = new FileNode("..", "", false, -2, null);
+    public static final FileNode CURRENT = new FileNode(".", "", false, -3, null);
 
     private final String name;
     private final boolean isFile;
@@ -28,7 +28,8 @@ public class FileNode implements Serializable {
         // change absolute path to relative path
         this.path = absolutePath.startsWith("/") ? absolutePath.substring(1) : absolutePath;
         this.isFile = isFile;
-        this.size = size;
+        // directories placed before or after files when sorted by size
+        this.size = isFile ? (size > 0 ? size : 0) : -1;
         this.lastModified = lastModified;
     }
 
@@ -58,15 +59,21 @@ public class FileNode implements Serializable {
         return String.format(Locale.ENGLISH, "%.2f%s", s, units[i]);
     }
 
-    public String getSize() {
-        if (name.equals(".") || name.equals("..")) {
+    public boolean isDummy() {
+        return this == CURRENT || this == PARENT;
+    }
+
+    public String getSize(String directoryPlaceholder) {
+        if (isDummy()) {
             return "";
+        } else if (!isFile()) {
+            return directoryPlaceholder;
         }
         return formatSize(size);
     }
 
     public String getLastModified(DateFormat formatter) {
-        if (name.equals(".") || name.equals("..") || lastModified==null) {
+        if (isDummy() || lastModified==null) {
             return "";
         }
         return formatter.format(lastModified);
