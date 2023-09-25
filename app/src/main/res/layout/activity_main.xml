@@ -7,56 +7,64 @@
     tools:context=".ui.MainActivity">
 
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="128dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
         <Button
             android:id="@+id/home_page"
+            style="@style/TVButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="8dp"
+            android:layout_marginStart="8dp"
             android:drawableStart="@drawable/icon_home"
             android:text="@string/home_page"
-            style="@style/TVButton"
-            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/live_page"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
         <Button
             android:id="@+id/live_page"
+            style="@style/TVButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:layout_marginTop="8dp"
             android:drawableStart="@drawable/icon_live"
             android:text="@string/live_page"
-            style="@style/TVButton"
-            app:layout_constraintStart_toEndOf="@+id/home_page"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/shares_page"
+            app:layout_constraintStart_toEndOf="@+id/home_page"
             app:layout_constraintTop_toTopOf="parent" />
 
         <Button
             android:id="@+id/shares_page"
+            style="@style/TVButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:layout_marginTop="8dp"
             android:drawableStart="@drawable/icon_storage"
             android:text="@string/share_page"
-            style="@style/TVButton"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/settings_page"
             app:layout_constraintStart_toEndOf="@id/live_page"
             app:layout_constraintTop_toTopOf="parent" />
 
         <Button
             android:id="@+id/settings_page"
+            style="@style/TVButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
             android:drawableStart="@drawable/icon_setting_middle"
             android:text="@string/settings_page"
-            style="@style/TVButton"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/shares_page"
             app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
