@@ -68,4 +68,12 @@
     <string name="delete" translatable="false">Delete</string>
     <string name="set_source_timeout" translatable="false">Set source timeout</string>
     <string name="show_network_speed" translatable="false">Show network speed</string>
+    <string name="locate_to">locate to</string>
+    <string name="locate">locate</string>
+    <string name="name_asc">Name (A-Z)</string>
+    <string name="name_desc">Name (Z-A)</string>
+    <string name="size_asc">Size (Smaller)</string>
+    <string name="size_desc">Size (Bigger)</string>
+    <string name="last_modified_asc">Date (Older)</string>
+    <string name="last_modified_desc">Date (Newer)</string>
 </resources>

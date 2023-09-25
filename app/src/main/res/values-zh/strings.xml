@@ -69,4 +69,12 @@
     <string name="delete" translatable="false">删除</string>
     <string name="set_source_timeout" translatable="false">超时换源</string>
     <string name="show_network_speed" translatable="false">显示网速</string>
+    <string name="locate_to">定位至</string>
+    <string name="locate">定位</string>
+    <string name="name_asc">文件名 (A-Z)</string>
+    <string name="name_desc">文件名 (Z-A)</string>
+    <string name="size_asc">大小 (升序)</string>
+    <string name="size_desc">大小 (降序)</string>
+    <string name="last_modified_asc">修改日期 (升序)</string>
+    <string name="last_modified_desc">修改日期 (降序)</string>
 </resources>

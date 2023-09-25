@@ -1,5 +1,6 @@
 package com.orion.iptv.ui.shares;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
@@ -9,7 +10,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -20,11 +20,14 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.PopupMenu;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.media3.common.MimeTypes;
+
 import com.orion.iptv.R;
+import com.orion.iptv.layout.dialog.SearchDialog;
 import com.orion.iptv.network.WebDavClient;
 import com.orion.iptv.recycleradapter.RecyclerAdapter;
 import com.orion.iptv.recycleradapter.DefaultSelection;
@@ -34,13 +37,16 @@ import com.orion.iptv.ui.video.VideoPlayerActivity;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import okhttp3.HttpUrl;
 
@@ -65,6 +71,10 @@ public class SharesContentFragment extends Fragment {
 
     private WebDavClient client;
     private Handler mHandler;
+    private SearchDialog dialog;
+    private SharesViewModel viewModel;
+    private int comparator = R.id.name_asc;
+    private final ComparatorFactory factory = new ComparatorFactory();
 
     private final HideToastTasker hideToastTasker = new HideToastTasker();
 
@@ -74,6 +84,7 @@ public class SharesContentFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_shares_content, container, false);
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
@@ -88,27 +99,79 @@ public class SharesContentFragment extends Fragment {
         homeButton.setOnClickListener(buttonView -> requireActivity()
                 .getSupportFragmentManager()
                 .popBackStack(SharesHomeFragment.TAG, 0));
+        ImageButton searchButton = view.findViewById(R.id.search);
+        searchButton.setOnClickListener(v -> dialog.show());
+        ImageButton sortButton = view.findViewById(R.id.sort);
+        sortButton.setOnClickListener(buttonView -> {
+            PopupMenu menu = new PopupMenu(requireContext(), buttonView);
+            menu.setOnMenuItemClickListener(item -> {
+                int id = item.getItemId();
+                if (id == comparator) {
+                    return true;
+                }
+                item.setChecked(true);
+                comparator = id;
+                mHandler.post(()-> {
+                    if (fileList.size() <= 2) {
+                        return;
+                    }
+                    RecyclerView.Adapter<?> adapter = nodes.getAdapter();
+                    if (adapter == null) {
+                        return;
+                    }
+                    onSort(fileList);
+                    adapter.notifyDataSetChanged();
+                });
+                return true;
+
+            });
+            menu.inflate(R.menu.sort_action);
+            menu.getMenu().findItem(comparator).setChecked(true);
+            menu.show();
+        });
         initView();
     }
 
    @Override
-   public void onStart() {
-       super.onStart();
-       if (mHandler != null) {
-           return;
-       }
+   public void onCreate(Bundle savedInstanceState) {
+       super.onCreate(savedInstanceState);
        mHandler = new Handler(requireContext().getMainLooper());
-       SharesViewModel viewModel = new ViewModelProvider(requireActivity()).get(SharesViewModel.class);
+       viewModel = new ViewModelProvider(requireActivity()).get(SharesViewModel.class);
        path = (FileNode) requireArguments().getSerializable("path");
        share = viewModel.getSelectedShare();
-       if (share == null) {
-           requireActivity()
-                   .getSupportFragmentManager()
-                   .popBackStack();
-           return;
-       }
        client = new WebDavClient(share);
-       refresh();
+       dialog = new SearchDialog(requireContext(), viewModel.getLastSearched());
+       dialog.setOnSubmitListener(text -> {
+           viewModel.setLastSearched(text);
+           if (fileList.size() == 2) {
+               return;
+           }
+           Pattern p;
+           try {
+               p = Pattern.compile(text);
+           } catch (PatternSyntaxException ignored) {
+               return;
+           }
+           // skip "." and ".." node
+           for (int i = 2; i < fileList.size(); i++) {
+               FileNode node = fileList.get(i);
+               Matcher m = p.matcher(node.getName());
+               if (m.find()) {
+                   nodes.scrollToPosition(i);
+                   defaultSelection.selectQuiet(i);
+                   break;
+               }
+           }
+       });
+   }
+
+   @Override
+   public void onStart() {
+        super.onStart();
+        if (files.size() == 0) {
+            refresh();
+        }
+        dialog.maybeSetLastSearched(viewModel.getLastSearched());
    }
 
     @Override
@@ -122,10 +185,6 @@ public class SharesContentFragment extends Fragment {
         LinearLayoutManager layoutManager = new LinearLayoutManager(requireContext());
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         nodes.setLayoutManager(layoutManager);
-        /*
-        DividerItemDecoration itemDecoration = new DividerItemDecoration(requireContext(), DividerItemDecoration.VERTICAL);
-        nodes.addItemDecoration(itemDecoration);
-        */
         defaultSelection = new SelectionWithFocus<>(nodes);
         defaultSelection.setCanRepeatSelect(true);
 
@@ -165,6 +224,16 @@ public class SharesContentFragment extends Fragment {
         }
     }
 
+    private void onSort(List<FileNode> nodes) {
+        Comparator<FileNode> c = factory.create(comparator);
+        List<FileNode> sub = nodes.subList(2, nodes.size());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            sub.sort(c);
+        } else {
+            Collections.sort(sub, c);
+        }
+    }
+
     public void refresh() {
         setViewVisible(toast,false);
         setViewVisible(loading, true);
@@ -175,6 +244,9 @@ public class SharesContentFragment extends Fragment {
                     @Override
                     public void onFailure(@NonNull Exception e) {
                         Log.e("ShareContentFragment", e.toString());
+                        if (getActivity() == null) {
+                            return;
+                        }
                         mHandler.post(() -> {
                             setViewVisible(loading, false);
                             showToast(e.toString());
@@ -183,28 +255,20 @@ public class SharesContentFragment extends Fragment {
 
                     @Override
                     public void onResponse(@Nullable final List<FileNode> children) {
-                        Log.i(TAG, String.format(Locale.ENGLISH, "current path: %s", path.getPath()));
-                        List<FileNode> items = new ArrayList<>(children == null ? 2 : children.size() + 2);
+                        Log.i(TAG, String.format(Locale.ENGLISH, "current path: %s, nodes: %d", path.getPath(), children==null ? 0 : children.size()));
+                        if (getActivity() == null || children == null || children.size() == 0) {
+                            return;
+                        }
+                        List<FileNode> items = new ArrayList<>(children.size() + 2);
                         items.add(0, FileNode.PARENT);
                         items.add(0, FileNode.CURRENT);
-                        if (children != null) {
-                            List<FileNode> tmp = children;
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                                tmp.sort(new FileNode.CompareByName());
-                            } else {
-                                FileNode[] fileNodes = children.toArray(new FileNode[0]);
-                                Arrays.sort(fileNodes, new FileNode.CompareByName());
-                                tmp = Arrays.asList(fileNodes);
-                            }
-                            items.addAll(tmp);
-                        }
+                        items.addAll(children);
                         mHandler.post(() -> {
+                            onSort(items);
                             files.clear();
-                            if (children != null) {
-                                for (int i = 0; i < children.size(); i++) {
-                                    FileNode f = children.get(i);
-                                    files.put(f.getName(), f);
-                                }
+                            for (int i = 0; i < children.size(); i++) {
+                                FileNode f = children.get(i);
+                                files.put(f.getName(), f);
                             }
                             fileList = items;
                             setViewVisible(loading, false);
@@ -272,7 +336,7 @@ public class SharesContentFragment extends Fragment {
             }
         }
         String prefix = getPrefix(node.getName());
-        ArrayList<Bundle> subtitles = new ArrayList<Bundle>();
+        ArrayList<Bundle> subtitles = new ArrayList<>();
         for (Subtitle suffix : suffixes) {
             String name = prefix + suffix.suffix;
             FileNode f = files.get(name);
@@ -324,6 +388,32 @@ public class SharesContentFragment extends Fragment {
         public Subtitle(String suffix, String mimeType) {
             this.suffix = suffix;
             this.mimeType = mimeType;
+        }
+    }
+
+    private static class ComparatorFactory {
+        private interface Factory {
+            Comparator<FileNode> create();
+        }
+
+        private final Map<Integer, Factory> factories;
+
+        public ComparatorFactory() {
+            factories = new HashMap<>();
+            factories.put(R.id.name_asc, FileNode.CompareByName::new);
+            factories.put(R.id.name_desc, FileNode.CompareByName::reverse);
+            factories.put(R.id.size_asc, FileNode.CompareBySize::new);
+            factories.put(R.id.size_desc, FileNode.CompareBySize::reverse);
+            factories.put(R.id.modified_asc, FileNode.CompareByModified::new);
+            factories.put(R.id.modified_desc, FileNode.CompareByModified::reverse);
+        }
+
+        public Comparator<FileNode> create(int id) {
+            Factory factory = factories.get(id);
+            if (factory == null) {
+                factory = FileNode.CompareByName::new;
+            }
+            return factory.create();
         }
     }
 }

@@ -1,5 +1,7 @@
 package com.orion.iptv.ui.shares;
 
+import android.os.Build;
+
 import androidx.annotation.Nullable;
 
 import java.io.Serializable;
@@ -77,6 +79,49 @@ public class FileNode implements Serializable {
         @Override
         public int compare(FileNode o1, FileNode o2) {
             return o1.getName().compareTo(o2.getName());
+        }
+
+        public static Comparator<FileNode> reverse() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                return new CompareByName().reversed();
+            } else {
+                Comparator<FileNode> comparator = new CompareByName();
+                return (o1, o2) -> comparator.compare(o2, o1);
+            }
+        }
+    }
+
+    public static class CompareBySize implements Comparator<FileNode> {
+        @Override
+        public int compare(FileNode o1, FileNode o2) {
+            return Long.compare(o1.size, o2.size);
+        }
+
+        public static Comparator<FileNode> reverse() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                return new CompareBySize().reversed();
+            } else {
+                Comparator<FileNode> comparator = new CompareBySize();
+                return (o1, o2) -> comparator.compare(o2, o1);
+            }
+        }
+    }
+
+    public static class CompareByModified implements Comparator<FileNode> {
+        @Override
+        public int compare(FileNode o1, FileNode o2) {
+            Date o1Date = o1.lastModified == null ? new Date(0) : o1.lastModified;
+            Date o2Date = o2.lastModified == null ? new Date(0) : o2.lastModified;
+            return o1Date.compareTo(o2Date);
+        }
+
+        public static Comparator<FileNode> reverse() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                return new CompareByModified().reversed();
+            } else {
+                Comparator<FileNode> comparator = new CompareByModified();
+                return (o1, o2) -> comparator.compare(o2, o1);
+            }
         }
     }
 }

@@ -39,6 +39,12 @@ public class SharesHomeFragment extends Fragment {
     protected ImageButton addShareButton;
     protected View selectionAction;
 
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        mViewModel = new ViewModelProvider(requireActivity()).get(SharesViewModel.class);
+    }
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -53,7 +59,6 @@ public class SharesHomeFragment extends Fragment {
         sharesView = view.findViewById(R.id.shares_body);
         selectionAction = view.findViewById(R.id.selection_actions);
 
-        mViewModel = new ViewModelProvider(requireActivity()).get(SharesViewModel.class);
         addShareButton.setOnClickListener((addRootButton) -> {
             WebDavSettingDialog dialog =  new WebDavSettingDialog(requireContext());
             dialog.setOnSubmitListener(share -> {

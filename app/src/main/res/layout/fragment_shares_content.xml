@@ -20,6 +20,8 @@
             android:id="@+id/current_path"
             android:layout_width="0dp"
             android:layout_height="match_parent"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -31,25 +33,39 @@
 
         <ImageButton
             android:id="@+id/shares_home"
-            android:layout_width="wrap_content"
+            android:layout_width="48dp"
             android:layout_height="wrap_content"
             android:src="@drawable/icon_home"
             android:contentDescription="@string/goto_root"
+            android:layout_marginEnd="4dp"
             style="@style/PlayerButton"
+            app:layout_constraintStart_toEndOf="@+id/current_path"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/search"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <ImageButton
+            android:id="@+id/search"
+            android:layout_width="48dp"
+            android:layout_height="wrap_content"
+            android:src="@drawable/icon_search"
+            android:contentDescription="@string/locate"
+            android:layout_marginEnd="4dp"
+            style="@style/PlayerButton"
+            app:layout_constraintStart_toEndOf="@+id/shares_home"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/current_path"
             app:layout_constraintEnd_toStartOf="@+id/sort" />
 
         <ImageButton
             android:id="@+id/sort"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_width="48dp"
+            android:layout_height="match_parent"
+            android:layout_marginEnd="4dp"
             android:src="@drawable/icon_sort"
             android:contentDescription="@string/sort"
             style="@style/PlayerButton"
-            app:layout_constraintStart_toEndOf="@+id/shares_home"
+            app:layout_constraintStart_toEndOf="@+id/search"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
