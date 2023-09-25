@@ -8,6 +8,7 @@ import android.view.View;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.view.GestureDetectorCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -24,6 +25,33 @@ public class DefaultSelection<T> implements Selection<T> {
     protected final RecyclerView recyclerView;
     protected RecyclerAdapter<T> adapter;
     protected final List<OnSelectedListener<T>> listeners;
+    protected final RecyclerView.AdapterDataObserver observer = new RecyclerView.AdapterDataObserver() {
+        @Override
+        public void onChanged() {
+            super.onChanged();
+            clearSelection();
+        }
+
+        @Override
+        public void onItemRangeChanged(int positionStart, int itemCount, @Nullable Object payload) {
+            super.onItemRangeChanged(positionStart, itemCount, payload);
+            if (TAG != payload) {
+                clearSelection();
+            }
+        }
+
+        @Override
+        public void onItemRangeRemoved(int positionStart, int itemCount) {
+            super.onItemRangeRemoved(positionStart, itemCount);
+            clearSelection();
+        }
+
+        @Override
+        public void onItemRangeInserted(int positionStart, int itemCount) {
+            super.onItemRangeInserted(positionStart, itemCount);
+            clearSelection();
+        }
+    };
 
     public DefaultSelection(RecyclerView recyclerView) {
         this.recyclerView = recyclerView;
@@ -64,11 +92,13 @@ public class DefaultSelection<T> implements Selection<T> {
     public void setAdapter(RecyclerAdapter<T> adapter, int selected) {
         if (this.adapter != null) {
             this.adapter.clearSelection();
+            this.adapter.unregisterAdapterDataObserver(observer);
         }
         this.adapter = adapter;
         adapter.setSelection(this);
         oldSelected = RecyclerView.NO_POSITION;
         curSelected = isPositionInvalid(selected) ? RecyclerView.NO_POSITION : selected;
+        adapter.registerAdapterDataObserver(observer);
     }
 
     @Override
