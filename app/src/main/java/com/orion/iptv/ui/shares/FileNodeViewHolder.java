@@ -10,11 +10,16 @@ import androidx.annotation.NonNull;
 import com.orion.iptv.R;
 import com.orion.iptv.recycleradapter.ViewHolder;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Locale;
+
 public class FileNodeViewHolder extends ViewHolder<FileNode> {
     private final TextView name;
     private final TextView size;
     private final TextView lastModified;
     private final ColorStateList[] backgrounds;
+    static private final DateFormat formatter = new SimpleDateFormat("yyy-MM-dd HH:mm:ss", Locale.ENGLISH);
 
     public FileNodeViewHolder(@NonNull Context context, @NonNull View itemView) {
         super(context, itemView);
@@ -47,7 +52,7 @@ public class FileNodeViewHolder extends ViewHolder<FileNode> {
         } else{
             this.size.setText("");
         }
-        this.lastModified.setText(content.getLastModified());
+        this.lastModified.setText(content.getLastModified(formatter));
         background = backgrounds[position % 2];
     }
 }

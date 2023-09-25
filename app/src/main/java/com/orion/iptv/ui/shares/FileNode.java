@@ -22,8 +22,6 @@ public class FileNode implements Serializable {
     private final String path;
     private final long size;
     private final Date lastModified;
-    private final DateFormat formatter;
-
     private final String[] units = {"B", "KB", "MB", "GB", "TB", "PB"};
     public FileNode(String name, String absolutePath, boolean isFile, long size, @Nullable Date lastModified) {
         this.name = (name != null && !name.equals("")) ? name : "";
@@ -31,7 +29,6 @@ public class FileNode implements Serializable {
         this.path = absolutePath.startsWith("/") ? absolutePath.substring(1) : absolutePath;
         this.isFile = isFile;
         this.size = size;
-        this.formatter = new SimpleDateFormat("yyy-MM-dd HH:mm:ss", Locale.ENGLISH);
         this.lastModified = lastModified;
     }
 
@@ -68,7 +65,7 @@ public class FileNode implements Serializable {
         return formatSize(size);
     }
 
-    public String getLastModified() {
+    public String getLastModified(DateFormat formatter) {
         if (name.equals(".") || name.equals("..") || lastModified==null) {
             return "";
         }
