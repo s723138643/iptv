@@ -4,7 +4,6 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.content.res.Resources;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,13 +12,17 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.OptIn;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import androidx.media3.common.C;
+import androidx.media3.common.util.UnstableApi;
+
 import com.orion.iptv.R;
 import com.orion.iptv.bean.ChannelInfo;
 import com.orion.iptv.bean.EpgProgram;
+import com.orion.iptv.misc.CancelableRunnable;
 import com.orion.player.ExtTrack;
 import com.orion.player.IExtPlayer;
 import com.orion.player.ui.EnhanceConstraintLayout;
@@ -42,22 +45,7 @@ public class LiveChannelInfo extends Fragment {
     protected TextView nextEpgProgram;
     protected Resources res;
 
-    protected long hideMyselfAt = 0;
-    protected final Runnable hideMyself = new Runnable() {
-        @Override
-        public void run() {
-            if (hideMyselfAt <= 0) {
-                return;
-            }
-            long diff = SystemClock.uptimeMillis() - hideMyselfAt;
-            if (diff >= 0) {
-                hideMyselfAt = 0;
-                hide();
-            } else {
-                container.postDelayed(this, -diff);
-            }
-        }
-    };
+    protected CancelableRunnable hideMyself;
     protected final IExtPlayer.Listener listener = new PlayerEventListener();
 
     @Nullable
@@ -88,18 +76,6 @@ public class LiveChannelInfo extends Fragment {
         viewModel.observeLiveSource(requireActivity(), this::updateChannelInfo);
         viewModel.observeCurrentEpgProgram(requireActivity(), this::setCurrentEpgProgram);
         viewModel.observeNextEpgProgram(requireActivity(), this::setNextEpgProgram);
-        container.addEventListener(new EnhanceConstraintLayout.EventListener() {
-            @Override
-            public void onVisibilityChanged(@NonNull View changedView, int visibility) {
-                if (changedView != container) {
-                    return;
-                }
-                container.removeCallbacks(hideMyself);
-                if (visibility == View.VISIBLE && hideMyselfAt > 0) {
-                    container.postDelayed(hideMyself, Math.max(hideMyselfAt-SystemClock.uptimeMillis(), 1));
-                }
-            }
-        });
     }
 
     protected void updateChannelInfo(Pair<Integer, DataSource> dataSource) {
@@ -183,24 +159,17 @@ public class LiveChannelInfo extends Fragment {
     @SuppressWarnings("unused")
     public void toggleVisibility() {
         if (isViewHidden()) {
-            show();
+            show(5*1000);
         } else {
             hide();
         }
     }
 
     public void show(long displayMillis) {
-        if (!isViewHidden() && hideMyselfAt <= 0) {
-            // we have showed it without auth hide, so ignore this operation
-            return;
+        if (isViewHidden()) {
+            _show();
         }
-        hideMyselfAt = SystemClock.uptimeMillis() + displayMillis;
-        _show();
-    }
-
-    public void show() {
-        hideMyselfAt = 0;
-        _show();
+        hide(displayMillis);
     }
 
     protected void _show() {
@@ -218,16 +187,30 @@ public class LiveChannelInfo extends Fragment {
                 });
     }
 
+    private void _hide(long delayMillis) {
+        if (hideMyself != null) {
+            hideMyself.cancel();
+        }
+        hideMyself = new CancelableRunnable() {
+            @Override
+            public void callback() {
+                hide();
+            }
+        };
+        container.postDelayed(hideMyself, delayMillis);
+    }
+
     public void hide(long delayMillis) {
         if (isViewHidden()) {
             return;
         }
-        container.removeCallbacks(hideMyself);
-        hideMyselfAt = SystemClock.uptimeMillis() + delayMillis;
-        container.postDelayed(hideMyself, delayMillis);
+        _hide(delayMillis);
     }
 
     public void hide() {
+        if (isViewHidden()) {
+            return;
+        }
         container.animate()
                 .alpha(0f)
                 .setDuration(200)
@@ -241,6 +224,8 @@ public class LiveChannelInfo extends Fragment {
     }
 
     private class PlayerEventListener implements IExtPlayer.Listener {
+
+        @OptIn(markerClass = UnstableApi.class)
         @Override
         public void onTracksChanged(List<ExtTrack> tracks) {
             for (ExtTrack track: tracks) {

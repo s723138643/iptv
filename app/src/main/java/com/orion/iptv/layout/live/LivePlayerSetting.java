@@ -40,6 +40,7 @@ public class LivePlayerSetting extends Fragment {
     private final Runnable hideMyself = new Runnable() {
         @Override
         public void run() {
+            if (!isViewVisible()) { return; }
             long diff = SystemClock.uptimeMillis() - hideMyselfAt;
             if (diff >= 0) {
                 hideMyselfAt = 0;
@@ -188,6 +189,7 @@ public class LivePlayerSetting extends Fragment {
     }
 
     public void hide() {
+        if (!isViewVisible()) { return; }
         enhanceConstraintLayout.animate()
                 .alpha(0f)
                 .setDuration(200)

@@ -54,6 +54,7 @@ public class LiveChannelList extends Fragment {
     private final Runnable hideMyself = new Runnable() {
         @Override
         public void run() {
+            if (!isViewVisible()) { return; }
             long diff = SystemClock.uptimeMillis() - hideMyselfAt;
             if (diff >= 0) {
                 hideMyselfAt = 0;
@@ -276,6 +277,9 @@ public class LiveChannelList extends Fragment {
     }
 
     public void hide() {
+        if (!isViewVisible()) {
+            return;
+        }
         if (groupList.hasFocus()) {
             focusedView = groupList;
         } else if (channelList.hasFocus()) {

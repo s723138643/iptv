@@ -640,7 +640,7 @@ public class LivePlayerActivity extends AppCompatActivity {
         @Override
         public void onDataSourceUsed(ExtDataSource dataSource) {
             toast.hide();
-            channelInfo.show();
+            channelInfo.show(5*1000);
             buffering.show();
         }
 

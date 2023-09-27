@@ -15,4 +15,8 @@ public abstract class CancelableRunnable implements Runnable {
     public void cancel() {
         canceled = true;
     }
+
+    public boolean canceled() {
+        return canceled;
+    }
 }
