@@ -55,12 +55,12 @@ public class SharesContentFragment extends Fragment {
     private Share share;
     private FileNode path;
     ImageButton homeButton;
-    private final Subtitle[] suffixes = {
-            new Subtitle(".srt", MimeTypes.APPLICATION_SUBRIP),
-            new Subtitle(".ass", MimeTypes.TEXT_SSA),
-            new Subtitle(".ssa", MimeTypes.TEXT_SSA)
-    };
-    private final Map<String, FileNode> files = new HashMap<>();
+    private final Map<String, String> typeOfSubtitle = new HashMap<>() {{
+        put("srt", MimeTypes.APPLICATION_SUBRIP);
+        put("ass", MimeTypes.TEXT_SSA);
+        put("ssa", MimeTypes.TEXT_SSA);
+    }};
+    private final Map<String, FileNode> subtitles = new HashMap<>();
     private List<FileNode> fileList = List.of(FileNode.CURRENT, FileNode.PARENT);
     private RecyclerView nodes;
     DefaultSelection<FileNode> defaultSelection;
@@ -168,7 +168,7 @@ public class SharesContentFragment extends Fragment {
    @Override
    public void onStart() {
         super.onStart();
-        if (files.size() == 0) {
+        if (fileList.size() == 2) {
             refresh();
         }
         dialog.maybeSetLastSearched(viewModel.getLastSearched());
@@ -265,10 +265,16 @@ public class SharesContentFragment extends Fragment {
                         items.addAll(children);
                         mHandler.post(() -> {
                             onSort(items);
-                            files.clear();
-                            for (int i = 0; i < children.size(); i++) {
-                                FileNode f = children.get(i);
-                                files.put(f.getName(), f);
+                            subtitles.clear();
+                            for (FileNode f : children) {
+                                if (!f.isFile()) {
+                                    continue;
+                                }
+                                String name = f.getName();
+                                String suffix = getSuffix(name);
+                                if (typeOfSubtitle.containsKey(suffix)) {
+                                    subtitles.put(name, f);
+                                }
                             }
                             fileList = items;
                             setViewVisible(loading, false);
@@ -322,6 +328,14 @@ public class SharesContentFragment extends Fragment {
         return name.substring(0, e);
     }
 
+    private String getSuffix(String name) {
+        int e = name.lastIndexOf(".");
+        if (e < 0) {
+            return name;
+        }
+        return name.substring(e+1);
+    }
+
     public void play(FileNode node) {
         Intent intent = new Intent(requireContext(), VideoPlayerActivity.class);
         intent.setData(makeUri(node));
@@ -337,16 +351,14 @@ public class SharesContentFragment extends Fragment {
         }
         String prefix = getPrefix(node.getName());
         ArrayList<Bundle> subtitles = new ArrayList<>();
-        for (Subtitle suffix : suffixes) {
-            String name = prefix + suffix.suffix;
-            FileNode f = files.get(name);
-            if (f == null) {
-                continue;
-            }
+        for (Map.Entry<String, FileNode> entry : this.subtitles.entrySet()) {
+            String name = entry.getKey();
+            FileNode f = entry.getValue();
+            if (f.isDummy() || name.equals(node.getName()) || !name.contains(prefix)) { continue; }
             Log.i("Play", "found subtitle: " + name);
             Bundle subtitle = new Bundle();
             subtitle.putParcelable("uri", makeUri(f));
-            subtitle.putString("mimeType", suffix.mimeType);
+            subtitle.putString("mimeType", typeOfSubtitle.get(getSuffix(name)));
             subtitles.add(subtitle);
         }
         if (subtitles.size() > 0) {
@@ -381,32 +393,19 @@ public class SharesContentFragment extends Fragment {
         }
     }
 
-    private static class Subtitle {
-        public String suffix;
-        public String mimeType;
-
-        public Subtitle(String suffix, String mimeType) {
-            this.suffix = suffix;
-            this.mimeType = mimeType;
-        }
-    }
-
     private static class ComparatorFactory {
         private interface Factory {
             Comparator<FileNode> create();
         }
 
-        private final Map<Integer, Factory> factories;
-
-        public ComparatorFactory() {
-            factories = new HashMap<>();
-            factories.put(R.id.name_asc, FileNode.CompareByName::new);
-            factories.put(R.id.name_desc, FileNode.CompareByName::reverse);
-            factories.put(R.id.size_asc, FileNode.CompareBySize::new);
-            factories.put(R.id.size_desc, FileNode.CompareBySize::reverse);
-            factories.put(R.id.modified_asc, FileNode.CompareByModified::new);
-            factories.put(R.id.modified_desc, FileNode.CompareByModified::reverse);
-        }
+        private final Map<Integer, Factory> factories = new HashMap<>() {{
+            put(R.id.name_asc, FileNode.CompareByName::new);
+            put(R.id.name_desc, FileNode.CompareByName::reverse);
+            put(R.id.size_asc, FileNode.CompareBySize::new);
+            put(R.id.size_desc, FileNode.CompareBySize::reverse);
+            put(R.id.modified_asc, FileNode.CompareByModified::new);
+            put(R.id.modified_desc, FileNode.CompareByModified::reverse);
+        }};
 
         public Comparator<FileNode> create(int id) {
             Factory factory = factories.get(id);

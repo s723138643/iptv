@@ -47,7 +47,7 @@ public class FileNodeViewHolder extends ViewHolder<FileNode> {
     @Override
     public void setContent(int position, FileNode content) {
         this.name.setText(content.getName());
-        this.size.setText(content.getSize("-"));
+        this.size.setText(content.getSize(""));
         this.lastModified.setText(content.getLastModified(formatter));
         background = backgrounds[position % 2];
     }
