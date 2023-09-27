@@ -25,10 +25,18 @@ public class ChannelSource {
 
     public static ChannelSource from(String defaultGroupName, String channels) {
         ChannelSource m = new ChannelSource(defaultGroupName);
+        m.merge(channels);
+        return m;
+    }
+
+    private boolean merge(String channels) {
         BufferedReader reader = new BufferedReader(new StringReader(channels));
         String group = defaultGroupName;
         try {
             for (String line = reader.readLine(); line != null; line = reader.readLine()) {
+                if (line.trim().startsWith("//")) {
+                    continue;
+                }
                 String[] parts = line.split(",", 2);
                 if (parts.length != 2) {
                     if (!line.trim().isEmpty()) {
@@ -44,22 +52,27 @@ public class ChannelSource {
                     for (String link : links) {
                         String trimmed = link.trim();
                         if (!trimmed.isEmpty()) {
-                            m.appendChannel(group, parts[0].trim(), trimmed);
+                            appendChannel(group, parts[0].trim(), trimmed);
                         }
                     }
                 }
             }
         } catch (IOException exc) {
             Log.e(TAG, "parse channels failed, " + exc);
+            return false;
         }
         List<ChannelGroup> groups = new ArrayList<>();
-        for (ChannelGroup g : m.groups) {
+        for (ChannelGroup g : this.groups) {
             if (g.channels.size() > 0) {
                 groups.add(g);
             }
         }
-        m.groups = groups;
-        return m;
+        this.groups = groups;
+        return groups.size() > 0;
+    }
+
+    public boolean mergeFrom(String text) {
+        return merge(text);
     }
 
     @NonNull

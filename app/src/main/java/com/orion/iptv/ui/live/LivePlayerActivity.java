@@ -33,6 +33,7 @@ import com.orion.iptv.R;
 import com.orion.iptv.bean.ChannelInfo;
 import com.orion.iptv.bean.ChannelSource;
 import com.orion.iptv.bean.EpgProgram;
+import com.orion.iptv.bean.tvbox.Live;
 import com.orion.iptv.epg.m51zmt.M51ZMT;
 import com.orion.iptv.layout.dialog.ChannelSourceDialog;
 import com.orion.iptv.layout.live.DataSource;
@@ -40,7 +41,7 @@ import com.orion.iptv.layout.live.LiveChannelInfo;
 import com.orion.iptv.layout.live.LiveChannelList;
 import com.orion.iptv.layout.live.LivePlayerSetting;
 import com.orion.iptv.layout.live.LivePlayerViewModel;
-import com.orion.iptv.misc.SourceTypeDetector;
+import com.orion.iptv.misc.ChannelLoader;
 import com.orion.iptv.network.DownloadHelper;
 import com.orion.player.ui.NetworkSpeed;
 import com.orion.player.ui.Rect;
@@ -55,14 +56,18 @@ import com.orion.player.ui.Toast;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import okhttp3.Cache;
 import okhttp3.CacheControl;
 import okhttp3.Call;
 import okhttp3.Callback;
+import okhttp3.OkHttpClient;
 import okhttp3.Response;
 
 public class LivePlayerActivity extends AppCompatActivity {
@@ -100,7 +105,8 @@ public class LivePlayerActivity extends AppCompatActivity {
     private final EpgRefresher epgRefresher = new EpgRefresher();
 
     private final PlayerEventListener listener = new PlayerEventListener();
-    private List<Call> pendingCalls;
+    private OkHttpClient httpClient;
+    private int flyingSourceTasks = 0;
     private boolean needResume = false;
     private long lastPressed = 0;
 
@@ -115,7 +121,11 @@ public class LivePlayerActivity extends AppCompatActivity {
 
         mHandler = new Handler(this.getMainLooper());
         mPlayerHandler = new Handler(this.getMainLooper());
-        pendingCalls = new ArrayList<>();
+        httpClient = new OkHttpClient.Builder()
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .cache(new Cache(this.getCacheDir(), 50 * 1024 * 1024))
+                .followSslRedirects(true)
+                .build();
         mViewModel = new ViewModelProvider(this).get(LivePlayerViewModel.class);
         gestureDetector = new GestureDetectorCompat(this, new GestureListener());
 
@@ -408,10 +418,7 @@ public class LivePlayerActivity extends AppCompatActivity {
     @Override
     public void onStop() {
         super.onStop();
-        for (Call call : pendingCalls) {
-            call.cancel();
-        }
-        pendingCalls.clear();
+        httpClient.dispatcher().cancelAll();
         mPlayerHandler.removeCallbacksAndMessages(null);
         mHandler.removeCallbacksAndMessages(null);
         if (player != null) {
@@ -430,61 +437,95 @@ public class LivePlayerActivity extends AppCompatActivity {
         windowInsetsController.hide(WindowInsetsCompat.Type.systemBars());
     }
 
-    private void processChannelList(String response) {
-        ChannelSource source = ChannelSource.from(getString(R.string.default_group_name), response);
-        mHandler.post(() -> {
-            buffering.hide();
-            mViewModel.updateChannelSource(source);
-        });
-    }
-
-    protected void fetchSetting(String url, int depth) {
-        if (depth > 3) {
+    protected void fetchSetting(ChannelSource channels, Set<String> visited, String url, int depth) {
+        if (depth > 5) {
+            Log.w(TAG, String.format(Locale.ENGLISH, "%s, max redirects reached", url));
+            flyingSourceTasks -= 1;
+            if (flyingSourceTasks == 0) {
+                mHandler.post(()->{
+                   buffering.hide();
+                   mViewModel.updateChannelSource(channels);
+                });
+            }
             return;
         }
+        Log.i(TAG, "get channel source from: " + url);
+        try {
+            _fetchSetting(channels, visited, url, depth);
+        } catch (Exception e) {
+            Log.e(TAG, String.format(Locale.ENGLISH, "fetch url: %s failed, %s", url, e));
+            flyingSourceTasks -= 1;
+            if (flyingSourceTasks == 0) {
+                buffering.hide();
+                mViewModel.updateChannelSource(channels);
+            }
+        }
+    }
+
+    protected void _fetchSetting(ChannelSource channels, Set<String> visited, String url, int depth) {
         CacheControl cacheControl = new CacheControl.Builder()
                 .maxAge(3, TimeUnit.HOURS)
                 .build();
-        Call call = DownloadHelper.get(
+        DownloadHelper.get(
+                httpClient,
                 url,
                 cacheControl,
                 new Callback() {
                     @Override
                     public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                        pendingCalls.remove(call);
                         Log.e(TAG, "got channel list failed, " + e);
                         mHandler.post(()->{
-                            buffering.hide();
-                            toast.setMessage(e.toString(), 5*1000);
+                            flyingSourceTasks -= 1;
+                            if (flyingSourceTasks == 0) {
+                                buffering.hide();
+                                mViewModel.updateChannelSource(channels);
+                            }
                         });
                     }
 
                     @Override
                     public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                        pendingCalls.remove(call);
                         String text = Objects.requireNonNull(response.body()).string();
-                        if (SourceTypeDetector.isJson(text)) {
-                            String liveUrl = SourceTypeDetector.getLiveUrl(text);
-                            Log.i(TAG, "got live url: " + liveUrl);
-                            if (liveUrl.isEmpty()) {
-                                return;
+                        mHandler.post(() -> {
+                            flyingSourceTasks -= 1;
+                            List<Live> lives = new ArrayList<>();
+                            try {
+                                lives = ChannelLoader.getChannels(channels, text);
+                            } catch (Exception e) {
+                                Log.e(TAG, String.format(Locale.ENGLISH, "url: %s parse failed, %s", url, e));
                             }
-                            fetchSetting(liveUrl, depth + 1);
-                        } else {
-                            processChannelList(text);
-                        }
+                            if (lives.size() > 0) {
+                                List<Live> filtered = new ArrayList<>();
+                                for (Live live: lives) {
+                                    if (!visited.contains(live.url)) {
+                                        visited.add(live.url);
+                                        filtered.add(live);
+                                    }
+                                }
+                                flyingSourceTasks += filtered.size();
+                                for (Live live : filtered) {
+                                    fetchSetting(channels, visited, live.url, depth + 1);
+                                }
+                            }
+                            if (flyingSourceTasks == 0) {
+                                buffering.hide();
+                                mViewModel.updateChannelSource(channels);
+                            }
+                        });
                     }
                 }
         );
-        pendingCalls.add(call);
     }
 
     protected void onSettingUrl(String url) {
         if (url == null || url.equals("")) {
             return;
         }
+        Set<String> visited = new HashSet<>();
+        visited.add(url);
         buffering.show();
-        fetchSetting(url, 1);
+        flyingSourceTasks += 1;
+        fetchSetting(new ChannelSource(""), visited, url, 1);
     }
 
     protected void onCurrentChannel(LivePlayerViewModel.Channel currentChannel) {
@@ -493,20 +534,19 @@ public class LivePlayerActivity extends AppCompatActivity {
         }
         ChannelInfo info = currentChannel.channelInfo;
         Date today = new Date();
-        Call call = M51ZMT.get(
+        M51ZMT.get(
+                httpClient,
                 epgUrl,
                 info.channelName,
                 today,
                 new M51ZMT.Callback() {
                     @Override
                     public void onFailure(@NonNull Call call, @NonNull Exception e) {
-                        pendingCalls.remove(call);
                         Log.e(TAG, "update epg for " + info.channelName + " failed, " + e);
                     }
 
                     @Override
                     public void onResponse(@NonNull Call call, @NonNull EpgProgram[] programs) {
-                        pendingCalls.remove(call);
                         if (programs.length == 0) {
                             return;
                         }
@@ -514,7 +554,6 @@ public class LivePlayerActivity extends AppCompatActivity {
                     }
                 }
         );
-        pendingCalls.add(call);
     }
 
     private class GestureListener extends GestureDetector.SimpleOnGestureListener {

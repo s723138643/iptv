@@ -20,28 +20,44 @@ public class DownloadHelper {
     }
 
     public static Call get(String url, Callback callback) {
+        return get(helper.client, url, callback);
+    }
+
+    public static Call get(OkHttpClient client, String url, Callback callback) {
         Request request = new Request.Builder()
                 .url(url)
                 .build();
-        return get(request, callback);
+        return get(client, request, callback);
     }
 
     public static Call get(String url, CacheControl cacheControl, Callback callback) {
-        Request request = new Request.Builder()
+        return get(helper.client, url, cacheControl, callback);
+    }
+
+    public static Call get(OkHttpClient client, String url, CacheControl cacheControl, Callback callback) {
+         Request request = new Request.Builder()
                 .url(url)
                 .cacheControl(cacheControl)
                 .build();
-        return get(request, callback);
+        return get(client, request, callback);
     }
 
-    public static Call get(Request request, Callback callback) {
-        Call call = helper.client.newCall(request);
+    public static Call get(OkHttpClient client, Request request, Callback callback) {
+        Call call = client.newCall(request);
         call.enqueue(callback);
         return call;
     }
 
-    public static Response getBlocked(Request request) throws IOException {
-        Call call = helper.client.newCall(request);
+    public static Call get(Request request, Callback callback) {
+        return get(helper.client, request, callback);
+    }
+
+    public static Response getBlocked(OkHttpClient client, Request request) throws IOException {
+        Call call = client.newCall(request);
         return call.execute();
+    }
+
+    public static Response getBlocked(Request request) throws IOException {
+        return getBlocked(helper.client, request);
     }
 }

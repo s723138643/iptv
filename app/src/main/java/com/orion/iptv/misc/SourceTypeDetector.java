@@ -1,29 +1,33 @@
 package com.orion.iptv.misc;
 
-import android.util.Base64;
 import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class SourceTypeDetector {
     public static final String TAG = "SourceTypeDetector";
-    private static final Pattern liveUrlPattern = Pattern.compile("[\"'](proxy://do=live&.*?)[\"']");
 
-    // 探测是否是json字符串，不支持嵌套/**/注释检测
-    public static boolean isJson(String data) {
+    enum SourceType {
+        JSON,
+        HTML,
+        TEXT,
+        UNKNOWN,
+    }
+
+    // 探测文档类型,忽略文档开头的空字符和注释，不支持嵌套/**/注释检测
+    public static SourceType getType(String data) {
         try {
-            return _isJson(data);
+            return _getType(data);
         } catch (IOException e) {
             Log.e(TAG, "parse data type failed, " + e);
         }
-        return false;
+        return SourceType.UNKNOWN;
     }
 
-    private static boolean _isJson(String data) throws IOException {
+    private static SourceType _getType(String data) throws IOException {
         BufferedReader reader = new BufferedReader(new StringReader(data));
         String starCommentStart = "/*";
         for (String line = reader.readLine(); line != null; line = reader.readLine()) {
@@ -36,11 +40,11 @@ public class SourceTypeDetector {
                 if (remain.isEmpty()) {
                     continue;
                 }
-                return remain.startsWith("{");
+                return checkType(remain);
             }
-            return line.startsWith("{");
+            return checkType(line);
         }
-        return false;
+        return SourceType.TEXT;
     }
 
     private static String eatStarComment(String firstLine, BufferedReader reader) throws IOException {
@@ -58,41 +62,13 @@ public class SourceTypeDetector {
         return "";
     }
 
-    static String getExt(String params) {
-        while (!params.isEmpty()) {
-            String[] pair = params.split("&", 2);
-            if (pair[0].startsWith("ext")) {
-                String[] kv = pair[0].split("=", 2);
-                if (kv.length == 2) {
-                    return kv[1];
-                }
-                return "";
-            }
-            params = pair[1];
+    private static SourceType checkType(String line) {
+        if (line.startsWith("{")) {
+            return SourceType.JSON;
         }
-        return "";
-    }
-
-    public static String getLiveUrl(String data) {
-        Matcher matcher = liveUrlPattern.matcher(data);
-        if (!matcher.find()) {
-            return "";
+        if (Pattern.matches("<!DOCTYPE .*?>", line) || Pattern.matches("<html .*?>", line)) {
+            return SourceType.HTML;
         }
-        String liveUrl = matcher.group(1);
-        if (liveUrl == null || liveUrl.trim().isEmpty()) {
-            return "";
-        }
-        Log.i(TAG, "original url: " + liveUrl);
-        liveUrl = liveUrl.replace("proxy://", "");
-        String ext = getExt(liveUrl);
-        if (ext == null || ext.trim().isEmpty()) {
-            return "";
-        }
-        String realUrl = ext;
-        try {
-            realUrl = new String(Base64.decode(ext, Base64.DEFAULT));
-        } catch (IllegalArgumentException ignored) {
-        }
-        return !realUrl.isEmpty() ? realUrl : "";
+        return SourceType.TEXT;
     }
 }

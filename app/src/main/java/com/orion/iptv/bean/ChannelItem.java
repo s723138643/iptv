@@ -10,6 +10,8 @@ import java.util.List;
 
 public class ChannelItem implements ListItemWithNumber, ListItemWithStableId {
     public final ChannelInfo info;
+    public String ua;
+    public String referer;
     public List<String> links;
 
     public ChannelItem(int channelNumber, String channelName, GroupInfo groupInfo) {

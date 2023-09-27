@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 import okhttp3.CacheControl;
 import okhttp3.Call;
+import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
@@ -37,7 +38,7 @@ public class M51ZMT {
         return new Request.Builder().url(uri.toString());
     }
 
-    public static Call get(String api, String channelName, Date date, Callback callback) {
+    public static Call get(OkHttpClient client, String api, String channelName, Date date, Callback callback) {
         CacheControl cacheControl = new CacheControl.Builder()
                 .maxAge(3, TimeUnit.HOURS)
                 .build();
@@ -45,7 +46,8 @@ public class M51ZMT {
                 .cacheControl(cacheControl)
                 .build();
         Log.i(TAG, "request epg url: " + request.url());
-        return DownloadHelper.get(request, new okhttp3.Callback() {
+        Call call = client.newCall(request);
+        call.enqueue(new okhttp3.Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
                 callback.onFailure(call, e);
@@ -62,6 +64,7 @@ public class M51ZMT {
                 }
             }
         });
+        return call;
     }
 
     public static EpgProgram[] toEpgProgram(String response) throws ParseException {
